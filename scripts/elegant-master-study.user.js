@@ -691,6 +691,7 @@
             if (!duration || duration <= 0) duration = 3600;
             return { nodeId, duration };
         }
+
         checkParallelStatus() {
             const schoolId = this.getCookie('schoolId');
             const userId = this.getCookie('userId') || this.getCookie('user_id');
@@ -735,6 +736,23 @@
         } else {
             console.log('⚠️  未检测到学习节点，请先访问课程页面');
         }
+
+        // 监听 URL 变化（SPA 路由切换）
+        let lastUrl = location.href;
+        setInterval(() => {
+            if (location.href !== lastUrl) {
+                lastUrl = location.href;
+                console.log('🔄 URL 变化，重新检测环境:', location.href);
+                const newEnv = engine.detectEnvironment();
+                if (newEnv) {
+                    engine.env = newEnv;
+                    ui.updateStatus(newEnv.nodeId, newEnv.duration, null, '待机');
+                    console.log('✅ 环境已更新:', newEnv);
+                } else {
+                    console.log('⚠️  当前页面不是学习节点');
+                }
+            }
+        }, 500);
     }
 
     init();
