@@ -612,7 +612,7 @@
                 this._api = {
                     nodeId: this.env.nodeId,
                     async study(time, studyId = null) {
-                        const body = { nodeId: this._api.nodeId, studyTime: time };
+                        const body = { nodeId: this.nodeId, studyTime: time };
                         if (studyId) body.studyId = studyId;
                         try {
                             const res = await fetch(`${location.origin}/user/node/study`, {
