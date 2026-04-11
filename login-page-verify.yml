@@ -1,0 +1,19 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link [ref=e6] [cursor=pointer]:
+      - /url: /index
+    - generic [ref=e10]:
+      - generic [ref=e11]: 学生登录
+      - generic [ref=e13]
+  - generic [ref=e39]:
+    - generic [ref=e40]:
+      - generic [ref=e41]
+      - button "收起" [ref=e44] [cursor=pointer]
+    - generic [ref=e47]:
+      - generic [ref=e48]
+      - generic [ref=e62]
+      - generic [ref=e65]
+    - generic [ref=e71]:
+      - button "⚙️ AI配置" [ref=e72] [cursor=pointer]
+      - button "🚀 启动" [ref=e73] [cursor=pointer]
+      - button "重置" [ref=e74] [cursor=pointer]

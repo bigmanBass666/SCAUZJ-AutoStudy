@@ -1,0 +1,85 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link [ref=e6] [cursor=pointer]:
+      - /url: /index
+    - generic [ref=e10]:
+      - generic [ref=e11]: 学生登录
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]: 用户名
+          - textbox "请输入您的学号" [ref=e18]: GZCP
+        - generic [ref=e19]:
+          - generic [ref=e20]: 密码
+          - textbox "请输入您的密码" [ref=e23]: REDACTED_PASSWORD
+        - generic [ref=e24]:
+          - generic [ref=e25]: 验证码
+          - generic [ref=e26]:
+            - textbox "请输入验证码" [ref=e28]
+            - img "看不清楚点击刷新！" [ref=e30] [cursor=pointer]
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - checkbox "保持登录状态" [checked] [ref=e34]
+            - text: 保持登录状态
+          - link "忘记密码？" [ref=e35] [cursor=pointer]:
+            - /url: /user/login/forget_by_mobile
+        - button "登录" [ref=e38] [cursor=pointer]
+  - generic [ref=e39]:
+    - generic [ref=e40]:
+      - generic [ref=e42]:
+        - generic [ref=e43]: 🌟
+        - generic [ref=e44]:
+          - generic [ref=e45]: 优雅大师
+          - generic [ref=e46]: 无痕刷课助手
+      - button "收起" [ref=e47] [cursor=pointer]
+    - generic [ref=e49]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - generic [ref=e53]: 节点
+          - generic [ref=e54]: "--"
+        - generic [ref=e55]:
+          - generic [ref=e56]: 时长
+          - generic [ref=e57]: "--"
+        - generic [ref=e58]:
+          - generic [ref=e59]: 进度
+          - generic [ref=e60]: 0%
+        - generic [ref=e61]:
+          - generic [ref=e62]: 状态
+          - generic [ref=e63]: 待机
+      - generic [ref=e64]:
+        - generic [ref=e65]: ⚡ 快速控制
+        - generic [ref=e67] [cursor=pointer]:
+          - checkbox "完成后自动下一节" [checked] [ref=e68]
+          - generic [ref=e69]: 完成后自动下一节
+        - generic [ref=e70]:
+          - generic [ref=e71]: 加速模式
+          - generic [ref=e72]:
+            - button "1x 慢速" [ref=e73] [cursor=pointer]
+            - button "10x 标准" [ref=e74] [cursor=pointer]
+            - button "15x 极速" [ref=e75] [cursor=pointer]
+      - generic [ref=e76]:
+        - generic [ref=e77] [cursor=pointer]:
+          - generic [ref=e78]: ⚙️ 高级设置
+          - generic [ref=e79]: ▼
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: 上报间隔 (ms)
+            - generic [ref=e83]:
+              - slider [ref=e84]: "2000"
+              - generic [ref=e85]: "2000"
+          - generic [ref=e86]:
+            - generic [ref=e87]: 每次跳跃 (秒)
+            - generic [ref=e88]:
+              - slider [ref=e89]: "30"
+              - generic [ref=e90]: "30"
+          - generic [ref=e91]:
+            - generic [ref=e92]: 完成目标 (%)
+            - generic [ref=e93]:
+              - button "90%" [ref=e94] [cursor=pointer]
+              - button "95%" [ref=e95] [cursor=pointer]
+              - button "98%" [ref=e96] [cursor=pointer]
+              - button "100%" [ref=e97] [cursor=pointer]
+          - generic [ref=e98]: 💡 高级设置按需调整，默认已优化。
+    - generic [ref=e99]:
+      - button "⚙️ AI配置" [ref=e100] [cursor=pointer]
+      - button "🚀 启动" [ref=e101] [cursor=pointer]
+      - button "重置" [ref=e102] [cursor=pointer]

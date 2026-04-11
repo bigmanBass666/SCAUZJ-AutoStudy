@@ -1,0 +1,24 @@
+- generic [ref=e2]:
+  - link [ref=e6] [cursor=pointer]:
+    - /url: /index
+  - generic [ref=e10]:
+    - generic [ref=e11]: 学生登录
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]: 用户名
+        - textbox "请输入您的学号" [ref=e18]: "REDACTED_USERNAME"
+      - generic [ref=e19]:
+        - generic [ref=e20]: 密码
+        - textbox "请输入您的密码" [ref=e23]: REDACTED_PASSWORD
+      - generic [ref=e24]:
+        - generic [ref=e25]: 验证码
+        - generic [ref=e26]:
+          - textbox "请输入验证码" [ref=e28]
+          - img "看不清楚点击刷新！" [ref=e30] [cursor=pointer]
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - checkbox "保持登录状态" [checked] [ref=e34]
+          - text: 保持登录状态
+        - link "忘记密码？" [ref=e35] [cursor=pointer]:
+          - /url: /user/login/forget_by_mobile
+      - button "登录" [ref=e38] [cursor=pointer]

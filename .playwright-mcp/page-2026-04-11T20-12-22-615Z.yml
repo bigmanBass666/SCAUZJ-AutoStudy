@@ -1,0 +1,6 @@
+- generic [ref=e2]:
+  - generic [ref=e4]: 课程章节信息不存在!
+  - generic [ref=e5]:
+    - text: 页面将在5秒后自动返回，
+    - link "返回上一页" [ref=e6] [cursor=pointer]:
+      - /url: ""

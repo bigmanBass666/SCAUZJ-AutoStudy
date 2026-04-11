@@ -1,0 +1,212 @@
+- generic [active] [ref=e1]:
+  - iframe
+  - generic [ref=e3]:
+    - link "欢迎来到劳动课程测评考试平台" [ref=e5] [cursor=pointer]:
+      - /url: http://www.leykeji.com
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - link "下载APP" [ref=e9] [cursor=pointer]:
+          - /url: javascript:void(0)
+        - generic [ref=e10]:
+          - paragraph [ref=e14]: 扫码下载Android
+          - paragraph [ref=e18]: 扫码下载iOS
+      - link "问题答疑" [ref=e21] [cursor=pointer]:
+        - /url: /document/7
+      - generic [ref=e22]:
+        - link "刘家暄" [ref=e24] [cursor=pointer]:
+          - /url: /user/index
+          - generic [ref=e26]: 刘家暄
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - link "个人中心" [ref=e30] [cursor=pointer]:
+              - /url: /user/index
+          - listitem [ref=e31]:
+            - link "个人设置" [ref=e32] [cursor=pointer]:
+              - /url: /user/member
+          - listitem [ref=e33]:
+            - link "退出登录" [ref=e34] [cursor=pointer]:
+              - /url: /user/logout
+      - link [ref=e36] [cursor=pointer]:
+        - /url: /user/member/notice
+  - generic [ref=e38]:
+    - link [ref=e40] [cursor=pointer]:
+      - /url: /index
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - list:
+          - listitem [ref=e43]:
+            - link "首页" [ref=e44] [cursor=pointer]:
+              - /url: /index
+          - listitem [ref=e45]:
+            - link "全部课程" [ref=e46] [cursor=pointer]:
+              - /url: /mo_course
+          - listitem [ref=e47]:
+            - link "公开课" [ref=e48] [cursor=pointer]:
+              - /url: /course
+          - listitem [ref=e49]:
+            - link "教学新闻" [ref=e50] [cursor=pointer]:
+              - /url: /teaching
+          - listitem [ref=e51]:
+            - link "数图资源" [ref=e52] [cursor=pointer]:
+              - /url: https://szzy.yinghuaonline.com/
+          - listitem [ref=e53]:
+            - link "教发培训" [ref=e54] [cursor=pointer]:
+              - /url: https://www.leykeji.com/course?cateBid=2039&cateMid=0&state=0&order=0
+      - generic [ref=e55]:
+        - generic:
+          - textbox "请输入课程名称" [ref=e56]
+          - button "Submit" [ref=e58] [cursor=pointer]
+  - generic [ref=e59]:
+    - generic [ref=e61]:
+      - link "首页" [ref=e62] [cursor=pointer]:
+        - /url: /
+      - text: "> 个人中心"
+    - generic [ref=e64]:
+      - generic [ref=e65]:
+        - generic:
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - link "刘家暄":
+                - /url: /user/member
+                - img "刘家暄" [ref=e68] [cursor=pointer]
+            - generic [ref=e69]:
+              - generic [ref=e70]: 刘家暄 REDACTED_USERNAME
+              - generic [ref=e71]: 个性签名：还没想好要写点什么...
+              - generic [ref=e72]:
+                - link "个人设置" [ref=e73] [cursor=pointer]:
+                  - /url: /user/member
+                  - generic [ref=e74]: 个人设置
+                - link "课程直播间" [ref=e75] [cursor=pointer]:
+                  - /url: /user/live
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - generic [ref=e78]:
+                - link:
+                  - /url: /user/index?kind=run
+              - generic [ref=e79]: "5"
+              - link "我的课程" [ref=e81] [cursor=pointer]:
+                - /url: /user/index?kind=run
+            - generic [ref=e82]:
+              - generic [ref=e83]:
+                - link:
+                  - /url: /user/evaluation/progress
+              - generic [ref=e84]: "0"
+              - link "我的互评" [ref=e86] [cursor=pointer]:
+                - /url: /user/evaluation/progress
+            - generic [ref=e87]:
+              - generic [ref=e88]:
+                - link:
+                  - /url: /user/circle
+              - generic [ref=e89]: "0"
+              - link "乐学圈" [ref=e91] [cursor=pointer]:
+                - /url: /user/circle
+            - generic [ref=e92]:
+              - generic [ref=e93]:
+                - link:
+                  - /url: /user/member/discuss?type=0
+              - generic [ref=e94]: "0"
+              - link "讨论主题" [ref=e96] [cursor=pointer]:
+                - /url: /user/member/discuss?type=0
+            - generic [ref=e97]:
+              - generic [ref=e98]:
+                - link:
+                  - /url: /user/study_time
+              - generic [ref=e99]: 32时16分
+              - link "学习时长" [ref=e101] [cursor=pointer]:
+                - /url: /user/study_time
+      - generic [ref=e102]:
+        - generic [ref=e103]:
+          - generic [ref=e104]:
+            - generic [ref=e105]: 院校课程
+            - link "兴趣学习" [ref=e107] [cursor=pointer]:
+              - /url: /user/index/open
+          - generic [ref=e108]:
+            - link "我的课程" [ref=e110] [cursor=pointer]:
+              - /url: /user/index?kind=run
+            - link "已结束" [ref=e112] [cursor=pointer]:
+              - /url: /user/index?kind=finish
+            - link "报名中" [ref=e114] [cursor=pointer]:
+              - /url: /user/index?kind=sign
+          - generic [ref=e115]: 提示：院校课程学习会记录课程学习时间，课程主题讨论次数，作业答题情况及考试成绩，作为最终课程成绩考核。
+          - generic [ref=e116]:
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - link "艺术鉴赏与评论":
+                  - /url: /user/course?courseId=1011601
+                  - img "艺术鉴赏与评论" [ref=e120] [cursor=pointer]
+              - generic [ref=e121]:
+                - link "艺术鉴赏与评论" [ref=e123] [cursor=pointer]:
+                  - /url: /user/course?courseId=1011601
+                - generic [ref=e125]: 李闻婧
+                - generic [ref=e126]:
+                  - generic [ref=e127]: 学习进度：
+                  - generic [ref=e130]: 56.52%
+                - generic [ref=e131]:
+                  - text: 开课时间：
+                  - generic [ref=e132]:
+                    - text: 2026-04-01
+                    - generic [ref=e133]: 至 2026-06-19
+                - generic [ref=e134]:
+                  - generic [ref=e135]: 课程学分：0.50
+                  - generic [ref=e136]: 课程类型：必修课
+                  - link "学习记录" [ref=e138] [cursor=pointer]:
+                    - /url: /user/study_record?courseId=1011601
+            - generic [ref=e140]:
+              - generic [ref=e141]:
+                - link "大学生劳动教育":
+                  - /url: /user/course?courseId=1011603
+                  - img "大学生劳动教育" [ref=e142] [cursor=pointer]
+              - generic [ref=e143]:
+                - link "大学生劳动教育" [ref=e145] [cursor=pointer]:
+                  - /url: /user/course?courseId=1011603
+                - generic [ref=e147]: 尚楚若
+                - generic [ref=e148]:
+                  - generic [ref=e149]: 学习进度：
+                  - generic [ref=e151]: 0%
+                - generic [ref=e152]:
+                  - text: 开课时间：
+                  - generic [ref=e153]:
+                    - text: 2026-04-02
+                    - generic [ref=e154]: 至 2026-06-21
+                - generic [ref=e155]:
+                  - generic [ref=e156]: 课程学分：2.00
+                  - generic [ref=e157]: 课程类型：必修课
+                  - link "学习记录" [ref=e159] [cursor=pointer]:
+                    - /url: /user/study_record?courseId=1011603
+          - generic [ref=e160]:
+            - generic [ref=e161]: 一页展示5条、共2条 页次：1 /1
+            - generic [ref=e162]:
+              - link "上一页" [ref=e163] [cursor=pointer]:
+                - /url: javascript:;
+              - generic [ref=e164]: "1"
+              - link "下一页" [ref=e165] [cursor=pointer]:
+                - /url: javascript:;
+        - generic [ref=e166]:
+          - generic [ref=e169]: 最近七天学习时长（分钟）
+          - generic [ref=e176]: 学习时长的课程对比（分钟）
+  - generic [ref=e181]:
+    - generic [ref=e182]:
+      - generic [ref=e185]:
+        - generic [ref=e187]: 友情链接
+        - generic [ref=e188]:
+          - generic [ref=e189]: 常见问题
+          - link "课程说明" [ref=e192] [cursor=pointer]:
+            - /url: /document?id=1
+        - generic [ref=e193]:
+          - generic [ref=e194]: 关于我们
+          - link "联系我们" [ref=e197] [cursor=pointer]:
+            - /url: /document?id=5
+      - generic [ref=e199]: 关注我们
+    - generic [ref=e201]:
+      - generic [ref=e202]:
+        - link "京公网安备 11011502004263号" [ref=e203] [cursor=pointer]:
+          - /url: http://www.beian.gov.cn/
+        - text: "|"
+        - link "教APP备1102393号" [ref=e204] [cursor=pointer]:
+          - /url: http://app.eduyun.cn/
+        - text: "|"
+        - link "新ICP备2025026586号-1" [ref=e205] [cursor=pointer]:
+          - /url: http://www.beian.miit.gov.cn/
+      - img [ref=e207]
+  - img [ref=e208] [cursor=pointer]
+  - iframe

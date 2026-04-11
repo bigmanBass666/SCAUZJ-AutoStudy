@@ -1,0 +1,434 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=e5]:
+      - generic [ref=e9]:
+        - generic [ref=e12]:
+          - link "智谱AI开放文档 home page light logo" [ref=e14] [cursor=pointer]:
+            - /url: https://bigmodel.cn/
+            - generic [ref=e15]: 智谱AI开放文档 home page
+            - img "light logo" [ref=e16]
+          - button "Open search" [ref=e18] [cursor=pointer]:
+            - generic [ref=e19]:
+              - img [ref=e20]
+              - generic [ref=e23]: Search...
+            - generic [ref=e24]: Ctrl K
+          - generic [ref=e25]:
+            - navigation [ref=e26]:
+              - list [ref=e27]:
+                - listitem [ref=e28]:
+                  - link "控制台" [ref=e29] [cursor=pointer]:
+                    - /url: https://bigmodel.cn/console/overview
+                - listitem [ref=e30]:
+                  - link "价格" [ref=e31] [cursor=pointer]:
+                    - /url: https://bigmodel.cn/pricing
+                - listitem [ref=e32]:
+                  - link "财务" [ref=e33] [cursor=pointer]:
+                    - /url: https://bigmodel.cn/finance/overview
+                - listitem [ref=e34]:
+                  - link "API Key" [ref=e35] [cursor=pointer]:
+                    - /url: https://bigmodel.cn/usercenter/proj-mgmt/apikeys
+                - listitem [ref=e36]:
+                  - link "个人中心" [ref=e37] [cursor=pointer]:
+                    - /url: https://bigmodel.cn/usercenter/settings/account
+            - button "Toggle dark mode" [ref=e39] [cursor=pointer]:
+              - img [ref=e40]
+        - generic [ref=e48]:
+          - link "使用指南" [ref=e49] [cursor=pointer]:
+            - /url: /cn/guide/start/introduction
+            - text: 使用指南
+          - link "API 文档" [ref=e51] [cursor=pointer]:
+            - /url: /cn/api/introduction
+            - text: API 文档
+          - link "场景示例" [ref=e53] [cursor=pointer]:
+            - /url: /cn/best-practice/prompt/talk-prompt
+            - text: 场景示例
+          - link "编码套餐" [ref=e55] [cursor=pointer]:
+            - /url: /cn/coding-plan/overview
+            - text: 编码套餐
+          - link "更新日志" [ref=e57] [cursor=pointer]:
+            - /url: /cn/update/new-releases
+            - text: 更新日志
+          - link "条款与协议" [ref=e59] [cursor=pointer]:
+            - /url: /cn/terms/user-agreement
+            - text: 条款与协议
+          - link "常见问题" [ref=e61] [cursor=pointer]:
+            - /url: /cn/faq/api-code
+            - text: 常见问题
+      - generic [ref=e63]:
+        - generic [ref=e67]:
+          - generic [ref=e68]:
+            - heading "开始使用" [level=5] [ref=e70]
+            - list [ref=e71]:
+              - listitem [ref=e72]:
+                - link "平台介绍" [ref=e73] [cursor=pointer]:
+                  - /url: /cn/guide/start/introduction
+                  - generic [ref=e76]: 平台介绍
+              - listitem [ref=e77]:
+                - link "模型概览" [ref=e78] [cursor=pointer]:
+                  - /url: /cn/guide/start/model-overview
+                  - generic [ref=e81]: 模型概览
+              - listitem [ref=e82]:
+                - link "快速开始" [ref=e83] [cursor=pointer]:
+                  - /url: /cn/guide/start/quick-start
+                  - generic [ref=e86]: 快速开始
+              - listitem [ref=e87]:
+                - link "核心参数" [ref=e88] [cursor=pointer]:
+                  - /url: /cn/guide/start/concept-param
+                  - generic [ref=e91]: 核心参数
+              - listitem [ref=e92]:
+                - button "Toggle 开发指南 section" [ref=e93] [cursor=pointer]:
+                  - generic [ref=e94]: 开发指南
+                  - img [ref=e96]
+              - listitem [ref=e98]:
+                - link "迁移至 GLM-5.1" [ref=e99] [cursor=pointer]:
+                  - /url: /cn/guide/start/migrate-to-glm-new
+                  - generic [ref=e102]: 迁移至 GLM-5.1
+          - generic [ref=e103]:
+            - heading "模型介绍" [level=5] [ref=e105]
+            - list [ref=e106]:
+              - listitem [ref=e107]:
+                - button "Toggle 文本模型 section" [ref=e108] [cursor=pointer]:
+                  - generic [ref=e109]: 文本模型
+                  - img [ref=e111]
+              - listitem [ref=e113]:
+                - button "Toggle 视觉理解模型 section" [ref=e114] [cursor=pointer]:
+                  - generic [ref=e115]: 视觉理解模型
+                  - img [ref=e117]
+              - listitem [ref=e119]:
+                - button "Toggle 图像生成模型 section" [ref=e120] [cursor=pointer]:
+                  - generic [ref=e121]: 图像生成模型
+                  - img [ref=e123]
+              - listitem [ref=e125]:
+                - button "Toggle 视频生成模型 section" [ref=e126] [cursor=pointer]:
+                  - generic [ref=e127]: 视频生成模型
+                  - img [ref=e129]
+              - listitem [ref=e131]:
+                - button "Toggle 音视频模型 section" [ref=e132] [cursor=pointer]:
+                  - generic [ref=e133]: 音视频模型
+                  - img [ref=e135]
+              - listitem [ref=e137]:
+                - button "Toggle 向量模型 section" [ref=e138] [cursor=pointer]:
+                  - generic [ref=e139]: 向量模型
+                  - img [ref=e141]
+              - listitem [ref=e143]:
+                - button "Toggle 角色模型 section" [ref=e144] [cursor=pointer]:
+                  - generic [ref=e145]: 角色模型
+                  - img [ref=e147]
+              - listitem [ref=e149]:
+                - button "Toggle 免费模型 section" [expanded] [ref=e150] [cursor=pointer]:
+                  - generic [ref=e151]: 免费模型
+                  - img [ref=e153]
+                - list [ref=e155]:
+                  - listitem [ref=e156]:
+                    - link "GLM-4.7-Flash" [ref=e157] [cursor=pointer]:
+                      - /url: /cn/guide/models/free/glm-4.7-flash
+                      - generic [ref=e160]: GLM-4.7-Flash
+                  - listitem [ref=e161]:
+                    - link "GLM-4.6V-Flash" [ref=e162] [cursor=pointer]:
+                      - /url: /cn/guide/models/free/glm-4.6v-flash
+                      - generic [ref=e165]: GLM-4.6V-Flash
+                  - listitem [ref=e166]:
+                    - link "GLM-4.1V-Thinking-Flash" [ref=e167] [cursor=pointer]:
+                      - /url: /cn/guide/models/free/glm-4.1v-thinking-flash
+                      - generic [ref=e170]: GLM-4.1V-Thinking-Flash
+                  - listitem [ref=e171]:
+                    - link "GLM-4-Flash-250414" [ref=e172] [cursor=pointer]:
+                      - /url: /cn/guide/models/free/glm-4-flash-250414
+                      - generic [ref=e175]: GLM-4-Flash-250414
+                  - listitem [ref=e176]:
+                    - link "GLM-4V-Flash" [ref=e177] [cursor=pointer]:
+                      - /url: /cn/guide/models/free/glm-4v-flash
+                      - generic [ref=e180]: GLM-4V-Flash
+                  - listitem [ref=e181]:
+                    - link "Cogview-3-Flash" [ref=e182] [cursor=pointer]:
+                      - /url: /cn/guide/models/free/cogview-3-flash
+                      - generic [ref=e185]: Cogview-3-Flash
+                  - listitem [ref=e186]:
+                    - link "CogVideoX-Flash" [ref=e187] [cursor=pointer]:
+                      - /url: /cn/guide/models/free/cogvideox-flash
+                      - generic [ref=e190]: CogVideoX-Flash
+          - generic [ref=e191]:
+            - heading "模型能力" [level=5] [ref=e193]
+            - list [ref=e194]:
+              - listitem [ref=e195]:
+                - link "深度思考" [ref=e196] [cursor=pointer]:
+                  - /url: /cn/guide/capabilities/thinking
+                  - generic [ref=e199]: 深度思考
+              - listitem [ref=e200]:
+                - link "思考模式" [ref=e201] [cursor=pointer]:
+                  - /url: /cn/guide/capabilities/thinking-mode
+                  - generic [ref=e204]: 思考模式
+              - listitem [ref=e205]:
+                - link "流式消息" [ref=e206] [cursor=pointer]:
+                  - /url: /cn/guide/capabilities/streaming
+                  - generic [ref=e209]: 流式消息
+              - listitem [ref=e210]:
+                - link "工具流式输出" [ref=e211] [cursor=pointer]:
+                  - /url: /cn/guide/capabilities/stream-tool
+                  - generic [ref=e214]: 工具流式输出
+              - listitem [ref=e215]:
+                - link "工具调用" [ref=e216] [cursor=pointer]:
+                  - /url: /cn/guide/capabilities/function-calling
+                  - generic [ref=e219]: 工具调用
+              - listitem [ref=e220]:
+                - link "上下文缓存" [ref=e221] [cursor=pointer]:
+                  - /url: /cn/guide/capabilities/cache
+                  - generic [ref=e224]: 上下文缓存
+              - listitem [ref=e225]:
+                - link "结构化输出" [ref=e226] [cursor=pointer]:
+                  - /url: /cn/guide/capabilities/struct-output
+                  - generic [ref=e229]: 结构化输出
+          - generic [ref=e230]:
+            - heading "模型工具" [level=5] [ref=e232]
+            - list [ref=e233]:
+              - listitem [ref=e234]:
+                - link "GLM in Excel（Beta）" [ref=e235] [cursor=pointer]:
+                  - /url: /cn/guide/tools/glm-in-excel
+                  - generic [ref=e238]: GLM in Excel（Beta）
+              - listitem [ref=e239]:
+                - link "联网搜索" [ref=e240] [cursor=pointer]:
+                  - /url: /cn/guide/tools/web-search
+                  - generic [ref=e243]: 联网搜索
+              - listitem [ref=e244]:
+                - link "模型部署" [ref=e245] [cursor=pointer]:
+                  - /url: /cn/guide/tools/model-deploy
+                  - generic [ref=e248]: 模型部署
+              - listitem [ref=e249]:
+                - link "模型微调" [ref=e250] [cursor=pointer]:
+                  - /url: /cn/guide/tools/fine-tuning
+                  - generic [ref=e253]: 模型微调
+              - listitem [ref=e254]:
+                - link "模型评测" [ref=e255] [cursor=pointer]:
+                  - /url: /cn/guide/tools/evaluation
+                  - generic [ref=e258]: 模型评测
+              - listitem [ref=e259]:
+                - link "批量处理" [ref=e260] [cursor=pointer]:
+                  - /url: /cn/guide/tools/batch
+                  - generic [ref=e263]: 批量处理
+              - listitem [ref=e264]:
+                - button "Toggle 文件解析 section" [ref=e265] [cursor=pointer]:
+                  - generic [ref=e266]: 文件解析
+                  - img [ref=e268]
+              - listitem [ref=e270]:
+                - link "OCR 服务" [ref=e271] [cursor=pointer]:
+                  - /url: /cn/guide/tools/zhipu-ocr
+                  - generic [ref=e274]: OCR 服务
+          - generic [ref=e275]:
+            - heading "GLM 全模态知识库" [level=5] [ref=e277]
+            - list [ref=e278]:
+              - listitem [ref=e279]:
+                - link "知识处理及检索" [ref=e280] [cursor=pointer]:
+                  - /url: /cn/guide/tools/knowledge/multimodal-retrieval
+                  - generic [ref=e283]: 知识处理及检索
+              - listitem [ref=e284]:
+                - link "知识问答" [ref=e285] [cursor=pointer]:
+                  - /url: /cn/guide/tools/knowledge/q&a
+                  - generic [ref=e288]: 知识问答
+              - listitem [ref=e289]:
+                - link "知识库服务计费" [ref=e290] [cursor=pointer]:
+                  - /url: /cn/guide/tools/knowledge/price
+                  - generic [ref=e293]: 知识库服务计费
+              - listitem [ref=e294]:
+                - link "上下文增强技术报告" [ref=e295] [cursor=pointer]:
+                  - /url: /cn/guide/tools/knowledge/contextual
+                  - generic [ref=e298]: 上下文增强技术报告
+              - listitem [ref=e299]:
+                - link "对话调用知识库" [ref=e300] [cursor=pointer]:
+                  - /url: /cn/guide/tools/knowledge/retrieval
+                  - generic [ref=e303]: 对话调用知识库
+          - generic [ref=e304]:
+            - heading "智能体" [level=5] [ref=e306]
+            - list [ref=e307]:
+              - listitem [ref=e308]:
+                - button "Toggle 语言翻译 section" [ref=e309] [cursor=pointer]:
+                  - generic [ref=e310]: 语言翻译
+                  - img [ref=e312]
+              - listitem [ref=e314]:
+                - button "Toggle 内容生成 section" [ref=e315] [cursor=pointer]:
+                  - generic [ref=e316]: 内容生成
+                  - img [ref=e318]
+              - listitem [ref=e320]:
+                - button "Toggle 办公效能 section" [ref=e321] [cursor=pointer]:
+                  - generic [ref=e322]: 办公效能
+                  - img [ref=e324]
+              - listitem [ref=e326]:
+                - button "Toggle 信息提取 section" [ref=e327] [cursor=pointer]:
+                  - generic [ref=e328]: 信息提取
+                  - img [ref=e330]
+              - listitem [ref=e332]:
+                - button "Toggle 智慧教育 section" [ref=e333] [cursor=pointer]:
+                  - generic [ref=e334]: 智慧教育
+                  - img [ref=e336]
+          - generic [ref=e338]:
+            - heading "平台服务" [level=5] [ref=e340]
+            - list [ref=e341]:
+              - listitem [ref=e342]:
+                - link "智能体开发平台" [ref=e343] [cursor=pointer]:
+                  - /url: /cn/guide/platform/intelligent-agent
+                  - generic [ref=e346]: 智能体开发平台
+              - listitem [ref=e347]:
+                - link "提示词工程" [ref=e348] [cursor=pointer]:
+                  - /url: /cn/guide/platform/prompt
+                  - generic [ref=e351]: 提示词工程
+              - listitem [ref=e352]:
+                - link "内容安全" [ref=e353] [cursor=pointer]:
+                  - /url: /cn/guide/platform/securityaudit
+                  - generic [ref=e356]: 内容安全
+              - listitem [ref=e357]:
+                - link "模型迁移" [ref=e358] [cursor=pointer]:
+                  - /url: /cn/guide/platform/model-migration
+                  - generic [ref=e361]: 模型迁移
+              - listitem [ref=e362]:
+                - link "用户权益" [ref=e363] [cursor=pointer]:
+                  - /url: /cn/guide/platform/equity-explain
+                  - generic [ref=e366]: 用户权益
+              - listitem [ref=e367]:
+                - link "模型备案" [ref=e368] [cursor=pointer]:
+                  - /url: /cn/guide/platform/filing
+                  - generic [ref=e371]: 模型备案
+        - generic [ref=e373]:
+          - generic [ref=e376]:
+            - button "On this page" [ref=e377] [cursor=pointer]:
+              - img [ref=e378]
+              - generic [ref=e379]: On this page
+            - list [ref=e381]:
+              - listitem [ref=e382]:
+                - link "概览" [ref=e383] [cursor=pointer]:
+                  - /url: "#%E6%A6%82%E8%A7%88"
+              - listitem [ref=e384]:
+                - link "能力支持" [ref=e385] [cursor=pointer]:
+                  - /url: "#%E8%83%BD%E5%8A%9B%E6%94%AF%E6%8C%81"
+              - listitem [ref=e386]:
+                - link "功能特色" [ref=e387] [cursor=pointer]:
+                  - /url: "#%E5%8A%9F%E8%83%BD%E7%89%B9%E8%89%B2"
+              - listitem [ref=e388]:
+                - link "快捷入口" [ref=e389] [cursor=pointer]:
+                  - /url: "#%E5%BF%AB%E6%8D%B7%E5%85%A5%E5%8F%A3"
+              - listitem [ref=e390]:
+                - link "场景应用" [ref=e391] [cursor=pointer]:
+                  - /url: "#%E5%9C%BA%E6%99%AF%E5%BA%94%E7%94%A8"
+          - generic [ref=e392]:
+            - banner [ref=e393]:
+              - generic [ref=e394]:
+                - generic [ref=e395]: 免费模型
+                - generic [ref=e396]:
+                  - heading "GLM-4V-Flash" [level=1] [ref=e397]
+                  - generic [ref=e398]:
+                    - button "Copy page" [ref=e399] [cursor=pointer]:
+                      - generic [ref=e400]:
+                        - img [ref=e401]
+                        - generic [ref=e404]: Copy page
+                    - button "More actions" [ref=e405] [cursor=pointer]:
+                      - img [ref=e406]
+            - generic [ref=e408]:
+              - heading "Navigate to header 概览" [level=2] [ref=e409]:
+                - link "Navigate to header" [ref=e410] [cursor=pointer]:
+                  - /url: "#概览"
+                  - img [ref=e412]
+                - generic [ref=e415] [cursor=pointer]:
+                  - img [ref=e416]
+                  - text: 概览
+              - generic [ref=e417]: GLM-4V-Flash 是智谱推出的首个完全免费的图像理解模型。在图像识别、图像问答、图像推理等多项任务中展现出卓越的性能。在企业应用场景中，GLM-4V-Flash 表现突出，不仅能够帮助企业实现高效图像处理，还能紧密贴合不同垂直领域的实际需求，适配多样化应用场景。
+              - heading "Navigate to header 能力支持" [level=2] [ref=e418]:
+                - link "Navigate to header" [ref=e419] [cursor=pointer]:
+                  - /url: "#能力支持"
+                  - img [ref=e421]
+                - generic [ref=e424] [cursor=pointer]:
+                  - img [ref=e425]
+                  - text: 能力支持
+              - generic [ref=e426]:
+                - generic [ref=e428]:
+                  - img [ref=e430]
+                  - generic [ref=e431]:
+                    - heading "视觉理解" [level=2] [ref=e432]
+                    - generic [ref=e434]: 强大的视觉理解能力，支持图片
+                - link [ref=e435] [cursor=pointer]:
+                  - link [ref=e437]:
+                    - /url: /cn/guide/capabilities/streaming
+                    - img [ref=e439]
+                    - generic [ref=e440]:
+                      - heading [level=2] [ref=e441]: 流式输出
+                      - generic [ref=e443]: 支持实时流式响应，提升用户交互体验
+              - heading "Navigate to header 功能特色" [level=2] [ref=e444]:
+                - link "Navigate to header" [ref=e445] [cursor=pointer]:
+                  - /url: "#功能特色"
+                  - img [ref=e447]
+                - generic [ref=e450] [cursor=pointer]:
+                  - img [ref=e451]
+                  - text: 功能特色
+              - list [ref=e452]:
+                - listitem [ref=e453]: 图像描述生成
+                - listitem [ref=e454]: 图像分类
+                - listitem [ref=e455]: 图像情感分析
+              - heading "Navigate to header 快捷入口" [level=2] [ref=e456]:
+                - link "Navigate to header" [ref=e457] [cursor=pointer]:
+                  - /url: "#快捷入口"
+                  - img [ref=e459]
+                - generic [ref=e462] [cursor=pointer]:
+                  - img [ref=e463]
+                  - text: 快捷入口
+              - list [ref=e464]:
+                - listitem [ref=e465]:
+                  - text: 接口调用查看
+                  - link "接口文档" [ref=e466] [cursor=pointer]:
+                    - /url: /api-reference/%E6%A8%A1%E5%9E%8B-api/%E5%AF%B9%E8%AF%9D%E8%A1%A5%E5%85%A8
+                - listitem [ref=e467]:
+                  - text: 在
+                  - link "体验中心" [ref=e468] [cursor=pointer]:
+                    - /url: https://www.bigmodel.cn/console/trialcenter?modelCode=glm-4v-flash
+                  - text: 体验模型能力
+                - listitem [ref=e469]:
+                  - text: 查看模型
+                  - link "速率限制" [ref=e470] [cursor=pointer]:
+                    - /url: https://www.bigmodel.cn/usercenter/corporateequity
+                  - text: ；
+              - heading "Navigate to header 场景应用" [level=2] [ref=e471]:
+                - link "Navigate to header" [ref=e472] [cursor=pointer]:
+                  - /url: "#场景应用"
+                  - img [ref=e474]
+                - generic [ref=e477] [cursor=pointer]:
+                  - img [ref=e478]
+                  - text: 场景应用
+              - generic [ref=e479]:
+                - tablist [ref=e480]:
+                  - tab "图表问答" [selected] [ref=e481] [cursor=pointer]:
+                    - generic [ref=e482]: 图表问答
+                  - tab "社交媒体内容生成" [ref=e483] [cursor=pointer]:
+                    - generic [ref=e484]: 社交媒体内容生成
+                  - tab "教育应用" [ref=e485] [cursor=pointer]:
+                    - generic [ref=e486]: 教育应用
+                  - tab "质量检测" [ref=e487] [cursor=pointer]:
+                    - generic [ref=e488]: 质量检测
+                  - tab "商品描述生成" [ref=e489] [cursor=pointer]:
+                    - generic [ref=e490]: 商品描述生成
+                  - tab "肤质图片测试建议" [ref=e491] [cursor=pointer]:
+                    - generic [ref=e492]: 肤质图片测试建议
+                - 'tabpanel "图表问答 社交媒体内容生成 教育应用 质量检测 商品描述生成 肤质图片测试建议 大模型 GLM-4V-Flash 拥有优秀的图表分析能力，在处理折线图时表现尤为出色。它能够精准识别和提取图表中的数据拐点、峰值和谷值，并对数据趋势进行深入解读。通过分析历史数据的变化规律，模型可以生成科学的预测结果，并以清晰的方式呈现未来可能的发展走向。 Prompt 生成结果 请你帮我分析一下图片中的房价走势，并预测接下来一年的趋势是什么 Image Expand image: Image 近两年成都新房和二手房成交量走势对比折线图显示，2022年7月到8月，新房成交量呈上升趋势；9月到12月，新房成交量有所下降。 2023年1月到4月，新房成交量持续上升至28189套；5月到6月，新房成交量又有所下降；7月再次回升至23790套左右；之后几个月新房成交量波动较大，但总体保持在较高水平。 对于未来一年（2024年）的新房市场走势，根据图表所示的趋势来看，预计新房成交量将继续保持波动性增长，但由于受到宏观经济、政策调控等因素的影响，增速可能会有所放缓。" [ref=e494]':
+                  - generic [ref=e495]: 大模型 GLM-4V-Flash 拥有优秀的图表分析能力，在处理折线图时表现尤为出色。它能够精准识别和提取图表中的数据拐点、峰值和谷值，并对数据趋势进行深入解读。通过分析历史数据的变化规律，模型可以生成科学的预测结果，并以清晰的方式呈现未来可能的发展走向。
+                  - table [ref=e498]:
+                    - rowgroup [ref=e499]:
+                      - row "Prompt 生成结果" [ref=e500]:
+                        - columnheader "Prompt" [ref=e501]
+                        - columnheader "生成结果" [ref=e502]
+                    - rowgroup [ref=e503]:
+                      - 'row "请你帮我分析一下图片中的房价走势，并预测接下来一年的趋势是什么 Image Expand image: Image 近两年成都新房和二手房成交量走势对比折线图显示，2022年7月到8月，新房成交量呈上升趋势；9月到12月，新房成交量有所下降。 2023年1月到4月，新房成交量持续上升至28189套；5月到6月，新房成交量又有所下降；7月再次回升至23790套左右；之后几个月新房成交量波动较大，但总体保持在较高水平。 对于未来一年（2024年）的新房市场走势，根据图表所示的趋势来看，预计新房成交量将继续保持波动性增长，但由于受到宏观经济、政策调控等因素的影响，增速可能会有所放缓。" [ref=e504]':
+                        - 'cell "请你帮我分析一下图片中的房价走势，并预测接下来一年的趋势是什么 Image Expand image: Image" [ref=e505]':
+                          - text: 请你帮我分析一下图片中的房价走势，并预测接下来一年的趋势是什么
+                          - generic [ref=e506]:
+                            - img "Image" [ref=e508]
+                            - generic:
+                              - 'button "Expand image: Image"'
+                        - cell "近两年成都新房和二手房成交量走势对比折线图显示，2022年7月到8月，新房成交量呈上升趋势；9月到12月，新房成交量有所下降。 2023年1月到4月，新房成交量持续上升至28189套；5月到6月，新房成交量又有所下降；7月再次回升至23790套左右；之后几个月新房成交量波动较大，但总体保持在较高水平。 对于未来一年（2024年）的新房市场走势，根据图表所示的趋势来看，预计新房成交量将继续保持波动性增长，但由于受到宏观经济、政策调控等因素的影响，增速可能会有所放缓。" [ref=e509]
+            - generic [ref=e510]:
+              - link "GLM-4-Flash-250414" [ref=e511] [cursor=pointer]:
+                - /url: /cn/guide/models/free/glm-4-flash-250414
+                - img [ref=e512]
+                - generic [ref=e514]: GLM-4-Flash-250414
+              - link "Cogview-3-Flash" [ref=e515] [cursor=pointer]:
+                - /url: /cn/guide/models/free/cogview-3-flash
+                - generic [ref=e516]: Cogview-3-Flash
+                - img [ref=e517]
+            - contentinfo [ref=e519]
+  - alert [ref=e520]

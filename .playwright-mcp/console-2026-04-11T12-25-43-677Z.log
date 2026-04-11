@@ -1,0 +1,35 @@
+[     605ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://scauzj.leykeji.com/user/login:0
+[    5247ms] TypeError: Cannot set properties of null (setting 'onclick')
+    at UIBuilder.createHeader (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E6%2597%25A0%25E7%2597%2595%25E5%2588%25B7%25E8%25AF%25BE%25E5%258A%25A9%25E6%2589%258B%25EF%25BC%2588%25E7%2594%25A8%25E6%2588%25B7%25E4%25BD%2593%25E9%25AA%258C%25E4%25BC%2598%25E5%2585%2588%25EF%25BC%2589.user.js&id=ccc4d22b-8dd4-4acd-859d-43f50c93b4f0:224:63)
+    at UIBuilder.create (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E6%2597%25A0%25E7%2597%2595%25E5%2588%25B7%25E8%25AF%25BE%25E5%258A%25A9%25E6%2589%258B%25EF%25BC%2588%25E7%2594%25A8%25E6%2588%25B7%25E4%25BD%2593%25E9%25AA%258C%25E4%25BC%2598%25E5%2585%2588%25EF%25BC%2589.user.js&id=ccc4d22b-8dd4-4acd-859d-43f50c93b4f0:166:33)
+    at init (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E6%2597%25A0%25E7%2597%2595%25E5%2588%25B7%25E8%25AF%25BE%25E5%258A%25A9%25E6%2589%258B%25EF%25BC%2588%25E7%2594%25A8%25E6%2588%25B7%25E4%25BD%2593%25E9%25AA%258C%25E4%25BC%2598%25E5%2585%2588%25EF%25BC%2589.user.js&id=ccc4d22b-8dd4-4acd-859d-43f50c93b4f0:900:19)
+[   46607ms] [LOG] [GM] Polyfills loaded @ :36
+[   84137ms] [LOG] [Loader] 正在从本地服务器获取脚本... @ :3
+[   84452ms] [ERROR] Access to fetch at 'http://localhost:8080/elegant-master-study.user.js' from origin 'https://scauzj.leykeji.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://scauzj.leykeji.com/user/login:0
+[   84452ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8080/elegant-master-study.user.js:0
+[   84453ms] [ERROR] [Loader] 失败: TypeError: Failed to fetch
+    at eval (eval at evaluate (:302:30), <anonymous>:5:28)
+    at UtilityScript.evaluate (<anonymous>:304:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44) @ :20
+[  202613ms] [LOG] [Loader] 正在从本地服务器获取脚本... @ :2
+[  202922ms] [ERROR] Access to fetch at 'http://localhost:8080/elegant-master-study.user.js' from origin 'https://scauzj.leykeji.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://scauzj.leykeji.com/user/login:0
+[  202922ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8080/elegant-master-study.user.js:0
+[  202922ms] [ERROR] [Loader] 失败: TypeError: Failed to fetch
+    at eval (eval at evaluate (:302:30), <anonymous>:4:28)
+    at UtilityScript.evaluate (<anonymous>:304:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44) @ :22
+[  234739ms] [LOG] [Loader] 尝试 127.0.0.1:8080... @ :2
+[  234747ms] [ERROR] Access to fetch at 'http://127.0.0.1:8080/elegant-master-study.user.js' from origin 'https://scauzj.leykeji.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://scauzj.leykeji.com/user/login:0
+[  234747ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://127.0.0.1:8080/elegant-master-study.user.js:0
+[  234747ms] [ERROR] [Loader] 错误: TypeError: Failed to fetch
+    at eval (eval at evaluate (:302:30), <anonymous>:4:28)
+    at UtilityScript.evaluate (<anonymous>:304:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44) @ :9
+[  586066ms] [LOG] UIBuilder.create() start @ :12
+[  586066ms] [LOG] Panel appended to body @ :26
+[  586066ms] [LOG] cacheElements: panel is true @ :37
+[  586067ms] [LOG] Cached elements check: JSHandle@node JSHandle@node @ :47
+[  586068ms] [LOG] CacheElements done, elements: [panel, statNode, statDuration, statProgress, statStatus, btnStart, btnReset] @ :29
+[  586068ms] [LOG] UIBuilder.create() complete @ :33
+[ 3485122ms] [LOG] [GLM] 开始连通性测试... @ :4
+[ 3487313ms] [LOG] [GLM] Response: 200 {choices: Array(1), created: 1775913859, id: 20260411212418b5bcc445053340f5, model: glm-4v, request_id: 20260411212418b5bcc445053340f5} @ :27

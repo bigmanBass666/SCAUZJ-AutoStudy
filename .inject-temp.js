@@ -1,16 +1,3 @@
-// ==UserScript==
-// @name         🌟 优雅大师 - 无痕刷课助手（稳定版）
-// @namespace    security.elegant.master
-// @version      10.2.1
-// @description  优雅设计 · 零代码修改 · 全UI配置
-// @match        https://scauzj.leykeji.com/*
-// @grant        GM_xmlhttpRequest
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_notification
-// @run-at       document-end
-// @license      MIT
-// ==/UserScript==
 
 (function() {
     'use strict';
