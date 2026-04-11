@@ -1,0 +1,27 @@
+[    2172ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://www.googleadservices.com/pagead/conversion/16521530460/?gad_source=1&adview_type=1&adview_query_id=CMyA-J7K5ZMDFVgygwMdorwb0w:0
+[    5407ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcQqPEkTHcXbbIk_IeC_UO-gCOi--RYn0ppnT2TWCOaSEdnOZDhZ:0
+[    7332ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.google.com'). @ https://www.youtube.com/s/player/8a6e7bc4/www-widgetapi.vflset/www-widgetapi.js:209
+[    7578ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.google.com'). @ https://www.youtube.com/s/player/8a6e7bc4/www-widgetapi.vflset/www-widgetapi.js:209
+[    8137ms] [LOG] %c🚀 欢迎来到 Z.ai 🚀 color: #00d4ff; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #00d4ff; @ https://chat.z.ai/:218
+[    8138ms] [LOG] %c███████╗     █████╗ ██╗ color: #ff6b6b; font-family: monospace; font-size: 12px; @ https://chat.z.ai/:222
+[    8138ms] [LOG] %c╚══███╔╝    ██╔══██╗██║ color: #4ecdc4; font-family: monospace; font-size: 12px; @ https://chat.z.ai/:222
+[    8138ms] [LOG] %c  ███╔╝     ███████║██║ color: #45b7d1; font-family: monospace; font-size: 12px; @ https://chat.z.ai/:222
+[    8138ms] [LOG] %c ███╔╝      ██╔══██║██║ color: #f9ca24; font-family: monospace; font-size: 12px; @ https://chat.z.ai/:222
+[    8138ms] [LOG] %c███████╗ ██╗██║  ██║██║ color: #ff9ff3; font-family: monospace; font-size: 12px; @ https://chat.z.ai/:222
+[    8138ms] [LOG] %c╚══════╝ ╚═╝╚═╝  ╚═╝╚═╝ color: #6c5ce7; font-family: monospace; font-size: 12px; @ https://chat.z.ai/:222
+[    8138ms] [LOG]  @ https://chat.z.ai/:223
+[    8138ms] [LOG] %c✨ 基于开源GLM模型的智能AI助手 color: #a29bfe; font-size: 14px; font-weight: bold; @ https://chat.z.ai/:224
+[    8138ms] [LOG] %c🧠 支持文本生成、推理和深度研究 color: #fd79a8; font-size: 12px; @ https://chat.z.ai/:228
+[    8138ms] [LOG] %c🌍 为中英文用户量身定制 color: #00b894; font-size: 12px; @ https://chat.z.ai/:229
+[    8138ms] [LOG] %c💡 免费开源的ChatGPT替代方案 color: #fdcb6e; font-size: 12px; @ https://chat.z.ai/:230
+[    8138ms] [LOG]  @ https://chat.z.ai/:231
+[    8138ms] [LOG] %c--- color: #ddd; @ https://chat.z.ai/:232
+[    8138ms] [LOG] %c由 ❤️ 和大量 ☕ 驱动 color: #e84393; font-size: 11px; font-style: italic; @ https://chat.z.ai/:233
+[    8138ms] [LOG]  @ https://chat.z.ai/:237
+[    8138ms] [LOG] %c🚀 加入我们！我们正在招聘优秀人才！ color: #00b894; font-size: 13px; font-weight: bold; @ https://chat.z.ai/:238
+[    8138ms] [LOG] %c💼 查看职位: https://zhipu-ai.jobs.feishu.cn/s/stmyTm5lxaU color: #0984e3; font-size: 12px; text-decoration: underline; @ https://chat.z.ai/:242
+[    8142ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://www.googletagmanager.com/gtag/js?id=G-Z8QTHYBHP3:0
+[    8493ms] [WARNING] Manifest: property 'start_url' ignored, should be same origin as document. @ https://z-cdn.chatglm.cn/z-ai/frontend/static/manifest.json:0
+[    8674ms] [LOG] Sat Apr 11 2026 18:23:04 GMT+0800 (中国标准时间) @ https://o.alicdn.com/frontend-lib/common-lib/jquery.min.js:0
+[    8718ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://j2c03hoppk-default-cn.rum.aliyuncs.com/:0
+[    8775ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://j2c03hoppk-default-cn.rum.aliyuncs.com/:0

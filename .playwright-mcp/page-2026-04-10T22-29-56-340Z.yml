@@ -1,0 +1,168 @@
+- generic [active] [ref=e1]:
+  - iframe
+  - generic [ref=e2]:
+    - generic:
+      - generic [ref=e3]: 欢迎来到劳动课程测评考试平台
+      - link "问题答疑" [ref=e6] [cursor=pointer]:
+        - /url: /document/7
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - link [ref=e13] [cursor=pointer]:
+        - /url: /index
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - link "首页" [ref=e17] [cursor=pointer]:
+            - /url: /index
+          - link "全部课程" [ref=e19] [cursor=pointer]:
+            - /url: /mo_course
+          - link "公开课" [ref=e21] [cursor=pointer]:
+            - /url: /course
+          - link "云课直播" [ref=e23] [cursor=pointer]:
+            - /url: /live
+        - link "更多" [ref=e26] [cursor=pointer]:
+          - /url: javascript:;
+    - generic [ref=e27]:
+      - generic [ref=e30]:
+        - textbox "请输入课程名称" [ref=e31] [cursor=pointer]
+        - button "Submit" [ref=e32] [cursor=pointer]
+      - generic [ref=e35]:
+        - link "教师登录" [ref=e37] [cursor=pointer]:
+          - /url: /manage/index
+        - link "学生登录" [ref=e39] [cursor=pointer]:
+          - /url: /user/login
+  - generic [ref=e55]:
+    - generic [ref=e57]:
+      - generic [ref=e58]: 公开课
+      - generic [ref=e59]:
+        - generic [ref=e61]:
+          - link [ref=e63] [cursor=pointer]:
+            - /url: /course/detail/1000710
+          - generic [ref=e65]:
+            - link "语文教学设计与实施研究(叶军)" [ref=e67] [cursor=pointer]:
+              - /url: /course/detail/1000710
+            - generic [ref=e69]:
+              - generic [ref=e72]: 华南农业大学珠江学院实训平台
+              - generic [ref=e73]: "20"
+        - generic [ref=e75]:
+          - link [ref=e77] [cursor=pointer]:
+            - /url: /course/detail/1000708
+          - generic [ref=e79]:
+            - link "语言及语言教学背景知识" [ref=e81] [cursor=pointer]:
+              - /url: /course/detail/1000708
+            - generic [ref=e83]:
+              - generic [ref=e86]: 华南农业大学珠江学院实训平台
+              - generic [ref=e87]: "10"
+        - generic [ref=e89]:
+          - link [ref=e91] [cursor=pointer]:
+            - /url: /course/detail/1000721
+          - generic [ref=e93]:
+            - link "油气集输工程" [ref=e95] [cursor=pointer]:
+              - /url: /course/detail/1000721
+            - generic [ref=e97]:
+              - generic [ref=e100]: 华南农业大学珠江学院实训平台
+              - generic [ref=e101]: "0"
+        - generic [ref=e103]:
+          - link [ref=e105] [cursor=pointer]:
+            - /url: /course/detail/1000712
+          - generic [ref=e107]:
+            - link "瑜伽1" [ref=e109] [cursor=pointer]:
+              - /url: /course/detail/1000712
+            - generic [ref=e111]:
+              - generic [ref=e114]: 华南农业大学珠江学院实训平台
+              - generic [ref=e115]: "0"
+        - generic [ref=e117]:
+          - link [ref=e119] [cursor=pointer]:
+            - /url: /course/detail/1000720
+          - generic [ref=e121]:
+            - link "有机化学（下）" [ref=e123] [cursor=pointer]:
+              - /url: /course/detail/1000720
+            - generic [ref=e125]:
+              - generic [ref=e128]: 华南农业大学珠江学院实训平台
+              - generic [ref=e129]: "0"
+        - generic [ref=e131]:
+          - link [ref=e133] [cursor=pointer]:
+            - /url: /course/detail/1000716
+          - generic [ref=e135]:
+            - link "幼儿园班级管理" [ref=e137] [cursor=pointer]:
+              - /url: /course/detail/1000716
+            - generic [ref=e139]:
+              - generic [ref=e142]: 华南农业大学珠江学院实训平台
+              - generic [ref=e143]: "0"
+        - generic [ref=e145]:
+          - link [ref=e147] [cursor=pointer]:
+            - /url: /course/detail/1000718
+          - generic [ref=e149]:
+            - link "有色金属及应用" [ref=e151] [cursor=pointer]:
+              - /url: /course/detail/1000718
+            - generic [ref=e153]:
+              - generic [ref=e156]: 华南农业大学珠江学院实训平台
+              - generic [ref=e157]: "0"
+        - generic [ref=e159]:
+          - link [ref=e161] [cursor=pointer]:
+            - /url: /course/detail/1000713
+          - generic [ref=e163]:
+            - link "幼儿园组织与管理（第十期）" [ref=e165] [cursor=pointer]:
+              - /url: /course/detail/1000713
+            - generic [ref=e167]:
+              - generic [ref=e170]: 华南农业大学珠江学院实训平台
+              - generic [ref=e171]: "0"
+      - link "更多课程" [ref=e174] [cursor=pointer]:
+        - /url: /course
+    - generic [ref=e176]:
+      - generic [ref=e179]:
+        - generic [ref=e181] [cursor=pointer]: 劳动实训
+        - generic [ref=e183] [cursor=pointer]: 实训
+        - generic [ref=e185] [cursor=pointer]: 综合类
+      - generic [ref=e188]:
+        - generic [ref=e190]:
+          - link [ref=e192] [cursor=pointer]:
+            - /url: /mo_course/detail/1011907
+          - generic [ref=e194]:
+            - link "手机摄影" [ref=e196] [cursor=pointer]:
+              - /url: /mo_course/detail/1011907
+            - generic [ref=e197]: 短视频制作专业基础课程。短视频的出现是新媒体时代的产物，随着电信、广...
+        - generic [ref=e202]:
+          - link [ref=e204] [cursor=pointer]:
+            - /url: /mo_course/detail/1011913
+          - link "《美食每课》——劳动实践之美食篇" [ref=e208] [cursor=pointer]:
+            - /url: /mo_course/detail/1011913
+        - generic [ref=e214]:
+          - link [ref=e216] [cursor=pointer]:
+            - /url: /mo_course/detail/1011914
+          - link "跟张家瑄老师玩转无人机" [ref=e220] [cursor=pointer]:
+            - /url: /mo_course/detail/1011914
+        - generic [ref=e226]:
+          - link [ref=e228] [cursor=pointer]:
+            - /url: /mo_course/detail/1011922
+          - generic [ref=e230]:
+            - link "大学生劳动教育" [ref=e232] [cursor=pointer]:
+              - /url: /mo_course/detail/1011922
+            - generic [ref=e233]: 本课程以普及劳动科学知识、提高劳动科学素养为着力点，针对当代大学生特...
+      - link "更多课程" [ref=e239] [cursor=pointer]:
+        - /url: /mo_course
+    - generic [ref=e241]:
+      - generic [ref=e242]: 热门直播
+      - link "更多课程" [ref=e246] [cursor=pointer]:
+        - /url: /live
+  - generic [ref=e248]:
+    - link "新ICP备2025026586号-1" [ref=e251] [cursor=pointer]:
+      - /url: https://beian.miit.gov.cn/#/Integrated/index
+    - generic [ref=e252]:
+      - generic [ref=e254]: 友情链接
+      - generic [ref=e256]:
+        - generic [ref=e257]: 常见问题
+        - link "课程说明" [ref=e260] [cursor=pointer]:
+          - /url: /document?id=1
+      - generic [ref=e261]:
+        - generic [ref=e262]: 关于我们
+        - link "联系我们" [ref=e265] [cursor=pointer]:
+          - /url: /document?id=5
+      - generic [ref=e266]:
+        - generic [ref=e267]: 联系方式
+        - generic [ref=e268]:
+          - text: 华南农业大学珠江学院
+          - text: 地址 :广州市从化区江埔街广从北路2004号
+          - text: 网络中心电话：020-87979913
+          - text: 教务处电话：020-87983268
+  - img [ref=e270] [cursor=pointer]
+  - iframe
