@@ -583,13 +583,11 @@
         async autoNext() {
             const delay = (this.config.autoNext && this.config.autoNext.delay) || 2000;
             await this.sleep(delay);
-            const currentNodeId = this.env.nodeId;
-            const nextId = (parseInt(currentNodeId) + 1).toString();
-            // 直接跳转到下一节点URL（最简单可靠）
-            const nextUrl = `?nodeId=${nextId}`;
-            console.log(`➡️  自动下一节: 跳转到 ${nextUrl}`);
-            location.href = location.pathname + nextUrl;
-            // 注意: 不调用 engine.start()，由 URL 监听器检测并重启
+            const nextId = (parseInt(this.env.nodeId) + 1).toString();
+            // 使用 assign 确保触发完整导航（包括SPA路由）
+            const targetUrl = location.pathname + '?nodeId=' + nextId;
+            console.log(`➡️  自动下一节: ${targetUrl}`);
+            window.location.assign(targetUrl);
         }
 
         stop() {
