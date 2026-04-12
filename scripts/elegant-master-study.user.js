@@ -585,24 +585,11 @@
             await this.sleep(delay);
             const currentNodeId = this.env.nodeId;
             const nextId = (parseInt(currentNodeId) + 1).toString();
-            // 尝试通过 nodeId 查找下一节课链接
-            const nextLink = document.querySelector(`a[href*="nodeId=${nextId}"]`);
-            if (nextLink && nextLink.offsetParent !== null) {
-                console.log(`➡️  自动点击下一节 (nodeId=${nextId})`);
-                nextLink.click();
-                return;
-            }
-            // 回退到传统选择器
-            const selectors = ['.next-node', '.next-btn', '.next-lesson', '[data-next]', 'a.next', 'button.next'];
-            for (let i = 0; i < selectors.length; i++) {
-                const btn = document.querySelector(selectors[i]);
-                if (btn && btn.offsetParent !== null) {
-                    console.log('➡️  自动点击下一节 (fallback)');
-                    btn.click();
-                    return;
-                }
-            }
-            console.warn('未找到下一节按钮');
+            // 直接跳转到下一节点URL（最简单可靠）
+            const nextUrl = `?nodeId=${nextId}`;
+            console.log(`➡️  自动下一节: 跳转到 ${nextUrl}`);
+            location.href = location.pathname + nextUrl;
+            // 注意: 不调用 engine.start()，由 URL 监听器检测并重启
         }
 
         stop() {
