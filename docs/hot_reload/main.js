@@ -597,16 +597,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         async autoNext() {
             const delay = (this.config.autoNext && this.config.autoNext.delay) || 2000;
             await this.sleep(delay);
-            const selectors = ['.next-node', '.next-btn', '.next-lesson', '[data-next]', 'a.next', 'button.next'];
-            for (let i = 0; i < selectors.length; i++) {
-                const btn = document.querySelector(selectors[i]);
-                if (btn && btn.offsetParent !== null) {
-                    console.log('➡️  自动点击下一节');
-                    btn.click();
-                    return;
-                }
-            }
-            console.warn('未找到下一节按钮');
+            const nextId = (parseInt(this.env.nodeId) + 1).toString();
+            const targetUrl = location.pathname + '?nodeId=' + nextId;
+            console.log(`➡️  自动下一节: ${targetUrl}`);
+            window.location.assign(targetUrl);
         }
 
         stop() {
@@ -676,6 +670,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 return success;
             } finally {
                 this.running = false;
+                this.bot = null;  // 清理 bot 引用，允许重启
             }
         }
 
@@ -688,19 +683,26 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const pathMatch = location.pathname.match(/\/node\/(\d+)/);
             const params = new URLSearchParams(location.search);
             const paramNodeId = params.get("nodeId");
-            let match = pathMatch;
-            if (!match && paramNodeId) {
-                match = {1: paramNodeId};
-            }
-            if (!match) return null;
-            const nodeId = match[1];
+            if (!pathMatch && !paramNodeId) return null;
+            const nodeId = pathMatch ? pathMatch[1] : paramNodeId;
+
             let duration = 0;
             const video = document.querySelector("video");
-            if (video && video.duration && video.duration !== Infinity) {
+            if (video && video.readyState >= 1 && video.duration && video.duration !== Infinity) {
                 duration = Math.floor(video.duration);
             } else {
-                const m = document.body.textContent.match(/(\d{1,2}):(\d{2})/);
-                if (m) duration = parseInt(m[1]) * 60 + parseInt(m[2]);
+                // 改进：收集所有文本，从后往前找非零时长
+                const allTexts = Array.from(document.querySelectorAll("*")).map(el => el.textContent).join("\n");
+                const matches = allTexts.match(/\b(\d{1,2})\s*[:：]\s*(\d{2})\b/g);
+                if (matches) {
+                    for (let i = matches.length - 1; i >= 0; i--) {
+                        const m = matches[i].match(/(\d{1,2})\s*[:：]\s*(\d{2})/);
+                        if (m) {
+                            const min = parseInt(m[1]), sec = parseInt(m[2]);
+                            if (min > 0 || sec > 0) { duration = min * 60 + sec; break; }
+                        }
+                    }
+                }
             }
             if (!duration || duration <= 0) duration = 3600;
             return { nodeId, duration };
@@ -751,20 +753,32 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             console.log('⚠️  未检测到学习节点，请先访问课程页面');
         }
 
-        // 监听 URL 变化（SPA 路由切换）
+        // 监听 URL 变化（SPA 路由切换）- 增强版：延迟重试 + 自动下一节
         let lastUrl = location.href;
         setInterval(() => {
             if (location.href !== lastUrl) {
                 lastUrl = location.href;
                 console.log('🔄 URL 变化，重新检测环境:', location.href);
-                const newEnv = engine.detectEnvironment();
-                if (newEnv) {
-                    engine.env = newEnv;
-                    ui.updateStatus(newEnv.nodeId, newEnv.duration, null, '待机');
-                    console.log('✅ 环境已更新:', newEnv);
-                } else {
-                    console.log('⚠️  当前页面不是学习节点');
-                }
+                let attempts = 0;
+                const maxAttempts = 30;  // 延长到9秒（30×300ms）
+                const tryDetect = () => {
+                    const newEnv = engine.detectEnvironment();
+                    if (newEnv) {
+                        engine.env = newEnv;
+                        ui.updateStatus(newEnv.nodeId, newEnv.duration, null, '待机');
+                        console.log('✅ 环境已更新:', newEnv);
+                        const autoNextEnabled = engine.config.get('autoNext.enabled');
+                        if (autoNextEnabled) {
+                            console.log('➡️ 自动下一节: 重新启动刷课');
+                            setTimeout(() => engine.start(), 1500);
+                        }
+                    } else if (++attempts < maxAttempts) {
+                        setTimeout(tryDetect, 300);
+                    } else {
+                        console.log('⚠️  环境检测超时（非学习节点页面）');
+                    }
+                };
+                tryDetect();
             }
         }, 500);
     }
