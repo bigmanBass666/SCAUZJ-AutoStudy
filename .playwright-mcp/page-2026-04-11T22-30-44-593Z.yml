@@ -1,0 +1,8 @@
+- generic [active] [ref=e1]:
+  - heading "🌟 优雅大师 - 一键安装" [level=1] [ref=e2]
+  - paragraph [ref=e3]: 点击下方按钮，将在 Tampermonkey 中安装开发版脚本（热更新）
+  - link "👉 安装到 Tampermonkey" [ref=e4] [cursor=pointer]:
+    - /url: userscript:http://localhost:8081/dev.user.js
+    - button "👉 安装到 Tampermonkey" [ref=e5]
+  - heading "如果按钮无效，手动复制下方代码到 Tampermonkey：" [level=3] [ref=e6]
+  - textbox [ref=e7]

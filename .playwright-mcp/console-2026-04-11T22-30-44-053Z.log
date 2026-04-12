@@ -1,0 +1,3 @@
+[     341ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8082/favicon.ico:0
+[     597ms] [ERROR] Access to fetch at 'http://localhost:8081/dev.user.js' from origin 'http://localhost:8082' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8082/install.html:0
+[     605ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8081/dev.user.js:0

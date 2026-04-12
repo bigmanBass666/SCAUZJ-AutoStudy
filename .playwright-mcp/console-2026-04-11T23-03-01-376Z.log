@@ -1,0 +1,144 @@
+[     362ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://scauzj.leykeji.com/static/home/images/android_leykeji.png:0
+[     362ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://scauzj.leykeji.com/static/home/images/ios_leykeji.png:0
+[     388ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://s4.cnzz.com/z_stat.php?id=1278629856&web_id=1278629856:0
+[     659ms] [LOG] 同学，我们已经发现您具有相应的网络知识，了解浏览器的调试模式，这挺好的，以下是要对您说的一些警告信息。 @ https://scauzj.leykeji.com/static/user/js/video.js?v=1775948610:87
+[     661ms] [LOG] 警告：请不要以任何取巧方式进行作弊刷课或帮助其他人刷课，系统已对所有课时的真实性进行统计计算评估，收集数据包括不限于（浏览器头，版本，播放器记录，登录时长，cookie,referer,ip追踪,终端平台，是否符是您的账号，登录过多少个账号，历史登录记录.. 等各种操作数据及ajax随机埋点），一经发现作弊轻则取消学时，重则取消成绩。 @ https://scauzj.leykeji.com/static/user/js/video.js?v=1775948610:88
+[     737ms] [LOG] rest {appId: REDACTED_APPID, nonce: f15b05dfcb4bcecba43fc5a73e4283fd, timestamp: 1775948610, sign: 6127e6994587057ad24c96fc6fcadd50, status: true} @ https://scauzj.leykeji.com/static/user/js/video.js?v=1775948610:32
+[    1155ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://t.gdt.qq.com/conv/web/cookies/jsonp?cb=jsonp_cb_0_1775948582519_275&callback=jsonp_cb_0_1775948582519_275:0
+[    2458ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect/pv?from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583688&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[    2926ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect/pv?from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2FstatusManager%2Findex.html%3Fkfuin%3D3009017937&id=vq4n2C4by1vw9Kvevq&uin=3009017937&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583918&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[    2985ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect/whitelist?id=vq4n2C4by1vw9Kvevq&uin=3009017937&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583918&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2FstatusManager%2Findex.html%3Fkfuin%3D3009017937&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[    3067ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect/whitelist?id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583688&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[    3898ms] [LOG] ✅ 优雅大师UI创建成功 @ chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:90
+[    3898ms] [LOG] 🌟 优雅大师已就绪，点击"🚀 启动"开始 @ chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:735
+[    4373ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed?id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583688&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[    4448ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed?id=vq4n2C4by1vw9Kvevq&uin=3009017937&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583918&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2FstatusManager%2Findex.html%3Fkfuin%3D3009017937&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[    4524ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect?id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583688&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[   14397ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed/performance?dnsLookup=0&tcp=196&ssl=194&ttfb=103&contentDownload=1&domParse=1171&resourceDownload=460&firstScreenTiming=0&id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583688&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[   14914ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed/performance?dnsLookup=0&tcp=237&ssl=235&ttfb=275&contentDownload=12&domParse=954&resourceDownload=5&firstScreenTiming=0&id=vq4n2C4by1vw9Kvevq&uin=3009017937&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775948583918&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2FstatusManager%2Findex.html%3Fkfuin%3D3009017937&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[  233266ms] [LOG] 🎯 目标: {nodeId: 1429487, duration: 440} @ chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:657
+[  233270ms] [LOG] 🌟 优雅大师启动 {nodeId: 1429487, duration: 440} @ chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:520
+[  233300ms] TypeError: Cannot read properties of undefined (reading 'nodeId')
+    at Object.study (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:616:58)
+    at ElegantBot.start (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:523:41)
+    at MasterController.start (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:662:48)
+    at elements.btnStart.onclick (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:298:45)
+[ 2420402ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2440420ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2460407ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2480420ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2500422ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2520407ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2540421ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2560407ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2580409ms] Error: Extension context invalidated.
+    at Object.postMessage (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:37:171)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:53:353
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:83
+    at Array.forEach (<anonymous>)
+    at $t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:9:1303)
+    at t (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:10:325)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:18:74)
+    at Object.message (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:19:113)
+    at chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:86:81
+    at v (chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/content.js:66:410)
+[ 2591927ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://scauzj.leykeji.com/static/home/images/android_leykeji.png:0
+[ 2591927ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://scauzj.leykeji.com/static/home/images/ios_leykeji.png:0
+[ 2591950ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://s4.cnzz.com/z_stat.php?id=1278629856&web_id=1278629856:0
+[ 2592037ms] [TIMEEND] SCRIPT RUN TIME[🌟 优雅大师 - 开发环境（实时调试）]: 0.60009765625 ms @ chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:1
+[ 2592183ms] [LOG] 同学，我们已经发现您具有相应的网络知识，了解浏览器的调试模式，这挺好的，以下是要对您说的一些警告信息。 @ https://scauzj.leykeji.com/static/user/js/video.js?v=1775951201:87
+[ 2592184ms] [LOG] 警告：请不要以任何取巧方式进行作弊刷课或帮助其他人刷课，系统已对所有课时的真实性进行统计计算评估，收集数据包括不限于（浏览器头，版本，播放器记录，登录时长，cookie,referer,ip追踪,终端平台，是否符是您的账号，登录过多少个账号，历史登录记录.. 等各种操作数据及ajax随机埋点），一经发现作弊轻则取消学时，重则取消成绩。 @ https://scauzj.leykeji.com/static/user/js/video.js?v=1775951201:88
+[ 2592248ms] [LOG] rest {appId: REDACTED_APPID, nonce: 86ca8e0108265d88bbf07f4dbc779106, timestamp: 1775951202, sign: 25fa2a706c77cfd9c06142803884725f, status: true} @ https://scauzj.leykeji.com/static/user/js/video.js?v=1775951201:32
+[ 2592576ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://t.gdt.qq.com/conv/web/cookies/jsonp?cb=jsonp_cb_0_1775951173938_547&callback=jsonp_cb_0_1775951173938_547:0
+[ 2594193ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect/pv?from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951174829&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2594303ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect/whitelist?id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951174829&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2594369ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect/pv?from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2FstatusManager%2Findex.html%3Fkfuin%3D3009017937&id=vq4n2C4by1vw9Kvevq&uin=3009017937&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951175562&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2594388ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect/whitelist?id=vq4n2C4by1vw9Kvevq&uin=3009017937&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951175562&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2FstatusManager%2Findex.html%3Fkfuin%3D3009017937&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2595127ms] [LOG] ✅ 优雅大师UI创建成功 @ chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:92
+[ 2595128ms] [LOG] 🌟 优雅大师已就绪，点击"🚀 启动"开始 @ chrome-extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/userscript.html?name=%25F0%259F%258C%259F-%25E4%25BC%2598%25E9%259B%2585%25E5%25A4%25A7%25E5%25B8%2588-%25E5%25BC%2580%25E5%258F%2591%25E7%258E%25AF%25E5%25A2%2583%25EF%25BC%2588%25E5%25AE%259E%25E6%2597%25B6%25E8%25B0%2583%25E8%25AF%2595%25EF%25BC%2589.user.js&id=a241f440-a6c3-4afc-bd6a-75ffa1e051d2:737
+[ 2595618ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed?id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951174829&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2595784ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed?id=vq4n2C4by1vw9Kvevq&uin=3009017937&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951175562&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2FstatusManager%2Findex.html%3Fkfuin%3D3009017937&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2595788ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/collect?id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951174829&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2605708ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed/performance?dnsLookup=0&tcp=154&ssl=153&ttfb=73&contentDownload=2&domParse=1196&resourceDownload=332&firstScreenTiming=0&id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951174829&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2605790ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed?id=9GkL9SLGjnYrr8bJd6&uin=&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951174829&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2Fpc.html&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0
+[ 2606342ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://rumt-zh.com/speed/performance?dnsLookup=0&tcp=156&ssl=156&ttfb=128&contentDownload=53&domParse=1169&resourceDownload=3&firstScreenTiming=0&id=vq4n2C4by1vw9Kvevq&uin=3009017937&version=1.38.1&aid=8112c955-ec72-45ac-b994-e526a02be989&env=production&platform=3&netType=4&vp=0%20*%200&sr=1280%20*%20720&sessionId=session-1775951175562&from=https%3A%2F%2Fwebpage.qidian.qq.com%2Fqidian%2Fchatv3%2FstatusManager%2Findex.html%3Fkfuin%3D3009017937&referer=https%3A%2F%2Fscauzj.leykeji.com%2F:0

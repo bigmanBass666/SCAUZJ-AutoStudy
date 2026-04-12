@@ -1,0 +1,136 @@
+- generic [active] [ref=e1]:
+  - iframe
+  - generic [ref=e3]:
+    - link "欢迎来到劳动课程测评考试平台" [ref=e5] [cursor=pointer]:
+      - /url: http://www.leykeji.com
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - link "下载APP" [ref=e9] [cursor=pointer]:
+          - /url: javascript:void(0)
+        - generic [ref=e10]:
+          - paragraph [ref=e14]: 扫码下载Android
+          - paragraph [ref=e18]: 扫码下载iOS
+      - link "问题答疑" [ref=e21] [cursor=pointer]:
+        - /url: /document/7
+      - generic [ref=e22]:
+        - link "刘家暄" [ref=e24] [cursor=pointer]:
+          - /url: /user/index
+          - generic [ref=e26]: 刘家暄
+        - list [ref=e28]:
+          - listitem [ref=e29]:
+            - link "个人中心" [ref=e30] [cursor=pointer]:
+              - /url: /user/index
+          - listitem [ref=e31]:
+            - link "个人设置" [ref=e32] [cursor=pointer]:
+              - /url: /user/member
+          - listitem [ref=e33]:
+            - link "退出登录" [ref=e34] [cursor=pointer]:
+              - /url: /user/logout
+      - link [ref=e36] [cursor=pointer]:
+        - /url: /user/member/notice
+  - generic [ref=e38]:
+    - link [ref=e40] [cursor=pointer]:
+      - /url: /index
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - list:
+          - listitem [ref=e43]:
+            - link "首页" [ref=e44] [cursor=pointer]:
+              - /url: /index
+          - listitem [ref=e45]:
+            - link "全部课程" [ref=e46] [cursor=pointer]:
+              - /url: /mo_course
+          - listitem [ref=e47]:
+            - link "公开课" [ref=e48] [cursor=pointer]:
+              - /url: /course
+          - listitem [ref=e49]:
+            - link "教学新闻" [ref=e50] [cursor=pointer]:
+              - /url: /teaching
+          - listitem [ref=e51]:
+            - link "数图资源" [ref=e52] [cursor=pointer]:
+              - /url: https://szzy.yinghuaonline.com/
+          - listitem [ref=e53]:
+            - link "教发培训" [ref=e54] [cursor=pointer]:
+              - /url: https://www.leykeji.com/course?cateBid=2039&cateMid=0&state=0&order=0
+      - generic [ref=e55]:
+        - generic:
+          - textbox "请输入课程名称" [ref=e56]
+          - button "Submit" [ref=e58] [cursor=pointer]
+  - generic [ref=e59]:
+    - generic [ref=e61]:
+      - link "首页" [ref=e62] [cursor=pointer]:
+        - /url: /
+      - text: ">"
+      - link "个人中心" [ref=e63] [cursor=pointer]:
+        - /url: /user
+      - text: "> 课程详情"
+    - generic [ref=e66]:
+      - generic [ref=e67]:
+        - img "艺术鉴赏与评论" [ref=e69]
+        - generic [ref=e70]:
+          - generic [ref=e71]: 艺术鉴赏与评论
+          - generic [ref=e73]: 主讲教师： 李闻婧
+          - generic [ref=e74]:
+            - generic [ref=e75]: 课程代码： sxsx0002
+            - generic [ref=e76]: 学科分类： 公共课-通识类
+          - generic [ref=e77]:
+            - generic [ref=e78]: 教学班级： 2024584-013
+            - generic [ref=e79]: 责任教师： 陈伟
+          - generic [ref=e80]:
+            - generic [ref=e81]: 正在进行
+            - generic [ref=e82]:
+              - generic [ref=e83]: 课程类型：必修课
+              - generic [ref=e85]: 课程时间：2026-04-01 ~ 2026-06-19
+              - generic [ref=e87]: 全部学习人数5799人
+          - generic [ref=e89]:
+            - link "继续学习" [ref=e91] [cursor=pointer]:
+              - /url: /user/node?nodeId=1429488
+            - link "课程直播间" [ref=e93] [cursor=pointer]:
+              - /url: /user/live?courseId=1011601
+            - link "学习成绩" [ref=e95] [cursor=pointer]:
+              - /url: /user/study_record?courseId=1011601
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]:
+            - link "课程介绍" [ref=e100] [cursor=pointer]:
+              - /url: /user/course?courseId=1011601
+            - link "课程目录" [ref=e102] [cursor=pointer]:
+              - /url: /user/course/chapter?courseId=1011601
+            - link "教师团队" [ref=e104] [cursor=pointer]:
+              - /url: /user/course/teacher?courseId=1011601
+            - link "课程公告" [ref=e106] [cursor=pointer]:
+              - /url: /user/course/announcement?courseId=1011601
+            - link "课程资料" [ref=e108] [cursor=pointer]:
+              - /url: /user/course/files?courseId=1011601
+            - link "讨论板块" [ref=e110] [cursor=pointer]:
+              - /url: /user/course/discuss?courseId=1011601
+          - generic [ref=e113]: 课程简介：
+        - generic [ref=e115]:
+          - img "华南农业大学珠江学院" [ref=e117]
+          - generic [ref=e118]: 暂无任何计分规则说明。
+  - generic [ref=e119]:
+    - generic [ref=e120]:
+      - generic [ref=e123]:
+        - generic [ref=e125]: 友情链接
+        - generic [ref=e126]:
+          - generic [ref=e127]: 常见问题
+          - link "课程说明" [ref=e130] [cursor=pointer]:
+            - /url: /document?id=1
+        - generic [ref=e131]:
+          - generic [ref=e132]: 关于我们
+          - link "联系我们" [ref=e135] [cursor=pointer]:
+            - /url: /document?id=5
+      - generic [ref=e137]: 关注我们
+    - generic [ref=e139]:
+      - generic [ref=e140]:
+        - link "京公网安备 11011502004263号" [ref=e141] [cursor=pointer]:
+          - /url: http://www.beian.gov.cn/
+        - text: "|"
+        - link "教APP备1102393号" [ref=e142] [cursor=pointer]:
+          - /url: http://app.eduyun.cn/
+        - text: "|"
+        - link "新ICP备2025026586号-1" [ref=e143] [cursor=pointer]:
+          - /url: http://www.beian.miit.gov.cn/
+      - img [ref=e145]
+  - img [ref=e146] [cursor=pointer]
+  - iframe
