@@ -63,42 +63,56 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         constructor(configMgr) {
             this.config = configMgr;
             this.THRESHOLDS = [110, 120, 130, 140];
+            this.maxRetries = 5;
+        }
+
+        async solveWithRetry(getCaptchaImg, fillInput, submitLogin) {
+            for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+                console.log(`🔍 验证码识别尝试 ${attempt}/${this.maxRetries}`);
+                const imgSrc = getCaptchaImg();
+                if (!imgSrc) { console.warn('⚠️ 未找到验证码图片'); continue; }
+
+                const code = await this.solve(imgSrc);
+                if (code && code.length >= 3) {
+                    console.log(`✅ 识别成功: ${code} (第${attempt}次尝试)`);
+                    fillInput(code);
+                    const loginOk = await submitLogin();
+                    if (loginOk) return true;
+                    console.warn('⚠️ 验证码错误，换下一个重试');
+                } else {
+                    console.warn(`⚠️ 第${attempt}次识别无有效结果，刷新验证码`);
+                }
+
+                const captchaImg = document.getElementById('codeImg');
+                if (captchaImg) { captchaImg.click(); await new Promise(r => setTimeout(r, 1200)); }
+            }
+            console.error(`❌ ${this.maxRetries}次尝试均失败，请手动输入`);
+            return false;
         }
 
         async solve(imgSrc) {
             const allResults = [];
 
             const urlResult = await this._ocrByUrl(imgSrc);
-            if (urlResult) allResults.push(urlResult);
+            if (urlResult) {
+                if (/^[a-zA-Z0-9]{3,6}$/.test(urlResult.text)) return urlResult.text;
+                allResults.push(urlResult);
+            }
 
             for (const thresh of this.THRESHOLDS) {
                 const result = await this._ocrByPreprocessed(imgSrc, thresh);
-                if (result) allResults.push(result);
+                if (result) {
+                    if (/^[a-zA-Z0-9]{3,6}$/.test(result.text)) return result.text;
+                    allResults.push(result);
+                }
             }
 
-            const validResults = allResults.filter(r => r.text && r.text.length >= 3 && /^[a-zA-Z0-9]+$/.test(r.text));
-            if (validResults.length === 0) {
-                const anyValid = allResults.filter(r => r.text && r.text.length >= 2);
-                if (anyValid.length > 0) return anyValid[0].text.replace(/[^a-zA-Z0-9]/g, '');
-                return null;
+            for (const r of allResults) {
+                const cleaned = r.text.replace(/[^a-zA-Z0-9]/g, '');
+                if (cleaned.length >= 3) return cleaned;
             }
 
-            const voteMap = {};
-            validResults.forEach(r => {
-                const key = r.text.toLowerCase();
-                voteMap[key] = (voteMap[key] || 0) + 1;
-            });
-
-            let bestCode = '';
-            let bestVotes = 0;
-            for (const [code, votes] of Object.entries(voteMap)) {
-                if (votes > bestVotes) { bestVotes = votes; bestCode = code; }
-            }
-
-            if (bestVotes === 1 && validResults.length > 0) {
-                return validResults[0].text;
-            }
-            return bestCode;
+            return null;
         }
 
         async _ocrByUrl(imgSrc) {
