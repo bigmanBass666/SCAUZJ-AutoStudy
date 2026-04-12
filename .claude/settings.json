@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--connect-to-browser",
+        "http://localhost:9222"
+      ]
+    }
+  }
+}
