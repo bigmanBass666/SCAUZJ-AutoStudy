@@ -1,54 +1,23 @@
 
 (function() {
+
+// == GM API 兼容层 ==
+// 如果直接注入页面（非 Tampermonkey 环境），使用 window 上的模拟实现
+const _GM_getValue  = typeof GM_getValue !== 'undefined'  ? GM_getValue  : window.GM_getValue;
+const _GM_setValue  = typeof GM_setValue !== 'undefined'  ? GM_setValue  : window.GM_setValue;
+const _GM_deleteValue = typeof GM_deleteValue !== 'undefined' ? GM_deleteValue : window.GM_deleteValue;
+const _GM_addStyle  = typeof GM_addStyle !== 'undefined'  ? GM_addStyle  : window.GM_addStyle;
+const _GM_xmlhttpRequest = typeof GM_xmlhttpRequest !== 'undefined' ? GM_xmlhttpRequest : window.GM_xmlhttpRequest;
+const _GM_notification = typeof GM_notification !== 'undefined' ? GM_notification : window.GM_notification;
+const _GM_setClipboard = typeof GM_setClipboard !== 'undefined' ? GM_setClipboard : window.GM_setClipboard;
+const _GM_registerMenuCommand = typeof GM_registerMenuCommand !== 'undefined' ? GM_registerMenuCommand : window.GM_registerMenuCommand;
+const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
+
+
     'use strict';
 
     // ==================== 默认配置 ====================
     const DEFAULTS = {
-
-// ==================== 热更新客户端 ====================
-// ✅ 仅开发环境启用，生产环境自动禁用
-(function() {
-    if (typeof window !== 'undefined' && location.hostname === 'localhost') {
-        const WS_URL = 'ws://localhost:8082';
-        let ws = null;
-        let reconnectTimer = null;
-        
-        function connect() {
-            try {
-                ws = new WebSocket(WS_URL);
-                ws.onopen = () => {
-                    console.log('🔌 热更新客户端已连接');
-                };
-                ws.onmessage = (event) => {
-                    try {
-                        const msg = JSON.parse(event.data);
-                        if (msg.type === 'reload' && msg.code) {
-                            console.log('🔄 检测到代码更新，正在热 reload...');
-                            // 执行新代码
-                            eval(msg.code);
-                            console.log('✅ 热更新完成 (v' + msg.version + ')');
-                        }
-                    } catch (e) {
-                        console.error('热更新消息解析失败:', e);
-                    }
-                };
-                ws.onerror = (err) => {
-                    console.warn('⚠️  WebSocket错误，5秒后重连');
-                };
-                ws.onclose = () => {
-                    console.log('❌ WebSocket断开，10秒后重连');
-                    reconnectTimer = setTimeout(connect, 10000);
-                };
-            } catch (e) {
-                console.error('WebSocket不可用:', e.message);
-            }
-        }
-        
-        // 延迟连接，避免页面加载时竞争
-        setTimeout(connect, 1000);
-    }
-})();
-
         speed: { mode: 'normal', reportInterval: 2000, jumpSize: 30 },
         ai: { enabled: false, apiKey: '', maxPerSession: 10 },
         autoNext: { enabled: true, delay: 2000 },
@@ -628,11 +597,16 @@
         async autoNext() {
             const delay = (this.config.autoNext && this.config.autoNext.delay) || 2000;
             await this.sleep(delay);
-            const nextId = (parseInt(this.env.nodeId) + 1).toString();
-            // 使用 assign 确保触发完整导航（包括SPA路由）
-            const targetUrl = location.pathname + '?nodeId=' + nextId;
-            console.log(`➡️  自动下一节: ${targetUrl}`);
-            window.location.assign(targetUrl);
+            const selectors = ['.next-node', '.next-btn', '.next-lesson', '[data-next]', 'a.next', 'button.next'];
+            for (let i = 0; i < selectors.length; i++) {
+                const btn = document.querySelector(selectors[i]);
+                if (btn && btn.offsetParent !== null) {
+                    console.log('➡️  自动点击下一节');
+                    btn.click();
+                    return;
+                }
+            }
+            console.warn('未找到下一节按钮');
         }
 
         stop() {
@@ -702,7 +676,6 @@
                 return success;
             } finally {
                 this.running = false;
-                this.bot = null;
             }
         }
 
@@ -712,29 +685,22 @@
         }
 
         detectEnvironment() {
-            const pathMatch = location.pathname.match(//node/(d+)/);
+            const pathMatch = location.pathname.match(/\/node\/(\d+)/);
             const params = new URLSearchParams(location.search);
             const paramNodeId = params.get("nodeId");
-            if (!pathMatch && !paramNodeId) return null;
-            const nodeId = pathMatch ? pathMatch[1] : paramNodeId;
-
+            let match = pathMatch;
+            if (!match && paramNodeId) {
+                match = {1: paramNodeId};
+            }
+            if (!match) return null;
+            const nodeId = match[1];
             let duration = 0;
             const video = document.querySelector("video");
-            if (video && video.readyState >= 1 && video.duration && video.duration !== Infinity) {
+            if (video && video.duration && video.duration !== Infinity) {
                 duration = Math.floor(video.duration);
             } else {
-                const allTexts = Array.from(document.querySelectorAll("*")).map(el => el.textContent).join("
-");
-                const matches = allTexts.match(/(d{1,2})s*[:：]s*(d{2})/g);
-                if (matches) {
-                    for (let i = matches.length - 1; i >= 0; i--) {
-                        const m = matches[i].match(/(d{1,2})s*[:：]s*(d{2})/);
-                        if (m) {
-                            const min = parseInt(m[1]), sec = parseInt(m[2]);
-                            if (min > 0 || sec > 0) { duration = min * 60 + sec; break; }
-                        }
-                    }
-                }
+                const m = document.body.textContent.match(/(\d{1,2}):(\d{2})/);
+                if (m) duration = parseInt(m[1]) * 60 + parseInt(m[2]);
             }
             if (!duration || duration <= 0) duration = 3600;
             return { nodeId, duration };
@@ -791,26 +757,14 @@
             if (location.href !== lastUrl) {
                 lastUrl = location.href;
                 console.log('🔄 URL 变化，重新检测环境:', location.href);
-                let attempts = 0;
-                const maxAttempts = 30;  // 延长到9秒（30×300ms）
-                const tryDetect = () => {
-                    const newEnv = engine.detectEnvironment();
-                    if (newEnv) {
-                        engine.env = newEnv;
-                        ui.updateStatus(newEnv.nodeId, newEnv.duration, null, '待机');
-                        console.log('✅ 环境已更新:', newEnv);
-                        const autoNextEnabled = engine.config.get('autoNext.enabled');
-                        if (autoNextEnabled) {
-                            console.log('➡️  自动下一节: 重新启动刷课');
-                            setTimeout(() => engine.start(), 1500);
-                        }
-                    } else if (++attempts < maxAttempts) {
-                        setTimeout(tryDetect, 300);
-                    } else {
-                        console.log('⚠️  环境检测超时（非学习节点页面）');
-                    }
-                };
-                tryDetect();
+                const newEnv = engine.detectEnvironment();
+                if (newEnv) {
+                    engine.env = newEnv;
+                    ui.updateStatus(newEnv.nodeId, newEnv.duration, null, '待机');
+                    console.log('✅ 环境已更新:', newEnv);
+                } else {
+                    console.log('⚠️  当前页面不是学习节点');
+                }
             }
         }, 500);
     }
