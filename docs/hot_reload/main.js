@@ -2,7 +2,6 @@
 (function() {
 
 // == GM API 兼容层 ==
-// 如果直接注入页面（非 Tampermonkey 环境），使用 window 上的模拟实现
 const _GM_getValue  = typeof GM_getValue !== 'undefined'  ? GM_getValue  : window.GM_getValue;
 const _GM_setValue  = typeof GM_setValue !== 'undefined'  ? GM_setValue  : window.GM_setValue;
 const _GM_deleteValue = typeof GM_deleteValue !== 'undefined' ? GM_deleteValue : window.GM_deleteValue;
@@ -13,18 +12,15 @@ const _GM_setClipboard = typeof GM_setClipboard !== 'undefined' ? GM_setClipboar
 const _GM_registerMenuCommand = typeof GM_registerMenuCommand !== 'undefined' ? GM_registerMenuCommand : window.GM_registerMenuCommand;
 const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
-
     'use strict';
 
-    // ==================== 默认配置 ====================
     const DEFAULTS = {
         speed: { mode: 'normal', reportInterval: 2000, jumpSize: 30 },
-        ai: { enabled: false, apiKey: '', maxPerSession: 10 },
+        ai: { enabled: false, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'K88766094088957' },
         autoNext: { enabled: true, delay: 2000 },
         completion: { targetPercent: 0.95 }
     };
 
-    // ==================== 配置管理器 ====================
     class ConfigManager {
         constructor() {
             this.storageKey = 'elegant_master_config_v4';
@@ -62,43 +58,168 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
     }
 
+    // ==================== OCR 验证码求解器 ====================
+    class CaptchaSolver {
+        constructor(configMgr) {
+            this.config = configMgr;
+            this.THRESHOLDS = [110, 120, 130, 140];
+        }
+
+        async solve(imgSrc) {
+            const allResults = [];
+
+            const urlResult = await this._ocrByUrl(imgSrc);
+            if (urlResult) allResults.push(urlResult);
+
+            for (const thresh of this.THRESHOLDS) {
+                const result = await this._ocrByPreprocessed(imgSrc, thresh);
+                if (result) allResults.push(result);
+            }
+
+            const validResults = allResults.filter(r => r.text && r.text.length >= 3 && /^[a-zA-Z0-9]+$/.test(r.text));
+            if (validResults.length === 0) {
+                const anyValid = allResults.filter(r => r.text && r.text.length >= 2);
+                if (anyValid.length > 0) return anyValid[0].text.replace(/[^a-zA-Z0-9]/g, '');
+                return null;
+            }
+
+            const voteMap = {};
+            validResults.forEach(r => {
+                const key = r.text.toLowerCase();
+                voteMap[key] = (voteMap[key] || 0) + 1;
+            });
+
+            let bestCode = '';
+            let bestVotes = 0;
+            for (const [code, votes] of Object.entries(voteMap)) {
+                if (votes > bestVotes) { bestVotes = votes; bestCode = code; }
+            }
+
+            if (bestVotes === 1 && validResults.length > 0) {
+                return validResults[0].text;
+            }
+            return bestCode;
+        }
+
+        async _ocrByUrl(imgSrc) {
+            try {
+                const apiKey = this.config.get('ai.ocrSpaceKey', 'K88766094088957');
+                const res = await fetch('https://api.ocr.space/parse/image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        apikey: apiKey,
+                        url: imgSrc,
+                        language: 'eng',
+                        isOverlayRequired: false,
+                        scale: true,
+                        OCREngine: 2
+                    }).toString()
+                });
+                const data = await res.json();
+                if (data.IsErroredOnProcessing) return null;
+                const text = data.ParsedResults?.[0]?.ParsedText?.replace(/[\s\n\r]/g, '') || '';
+                return text ? { method: 'url_original', text } : null;
+            } catch (e) { return null; }
+        }
+
+        async _ocrByPreprocessed(imgSrc, threshold) {
+            try {
+                const resp = await fetch(imgSrc);
+                const blob = await resp.blob();
+                const bitmap = await createImageBitmap(blob);
+                const canvas = document.createElement('canvas');
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(bitmap, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                const origData = new Uint8ClampedArray(data);
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const brightness = 0.299 * origData[i] + 0.587 * origData[i+1] + 0.114 * origData[i+2];
+                    const v = brightness > threshold ? 255 : 0;
+                    data[i] = data[i+1] = data[i+2] = v;
+                }
+
+                const w = canvas.width, h = canvas.height;
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const idx = (y * w + x) * 4;
+                        if (data[idx] === 0) {
+                            let neighbors = 0;
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dx = -1; dx <= 1; dx++) {
+                                    if (dx === 0 && dy === 0) continue;
+                                    if (origData[((y+dy)*w+(x+dx))*4] === 0) neighbors++;
+                                }
+                            }
+                            if (neighbors < 2) data[idx] = data[idx+1] = data[idx+2] = 255;
+                        }
+                    }
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+                const base64 = canvas.toDataURL('image/png');
+
+                const apiKey = this.config.get('ai.ocrSpaceKey', 'K88766094088957');
+                const ocrRes = await fetch('https://api.ocr.space/parse/image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        apikey: apiKey,
+                        base64Image: base64,
+                        language: 'eng',
+                        isOverlayRequired: false,
+                        scale: true,
+                        OCREngine: 2
+                    }).toString()
+                });
+                const ocrData = await ocrRes.json();
+                if (ocrData.IsErroredOnProcessing) return null;
+                const text = ocrData.ParsedResults?.[0]?.ParsedText?.replace(/[\s\n\r]/g, '') || '';
+                return text ? { method: `preprocessed_t${threshold}`, text } : null;
+            } catch (e) { return null; }
+        }
+    }
+
     // ==================== UI 构建器 ====================
     class UIBuilder {
         constructor(configMgr) {
             this.config = configMgr;
             this.panel = null;
             this.elements = {};
+            this._engine = null;
+        }
+
+        setEngine(engine) {
+            this._engine = engine;
         }
 
         create() {
-            // 创建主面板
             this.panel = document.createElement('div');
             this.panel.id = 'elegant-master-panel';
             this.panel.style.cssText = `
                 position: fixed; top: 20px; right: 20px; width: 320px; max-height: 90vh;
                 background: #fff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-                z-index: 999999; font-family: -apple-system, sans-serif; font-size: 14px;
+                z-index: 2147483647; font-family: -apple-system, sans-serif; font-size: 14px;
                 overflow: hidden; display: flex; flex-direction: column;
+                pointer-events: auto;
             `;
 
-            // 构建面板结构
             const header = this.buildHeader();
             const contentWrapper = this.buildContentWrapper();
             const footer = this.buildFooter();
 
-            // 组装
             this.panel.appendChild(header);
             this.panel.appendChild(contentWrapper);
             this.panel.appendChild(footer);
             document.body.appendChild(this.panel);
 
-            // 缓存元素
             this.cacheElements();
-
-            // 绑定事件（在DOM插入后）
             this.bindEvents();
-
-            // 同步UI状态
             this.syncUI();
 
             console.log('✅ 优雅大师UI创建成功');
@@ -110,6 +231,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 background: linear-gradient(135deg, #667eea, #764ba2);
                 color: white; padding: 16px 20px;
                 display: flex; align-items: center; justify-content: space-between;
+                cursor: move;
             `;
 
             const titleDiv = document.createElement('div');
@@ -167,6 +289,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     <div><div style="font-size: 11px; color: #888; margin-bottom: 4px;">状态</div>
                         <div id="stat-status" style="font-weight: 600; color: #2196F3;">待机</div></div>
                 </div>
+                <div id="progress-bar-container" style="height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden;">
+                    <div id="progress-bar-fill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease;"></div>
+                </div>
             `;
             return card;
         }
@@ -203,7 +328,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             header.innerHTML = '<span>⚙️ 高级设置</span><span id="adv-arrow" style="transition: transform 0.3s; font-size: 12px;">▼</span>';
 
             const content = document.createElement('div');
-            content.style.cssText = 'padding: 16px; display: block;'; // 默认展开
+            content.style.cssText = 'padding: 16px; display: block;';
             content.innerHTML = this.buildAdvancedContent();
 
             header.onclick = () => {
@@ -265,7 +390,6 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return footer;
         }
 
-        // ==================== 缓存元素 ====================
         cacheElements() {
             const p = this.panel;
             this.elements = {
@@ -276,20 +400,18 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 statDuration: p.querySelector('#stat-duration'),
                 statProgress: p.querySelector('#stat-progress'),
                 statStatus: p.querySelector('#stat-status'),
+                progressBarFill: p.querySelector('#progress-bar-fill'),
                 btnSettings: p.querySelector('#btn-settings'),
                 btnStart: p.querySelector('#btn-start'),
                 btnReset: p.querySelector('#btn-reset'),
                 toggleBtn: p.querySelector('#elegant-toggle'),
                 ctrlAutoNext: p.querySelector('#ctrl-auto-next'),
-                advAutoStop: p.querySelector('#adv-auto-stop'),
                 sliders: p.querySelectorAll('.adv-slider'),
                 targetBtns: p.querySelectorAll('.target-btn')
             };
         }
 
-        // ==================== 事件绑定 ====================
         bindEvents() {
-            // 折叠按钮
             const toggleBtn = this.elements.toggleBtn;
             if (toggleBtn) {
                 let expanded = true;
@@ -301,13 +423,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 };
             }
 
-            // 底部按钮
             if (this.elements.btnSettings) {
                 this.elements.btnSettings.onclick = () => this.showSettingsModal();
             }
             if (this.elements.btnStart) {
                 this.elements.btnStart.onclick = () => {
-                    if (window.MasterEngine && window.MasterEngine.start) {
+                    if (this._engine && typeof this._engine.start === 'function') {
+                        this._engine.start();
+                    } else if (window.MasterEngine && window.MasterEngine.start) {
                         window.MasterEngine.start();
                     } else {
                         alert('引擎未就绪，请刷新页面');
@@ -324,7 +447,6 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 };
             }
 
-            // 快速控制 - 自动下一节
             const ctrlAutoNext = this.elements.ctrlAutoNext;
             if (ctrlAutoNext) {
                 ctrlAutoNext.checked = this.config.get('autoNext.enabled', true);
@@ -333,7 +455,6 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 };
             }
 
-            // 速度按钮
             const speedBtns = this.panel.querySelectorAll('.speed-btn');
             speedBtns.forEach(btn => {
                 btn.onclick = () => {
@@ -356,7 +477,6 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 };
             });
 
-            // 高级设置滑块
             this.elements.sliders.forEach(slider => {
                 slider.oninput = () => {
                     const valSpan = slider.parentNode.querySelector('.slider-value');
@@ -368,7 +488,6 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 };
             });
 
-            // 完成目标按钮
             this.elements.targetBtns.forEach(btn => {
                 btn.onclick = () => {
                     this.elements.targetBtns.forEach(b => {
@@ -381,24 +500,48 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 };
             });
 
-            // 高级设置 - 自动下一节
-            const advAutoStop = this.elements.advAutoStop;
-            if (advAutoStop) {
-                advAutoStop.checked = this.config.get('autoNext.enabled', true);
-                advAutoStop.onchange = (e) => {
-                    this.config.set('autoNext.enabled', e.target.checked);
-                };
-            }
+            this._initDrag();
         }
 
-        // ==================== 同步UI ====================
+        _initDrag() {
+            const header = this.panel?.querySelector('div');
+            if (!header || !this.panel) return;
+
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+
+            const onMouseDown = (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                const rect = this.panel.getBoundingClientRect();
+                startLeft = rect.left;
+                startTop = rect.top;
+                e.preventDefault();
+            };
+
+            const onMouseMove = (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                this.panel.style.left = (startLeft + dx) + 'px';
+                this.panel.style.top = (startTop + dy) + 'px';
+                this.panel.style.right = 'auto';
+            };
+
+            const onMouseUp = () => { isDragging = false; };
+
+            header.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        }
+
         syncUI() {
-            // 自动下一节
             if (this.elements.ctrlAutoNext) {
                 this.elements.ctrlAutoNext.checked = this.config.get('autoNext.enabled', true);
             }
 
-            // 速度按钮
             const mode = this.config.get('speed.mode', 'normal');
             const speedBtn = this.panel.querySelector(`.speed-btn[data-mode="${mode}"]`);
             if (speedBtn) {
@@ -410,7 +553,6 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 speedBtn.style.color = '#fff';
             }
 
-            // 滑块
             const intervalSlider = this.panel.querySelector('.adv-slider[data-key="speed.reportInterval"]');
             if (intervalSlider) {
                 intervalSlider.value = this.config.get('speed.reportInterval', 2000);
@@ -421,9 +563,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const jumpSlider = this.panel.querySelector('.adv-slider[data-key="speed.jumpSize"]');
             if (jumpSlider) {
                 jumpSlider.value = this.config.get('speed.jumpSize', 30);
+                const valSpan = jumpSlider.parentNode.querySelector('.slider-value');
+                if (valSpan) valSpan.textContent = jumpSlider.value;
             }
 
-            // 完成目标按钮
             const target = this.config.get('completion.targetPercent', 0.95);
             const targetBtn = this.panel.querySelector(`.target-btn[data-target="${target}"]`);
             if (targetBtn) {
@@ -434,46 +577,50 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 targetBtn.style.background = '#667eea';
                 targetBtn.style.color = '#fff';
             }
-
-            if (this.elements.advAutoStop) {
-                this.elements.advAutoStop.checked = this.config.get('autoNext.enabled', true);
-            }
         }
 
-        // ==================== 状态更新 ====================
         updateStatus(nodeId, duration, progress, status) {
-            if (this.elements.statNode) this.elements.statNode.textContent = nodeId || '--';
-            if (this.elements.statDuration) this.elements.statDuration.textContent = duration ? duration + 's' : '--';
-            if (this.elements.statProgress) this.elements.statProgress.textContent = progress !== null ? progress + '%' : '0%';
-            if (this.elements.statStatus) {
-                this.elements.statStatus.textContent = status || '待机';
-                const colors = { '运行中': '#4CAF50', '待机': '#2196F3', '错误': '#f44336', '完成': '#FF9800' };
+            if (this.elements.statNode && nodeId) this.elements.statNode.textContent = nodeId;
+            if (this.elements.statDuration && duration) this.elements.statDuration.textContent = duration + 's';
+            if (this.elements.statProgress && progress !== null && progress !== undefined) {
+                this.elements.statProgress.textContent = progress + '%';
+            }
+            if (this.elements.progressBarFill && progress !== null && progress !== undefined) {
+                this.elements.progressBarFill.style.width = Math.min(progress, 100) + '%';
+            }
+            if (this.elements.statStatus && status) {
+                this.elements.statStatus.textContent = status;
+                const colors = { '运行中': '#4CAF50', '待机': '#2196F3', '错误': '#f44336', '完成': '#FF9800', '暂停': '#FF9800' };
                 this.elements.statStatus.style.color = colors[status] || '#333';
             }
         }
 
-        // ==================== AI配置弹窗 ====================
         showSettingsModal() {
             const modal = document.createElement('div');
-            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999999; display: flex; align-items: center; justify-content: center;';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center;';
 
             const content = document.createElement('div');
             content.style.cssText = 'background: white; width: 400px; max-height: 80vh; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);';
             content.innerHTML = `
                 <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px;">
                     <div style="font-size: 18px; font-weight: 600;">⚙️ AI验证码配置</div>
-                    <div style="font-size: 12px; opacity: 0.8;">智谱AI GLM-4V-Flash</div>
+                    <div style="font-size: 12px; opacity: 0.8;">OCR.space + 智谱AI GLM-4V-Flash</div>
                 </div>
                 <div style="padding: 20px;">
                     <div style="margin-bottom: 16px;">
-                        <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">API Key</label>
+                        <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">OCR.space API Key</label>
+                        <input type="password" id="setting-ocr-key" placeholder="OCR.space API Key" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;" value="${this.config.get('ai.ocrSpaceKey', 'K88766094088957')}">
+                        <div style="font-size: 11px; color: #999; margin-top: 4px;">https://ocr.space/OCRAPI - 免费注册</div>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">智谱AI API Key (可选)</label>
                         <input type="password" id="setting-api-key" placeholder="输入API Key" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;" value="${this.config.get('ai.apiKey', '')}">
-                        <div style="font-size: 11px; color: #999; margin-top: 4px;">https://open.bigmodel.cn</div>
+                        <div style="font-size: 11px; color: #999; margin-top: 4px;">https://open.bigmodel.cn - GLM-4V-Flash</div>
                     </div>
                     <div style="margin-bottom: 16px;">
                         <label style="display: flex; align-items: center; cursor: pointer;">
                             <input type="checkbox" id="setting-ai-enabled" ${this.config.get('ai.enabled') ? 'checked' : ''} style="margin-right: 8px;">
-                            <span style="font-size: 13px;">启用AI识别</span>
+                            <span style="font-size: 13px;">启用AI识别验证码</span>
                         </label>
                     </div>
                     <div style="margin-bottom: 16px;">
@@ -490,12 +637,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             modal.appendChild(content);
             document.body.appendChild(modal);
 
-            // 事件
             const saveBtn = document.getElementById('setting-save');
             const cancelBtn = document.getElementById('setting-cancel');
 
             if (saveBtn) {
                 saveBtn.onclick = () => {
+                    this.config.set('ai.ocrSpaceKey', document.getElementById('setting-ocr-key').value.trim());
                     this.config.set('ai.apiKey', document.getElementById('setting-api-key').value.trim());
                     this.config.set('ai.enabled', document.getElementById('setting-ai-enabled').checked);
                     this.config.set('ai.maxPerSession', parseInt(document.getElementById('setting-max-per-hour').value) || 10);
@@ -519,13 +666,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
     class ElegantBot {
         constructor(env, configMgr, ui) {
             this.env = env;
-            this.config = configMgr.config;
+            this.config = configMgr;
             this.ui = ui;
             this.running = false;
             this.studyId = null;
             this.startTime = null;
             this._api = null;
             this._timer = null;
+            this.captchaSolver = new CaptchaSolver(configMgr);
         }
 
         async start() {
@@ -533,27 +681,30 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.startTime = Date.now();
             console.log('🌟 优雅大师启动', this.env);
 
+            this.ui.updateStatus(this.env.nodeId, this.env.duration, 0, '运行中');
+
             const init = await this.api.study(1);
             if (!init.ok) {
-                alert('初始化失败: ' + init.error);
-                return false;
+                console.warn('⚠️ 初始化上报失败，继续执行:', init.error);
+            } else {
+                this.studyId = init.data?.studyId || init.data?.data?.studyId || null;
+                console.log('✅ 会话:', this.studyId, '| 原始响应:', JSON.stringify(init.data).substring(0, 200));
             }
-            this.studyId = init.data.studyId;
-            console.log('✅ 会话:', this.studyId);
 
-            const jumpSize = this.config.speed.jumpSize || 30;
-            const interval = this.config.speed.reportInterval || 2000;
-            const target = Math.floor(this.env.duration * (this.config.completion.targetPercent || 0.95));
+            const jumpSize = this.config.get('speed.jumpSize', 30);
+            const interval = this.config.get('speed.reportInterval', 2000);
+            const targetPercent = this.config.get('completion.targetPercent', 0.95);
+            const target = Math.floor(this.env.duration * targetPercent);
             const loops = Math.ceil(target / jumpSize);
 
-            console.log(`⚡ 上报: ${loops}次, 间隔${interval}ms, 跳跃${jumpSize}s`);
+            console.log(`⚡ 上报: ${loops}次, 间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%`);
 
             for (let i = 0; i < loops && this.running; i++) {
                 const time = (i + 1) * jumpSize;
 
                 await this.checkCaptcha();
 
-                const res = await this.api.study(time);
+                const res = await this.api.study(time, this.studyId);
                 if (!res.ok) {
                     if (res.error && res.error.includes('学时')) {
                         console.warn('上报失败，回退重试');
@@ -561,9 +712,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         await this.sleep(3000);
                         continue;
                     }
+                } else if (!this.studyId && res.data) {
+                    this.studyId = res.data?.studyId || res.data?.data?.studyId || this.studyId;
                 }
 
-                const pct = Math.floor(time / this.env.duration * 100);
+                const pct = Math.min(Math.floor(time / this.env.duration * 100), 100);
                 this.ui.updateStatus(null, null, pct, '运行中');
 
                 if (i < loops - 1 && this.running) {
@@ -571,31 +724,58 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 }
             }
 
-            await this.api.study(this.env.duration);
-
-            if (this.config.autoNext && this.config.autoNext.enabled) {
-                await this.autoNext();
+            const finalRes = await this.api.study(this.env.duration, this.studyId);
+            if (finalRes.ok && !this.studyId) {
+                this.studyId = finalRes.data?.studyId || finalRes.data?.data?.studyId || this.studyId;
             }
 
             const elapsed = (Date.now() - this.startTime) / 1000;
             console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 记录: ${this.env.duration}秒`);
             this.ui.updateStatus(null, null, 100, '完成');
 
+            if (this.config.get('autoNext.enabled', true)) {
+                await this.autoNext();
+            }
+
             return true;
         }
 
         async checkCaptcha() {
-            const img = document.querySelector('img[src*="code"]:not([height*="0"])');
-            if (!img) return;
-            if (this.config.ai && this.config.ai.enabled) {
-                console.log('🔍 发现验证码，AI识别中...');
+            const captchaPopup = document.querySelector('.captchaPopupVisible, .captcha-popup, [class*="captcha"][style*="display: block"], [class*="captcha"][style*="display:block"]');
+            if (!captchaPopup) return;
+
+            console.warn('⚠️ 检测到验证码弹窗！');
+
+            if (this.config.get('ai.enabled', false)) {
+                const captchaImg = document.querySelector('img[src*="code"], img[src*="captcha"]');
+                if (captchaImg) {
+                    console.log('🔍 发现验证码图片，AI识别中...');
+                    try {
+                        const code = await this.captchaSolver.solve(captchaImg.src);
+                        if (code) {
+                            const input = document.querySelector('input[placeholder*="验证码"], input[name*="captcha"], input[name*="code"]');
+                            if (input) {
+                                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                                nativeSetter.call(input, code);
+                                input.dispatchEvent(new Event('input', {bubbles: true}));
+                                input.dispatchEvent(new Event('change', {bubbles: true}));
+                                console.log('✅ 验证码已自动填入:', code);
+
+                                const submitBtn = document.querySelector('button[type="submit"], input[type="submit"], .captcha-submit, [onclick*="captcha"]');
+                                if (submitBtn) submitBtn.click();
+                            }
+                        }
+                    } catch (e) {
+                        console.error('验证码识别失败:', e);
+                    }
+                }
             } else {
-                console.warn('⚠️  检测到验证码');
+                console.warn('⚠️ AI识别未启用，请手动输入验证码或在设置中启用AI识别');
             }
         }
 
         async autoNext() {
-            const delay = (this.config.autoNext && this.config.autoNext.delay) || 2000;
+            const delay = this.config.get('autoNext.delay', 2000);
             await this.sleep(delay);
             const nextId = (parseInt(this.env.nodeId) + 1).toString();
             const targetUrl = location.pathname + '?nodeId=' + nextId;
@@ -631,7 +811,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                             });
                             const data = await res.json().catch(() => ({}));
                             if (res.ok) return { ok: true, data };
-                            return { ok: false, error: data.message || res.status };
+                            return { ok: false, error: data.message || data.msg || res.status };
                         } catch (e) {
                             return { ok: false, error: e.message };
                         }
@@ -653,7 +833,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         async start() {
-            if (this.running) return false;
+            if (this.running) {
+                console.warn('⚠️ 已有实例运行中');
+                return false;
+            }
             this.running = true;
             try {
                 this.env = this.detectEnvironment();
@@ -664,13 +847,17 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 }
                 console.log('🎯 目标:', this.env);
                 this.checkParallelStatus();
-                this.ui.updateStatus(this.env.nodeId, this.env.duration, null, '待机');
+                this.ui.updateStatus(this.env.nodeId, this.env.duration, 0, '运行中');
                 this.bot = new ElegantBot(this.env, this.config, this.ui);
                 const success = await this.bot.start();
                 return success;
+            } catch (e) {
+                console.error('❌ 运行错误:', e);
+                this.ui.updateStatus(null, null, null, '错误');
+                return false;
             } finally {
                 this.running = false;
-                this.bot = null;  // 清理 bot 引用，允许重启
+                this.bot = null;
             }
         }
 
@@ -680,9 +867,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         detectEnvironment() {
-            const pathMatch = location.pathname.match(/\/node\/(\d+)/);
             const params = new URLSearchParams(location.search);
             const paramNodeId = params.get("nodeId");
+            const pathMatch = location.pathname.match(/\/node\/(\d+)/);
             if (!pathMatch && !paramNodeId) return null;
             const nodeId = pathMatch ? pathMatch[1] : paramNodeId;
 
@@ -691,7 +878,6 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             if (video && video.readyState >= 1 && video.duration && video.duration !== Infinity) {
                 duration = Math.floor(video.duration);
             } else {
-                // 改进：收集所有文本，从后往前找非零时长
                 const allTexts = Array.from(document.querySelectorAll("*")).map(el => el.textContent).join("\n");
                 const matches = allTexts.match(/\b(\d{1,2})\s*[:：]\s*(\d{2})\b/g);
                 if (matches) {
@@ -740,6 +926,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         const ui = new UIBuilder(configMgr);
         const engine = new MasterController(configMgr, ui);
 
+        ui.setEngine(engine);
         ui.create();
 
         window.MasterEngine = engine;
@@ -747,25 +934,24 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
         const env = engine.detectEnvironment();
         if (env) {
-            ui.updateStatus(env.nodeId, env.duration, null, '待机');
+            ui.updateStatus(env.nodeId, env.duration, 0, '待机');
             console.log('🌟 优雅大师已就绪，点击"🚀 启动"开始');
         } else {
             console.log('⚠️  未检测到学习节点，请先访问课程页面');
         }
 
-        // 监听 URL 变化（SPA 路由切换）- 增强版：延迟重试 + 自动下一节
         let lastUrl = location.href;
         setInterval(() => {
             if (location.href !== lastUrl) {
                 lastUrl = location.href;
                 console.log('🔄 URL 变化，重新检测环境:', location.href);
                 let attempts = 0;
-                const maxAttempts = 30;  // 延长到9秒（30×300ms）
+                const maxAttempts = 30;
                 const tryDetect = () => {
                     const newEnv = engine.detectEnvironment();
                     if (newEnv) {
                         engine.env = newEnv;
-                        ui.updateStatus(newEnv.nodeId, newEnv.duration, null, '待机');
+                        ui.updateStatus(newEnv.nodeId, newEnv.duration, 0, '待机');
                         console.log('✅ 环境已更新:', newEnv);
                         const autoNextEnabled = engine.config.get('autoNext.enabled');
                         if (autoNextEnabled) {

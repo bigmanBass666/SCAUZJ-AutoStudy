@@ -1,0 +1,60 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - button [ref=e6] [cursor=pointer]:
+      - generic [ref=e7]:
+        - button [ref=e8]:
+          - img [ref=e11]
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - button [ref=e15]:
+              - img [ref=e16]
+            - button [ref=e19]:
+              - img [ref=e20]
+          - button [ref=e24]:
+            - img [ref=e26]
+    - generic [ref=e29]:
+      - navigation [ref=e30]:
+        - generic [ref=e32]:
+          - generic [ref=e35]:
+            - button "选择一个模型" [ref=e38] [cursor=pointer]:
+              - generic [ref=e39]:
+                - text: GLM-5-Turbo
+                - img [ref=e40]
+            - generic [ref=e42]:
+              - button "AutoClaw" [ref=e43] [cursor=pointer]:
+                - generic [ref=e44]: AutoClaw
+                - img [ref=e45]
+              - button "API" [ref=e48] [cursor=pointer]:
+                - button "API" [ref=e49]:
+                  - generic [ref=e50]: API
+                  - button [expanded]
+                  - img [ref=e51]
+          - button "User Menu" [ref=e55] [cursor=pointer]:
+            - button "User Menu" [ref=e56]:
+              - img "User profile" [ref=e58]
+      - generic [ref=e63]:
+        - generic:
+          - img
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - paragraph [ref=e67]: 你好， 旅行者9233
+            - paragraph [ref=e68]: 与 z.ai 互动，探索无限创意
+          - generic [ref=e75]:
+            - textbox "有什么我能帮您的？" [active] [ref=e77]
+            - generic [ref=e78]:
+              - generic [ref=e79]:
+                - generic "最多上传 10 个文件, 每个 50 MB" [ref=e81]:
+                  - button "More" [ref=e82]:
+                    - button "More" [ref=e83] [cursor=pointer]:
+                      - img [ref=e84]
+                - generic [ref=e86]:
+                  - button [ref=e87] [cursor=pointer]:
+                    - button [ref=e88]:
+                      - img [ref=e89]
+                  - generic "深度思考已开启" [ref=e91]:
+                    - button [ref=e92] [cursor=pointer]:
+                      - img [ref=e93]
+              - generic "发送消息" [ref=e99]:
+                - button [disabled] [ref=e100] [cursor=pointer]:
+                  - img [ref=e101]
+  - generic [ref=e103]: Z.ai - Free AI Chatbot & Agent powered by GLM-5.1 & GLM-5

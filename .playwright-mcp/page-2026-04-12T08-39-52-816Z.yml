@@ -1,0 +1,1771 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - text: 自动换行
+    - checkbox "自动换行" [ref=e5]
+  - table [ref=e6]:
+    - rowgroup [ref=e7]:
+      - row "1 <!doctype html>" [ref=e8]:
+        - cell "1" [ref=e9]
+        - cell "<!doctype html>" [ref=e10]
+      - row "2 <html lang=\"en\">" [ref=e11]:
+        - cell "2" [ref=e12]
+        - cell "<html lang=\"en\">" [ref=e13]:
+          - generic [ref=e14]: <html lang="en">
+      - row "3 <head>" [ref=e15]:
+        - cell "3" [ref=e16]
+        - cell "<head>" [ref=e17]
+      - row "4 <meta charset=\"utf-8\" />" [ref=e18]:
+        - cell "4" [ref=e19]
+        - cell "<meta charset=\"utf-8\" />" [ref=e20]:
+          - generic [ref=e21]: <meta charset="utf-8" />
+      - row "5 <link" [ref=e22]:
+        - cell "5" [ref=e23]
+        - cell "<link" [ref=e24]
+      - row "6 rel=\"icon\"" [ref=e25]:
+        - cell "6" [ref=e26]
+        - cell "rel=\"icon\"" [ref=e27]:
+          - generic [ref=e28]: rel="icon"
+      - row "7 type=\"image/png\"" [ref=e29]:
+        - cell "7" [ref=e30]
+        - cell "type=\"image/png\"" [ref=e31]:
+          - generic [ref=e32]: type="image/png"
+      - row "8 sizes=\"512x512\"" [ref=e33]:
+        - cell "8" [ref=e34]
+        - cell "sizes=\"512x512\"" [ref=e35]:
+          - generic [ref=e36]: sizes="512x512"
+      - row "9 href=\"https://z-cdn.chatglm.cn/z-ai/static/logo.svg\"" [ref=e37]:
+        - cell "9" [ref=e38]
+        - cell "href=\"https://z-cdn.chatglm.cn/z-ai/static/logo.svg\"" [ref=e39]:
+          - generic [ref=e40]:
+            - text: href="
+            - link "https://z-cdn.chatglm.cn/z-ai/static/logo.svg" [ref=e41] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/static/logo.svg
+            - text: "\""
+      - row "10 />" [ref=e42]:
+        - cell "10" [ref=e43]
+        - cell "/>" [ref=e44]
+      - row "11 <link rel=\"shortcut icon\" href=\"https://z-cdn.chatglm.cn/z-ai/static/logo.svg\" />" [ref=e45]:
+        - cell "11" [ref=e46]
+        - cell "<link rel=\"shortcut icon\" href=\"https://z-cdn.chatglm.cn/z-ai/static/logo.svg\" />" [ref=e47]:
+          - generic [ref=e48]:
+            - text: <link rel="shortcut icon" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/static/logo.svg" [ref=e49] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/static/logo.svg
+            - text: "\" />"
+      - row "12 <link" [ref=e50]:
+        - cell "12" [ref=e51]
+        - cell "<link" [ref=e52]
+      - row "13 rel=\"apple-touch-icon\"" [ref=e53]:
+        - cell "13" [ref=e54]
+        - cell "rel=\"apple-touch-icon\"" [ref=e55]:
+          - generic [ref=e56]: rel="apple-touch-icon"
+      - row "14 sizes=\"512x512\"" [ref=e57]:
+        - cell "14" [ref=e58]
+        - cell "sizes=\"512x512\"" [ref=e59]:
+          - generic [ref=e60]: sizes="512x512"
+      - row "15 href=\"https://z-cdn.chatglm.cn/z-ai/static/logo.svg\"" [ref=e61]:
+        - cell "15" [ref=e62]
+        - cell "href=\"https://z-cdn.chatglm.cn/z-ai/static/logo.svg\"" [ref=e63]:
+          - generic [ref=e64]:
+            - text: href="
+            - link "https://z-cdn.chatglm.cn/z-ai/static/logo.svg" [ref=e65] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/static/logo.svg
+            - text: "\""
+      - row "16 />" [ref=e66]:
+        - cell "16" [ref=e67]
+        - cell "/>" [ref=e68]
+      - row "17 <meta" [ref=e69]:
+        - cell "17" [ref=e70]
+        - cell "<meta" [ref=e71]
+      - row "18 name=\"apple-mobile-web-app-title\"" [ref=e72]:
+        - cell "18" [ref=e73]
+        - cell "name=\"apple-mobile-web-app-title\"" [ref=e74]:
+          - generic [ref=e75]: name="apple-mobile-web-app-title"
+      - row "19 content=\"Z.ai - Free AI Chatbot & Agent powered by GLM-5.1 & GLM-5\"" [ref=e76]:
+        - cell "19" [ref=e77]
+        - cell "content=\"Z.ai - Free AI Chatbot & Agent powered by GLM-5.1 & GLM-5\"" [ref=e78]:
+          - generic [ref=e79]: content="Z.ai - Free AI Chatbot & Agent powered by GLM-5.1 & GLM-5"
+      - row "20 />" [ref=e80]:
+        - cell "20" [ref=e81]
+        - cell "/>" [ref=e82]
+      - row "21 <meta" [ref=e83]:
+        - cell "21" [ref=e84]
+        - cell "<meta" [ref=e85]
+      - row "22 name=\"description\"" [ref=e86]:
+        - cell "22" [ref=e87]
+        - cell "name=\"description\"" [ref=e88]:
+          - generic [ref=e89]: name="description"
+      - row "23 content=\"Meet Z.ai, your free AI-powered assistant. Build websites, create slides, analyze data, and get instant answers. Fast, smart, and reliable, powered by GLM-5.\"" [ref=e90]:
+        - cell "23" [ref=e91]
+        - cell "content=\"Meet Z.ai, your free AI-powered assistant. Build websites, create slides, analyze data, and get instant answers. Fast, smart, and reliable, powered by GLM-5.\"" [ref=e92]:
+          - generic [ref=e93]: content="Meet Z.ai, your free AI-powered assistant. Build websites, create slides, analyze data, and get instant answers. Fast, smart, and reliable, powered by GLM-5."
+      - row "24 />" [ref=e94]:
+        - cell "24" [ref=e95]
+        - cell "/>" [ref=e96]
+      - row "25 <meta" [ref=e97]:
+        - cell "25" [ref=e98]
+        - cell "<meta" [ref=e99]
+      - row "26 name=\"keywords\"" [ref=e100]:
+        - cell "26" [ref=e101]
+        - cell "name=\"keywords\"" [ref=e102]:
+          - generic [ref=e103]: name="keywords"
+      - row [ref=e104]:
+        - cell "27" [ref=e105]
+        - cell [ref=e106]:
+          - generic [ref=e107]: content="GLM-4.6, GLM 4.6, GLM-4.6-Air, GLM 4.6 Air, GLM 4.5, GLM4.5, GLM4.6, Deep Research, z ai, z.ai, GLM 4.5 AI, GLM 4.6 AI, GLM AI, Chat Z, zai, Chat AI, GLM, z.ia, Chat Z AI, AI chat, chatbot, z.ai chat, free ai chat, free AI, free ai chat no login, GLM-4.5, GLM-4.5 chat, GLM-4.1V, GLM-4.5V, AI assistant chat, AI PPT, AI presentation, AI presentation maker, AI slides maker, AI slides, slide deck, pitch deck, AI deck generator, free pitch deck generator, AI PPT, AI PPT maker, AI for Google Slides, AI for PowerPoint, AI writer, AI writing assistant, AI code generator, full stack code generation, AI full stack developer, claude code, Roo Code, Cline, Kilo Code, OpenCode, Codex, Cursor, GLM Coding Plan, GLM Coding, AI Coding, code writer ai, magic design, magic design tool, AI inspiration board, visual brainstorming AI, chat with AI, AI对话, AI聊天, 聊天机器人, 免费AI聊天, AI做PPT, AI写作, AI编程, 全栈开发, 灵感画板, AI tool, AI helper, AI for students, AI for marketers, AI for content creation, ChatGPT, chatgpt free, Free ChatGPT, gpt chat, Gemini, Grok, Claude, Poe AI, YouChat, Jasper AI, deepseek, qwen, 豆包, 文心一言, AI搜问答, 写作灵感AI, 代码解释工具, PPT思路生成, 如何用AI做PPT, create pitch deck from brief, AI business plan presentation, marketing report slides, AI academic paper assistant, AI legal contract drafting, write social media calendar, AI email responder, VS Code AI assistant, AI for Notion, AI for Figma, AI math problem solver from image, AI geoguessr solver, image to code generator, table extractor from image, chart data extractor, document analysis AI, image caption generator, visual Q&A, 看图猜成语, AI拍照解题, 数学题解答, 物理题解答, GeoGuess AI, 图片转表格, 图片读数据, 看图问答, analyze video, summarize video content, generate video transcript, find object in image, what is in this picture, 视频分析, 视频内容摘要, 生成视频字幕, 图片里有什么, 识别图中物体, GLM-4.7, GLM 4.7, GLM4.7, skills, coding plan, GLM-5, GLM-5.0, GLM5, GLM 5, Pony, Pony Alpha"
+      - row "28 />" [ref=e108]:
+        - cell "28" [ref=e109]
+        - cell "/>" [ref=e110]
+      - row "29" [ref=e111]:
+        - cell "29" [ref=e112]
+        - cell [ref=e113]
+      - row "30 <link rel=\"manifest\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/static/manifest.json\" />" [ref=e114]:
+        - cell "30" [ref=e115]
+        - cell "<link rel=\"manifest\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/static/manifest.json\" />" [ref=e116]:
+          - generic [ref=e117]:
+            - text: <link rel="manifest" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/static/manifest.json" [ref=e118] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/static/manifest.json
+            - text: "\" />"
+      - row "31 <meta" [ref=e119]:
+        - cell "31" [ref=e120]
+        - cell "<meta" [ref=e121]
+      - row "32 name=\"viewport\"" [ref=e122]:
+        - cell "32" [ref=e123]
+        - cell "name=\"viewport\"" [ref=e124]:
+          - generic [ref=e125]: name="viewport"
+      - row "33 content=\"width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover\"" [ref=e126]:
+        - cell "33" [ref=e127]
+        - cell "content=\"width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover\"" [ref=e128]:
+          - generic [ref=e129]: content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+      - row "34 />" [ref=e130]:
+        - cell "34" [ref=e131]
+        - cell "/>" [ref=e132]
+      - row "35 <meta name=\"theme-color\" content=\"#F4F6F8\" />" [ref=e133]:
+        - cell "35" [ref=e134]
+        - cell "<meta name=\"theme-color\" content=\"#F4F6F8\" />" [ref=e135]:
+          - generic [ref=e136]: <meta name="theme-color" content="#F4F6F8" />
+      - row "36 <meta name=\"referrer\" content=\"no-referrer\" />" [ref=e137]:
+        - cell "36" [ref=e138]
+        - cell "<meta name=\"referrer\" content=\"no-referrer\" />" [ref=e139]:
+          - generic [ref=e140]: <meta name="referrer" content="no-referrer" />
+      - row "37 <link" [ref=e141]:
+        - cell "37" [ref=e142]
+        - cell "<link" [ref=e143]
+      - row "38 rel=\"search\"" [ref=e144]:
+        - cell "38" [ref=e145]
+        - cell "rel=\"search\"" [ref=e146]:
+          - generic [ref=e147]: rel="search"
+      - row "39 type=\"application/opensearchdescription+xml\"" [ref=e148]:
+        - cell "39" [ref=e149]
+        - cell "type=\"application/opensearchdescription+xml\"" [ref=e150]:
+          - generic [ref=e151]: type="application/opensearchdescription+xml"
+      - row "40 title=\"Z.ai - Free AI Chatbot & Agent powered by GLM-5 & GLM-4.7\"" [ref=e152]:
+        - cell "40" [ref=e153]
+        - cell "title=\"Z.ai - Free AI Chatbot & Agent powered by GLM-5 & GLM-4.7\"" [ref=e154]:
+          - generic [ref=e155]: title="Z.ai - Free AI Chatbot & Agent powered by GLM-5 & GLM-4.7"
+      - row "41 href=\"https://z-cdn.chatglm.cn/z-ai/frontend/static/opensearch.xml\"" [ref=e156]:
+        - cell "41" [ref=e157]
+        - cell "href=\"https://z-cdn.chatglm.cn/z-ai/frontend/static/opensearch.xml\"" [ref=e158]:
+          - generic [ref=e159]:
+            - text: href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/static/opensearch.xml" [ref=e160] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/static/opensearch.xml
+            - text: "\""
+      - row "42 />" [ref=e161]:
+        - cell "42" [ref=e162]
+        - cell "/>" [ref=e163]
+      - row "43 <script" [ref=e164]:
+        - cell "43" [ref=e165]
+        - cell "<script" [ref=e166]
+      - row "44 async" [ref=e167]:
+        - cell "44" [ref=e168]
+        - cell "async" [ref=e169]:
+          - generic [ref=e170]: async
+      - row "45 src=\"https://www.googletagmanager.com/gtag/js?id=G-Z8QTHYBHP3\"" [ref=e171]:
+        - cell "45" [ref=e172]
+        - cell "src=\"https://www.googletagmanager.com/gtag/js?id=G-Z8QTHYBHP3\"" [ref=e173]:
+          - generic [ref=e174]:
+            - text: src="
+            - link "https://www.googletagmanager.com/gtag/js?id=G-Z8QTHYBHP3" [ref=e175] [cursor=pointer]:
+              - /url: https://www.googletagmanager.com/gtag/js?id=G-Z8QTHYBHP3
+            - text: "\""
+      - row "46 ></script>" [ref=e176]:
+        - cell "46" [ref=e177]
+        - cell "></script>" [ref=e178]
+      - row "47 <script>" [ref=e179]:
+        - cell "47" [ref=e180]
+        - cell "<script>" [ref=e181]
+      - row "48 window.dataLayer = window.dataLayer || [];" [ref=e182]:
+        - cell "48" [ref=e183]
+        - cell "window.dataLayer = window.dataLayer || [];" [ref=e184]
+      - 'row "49 function gtag() {" [ref=e185]':
+        - cell "49" [ref=e186]
+        - 'cell "function gtag() {" [ref=e187]'
+      - row "50 dataLayer.push(arguments);" [ref=e188]:
+        - cell "50" [ref=e189]
+        - cell "dataLayer.push(arguments);" [ref=e190]
+      - 'row "51 }" [ref=e191]':
+        - cell "51" [ref=e192]
+        - 'cell "}" [ref=e193]'
+      - row "52 gtag('js', new Date());" [ref=e194]:
+        - cell "52" [ref=e195]
+        - cell "gtag('js', new Date());" [ref=e196]
+      - row "53" [ref=e197]:
+        - cell "53" [ref=e198]
+        - cell [ref=e199]
+      - row "54 gtag('config', 'G-Z8QTHYBHP3');" [ref=e200]:
+        - cell "54" [ref=e201]
+        - cell "gtag('config', 'G-Z8QTHYBHP3');" [ref=e202]
+      - row "55 </script>" [ref=e203]:
+        - cell "55" [ref=e204]
+        - cell "</script>" [ref=e205]
+      - row "56" [ref=e206]:
+        - cell "56" [ref=e207]
+        - cell [ref=e208]
+      - row "57 <script>" [ref=e209]:
+        - cell "57" [ref=e210]
+        - cell "<script>" [ref=e211]
+      - 'row "58 let metrics = {};" [ref=e212]':
+        - cell "58" [ref=e213]
+        - 'cell "let metrics = {};" [ref=e214]'
+      - 'row "59 const observer = new PerformanceObserver((list) => {" [ref=e215]':
+        - cell "59" [ref=e216]
+        - 'cell "const observer = new PerformanceObserver((list) => {" [ref=e217]'
+      - row "60 const entries = list.getEntries();" [ref=e218]:
+        - cell "60" [ref=e219]
+        - cell "const entries = list.getEntries();" [ref=e220]
+      - row "61" [ref=e221]:
+        - cell "61" [ref=e222]
+        - cell [ref=e223]
+      - 'row "62 entries.forEach((entry) => {" [ref=e224]':
+        - cell "62" [ref=e225]
+        - 'cell "entries.forEach((entry) => {" [ref=e226]'
+      - row "63 // 根据不同的entry类型处理不同的性能指标" [ref=e227]:
+        - cell "63" [ref=e228]
+        - cell "// 根据不同的entry类型处理不同的性能指标" [ref=e229]
+      - 'row "64 switch (entry.entryType) {" [ref=e230]':
+        - cell "64" [ref=e231]
+        - 'cell "switch (entry.entryType) {" [ref=e232]'
+      - row "65 case 'navigation':" [ref=e233]:
+        - cell "65" [ref=e234]
+        - cell "case 'navigation':" [ref=e235]
+      - 'row "66 {" [ref=e236]':
+        - cell "66" [ref=e237]
+        - 'cell "{" [ref=e238]'
+      - row "67 const navEntry = entry;" [ref=e239]:
+        - cell "67" [ref=e240]
+        - cell "const navEntry = entry;" [ref=e241]
+      - 'row "68 metrics = {" [ref=e242]':
+        - cell "68" [ref=e243]
+        - 'cell "metrics = {" [ref=e244]'
+      - row "69 ...metrics," [ref=e245]:
+        - cell "69" [ref=e246]
+        - cell "...metrics," [ref=e247]
+      - 'row "70 dns: navEntry.domainLookupEnd - navEntry.domainLookupStart," [ref=e248]':
+        - cell "70" [ref=e249]
+        - 'cell "dns: navEntry.domainLookupEnd - navEntry.domainLookupStart," [ref=e250]'
+      - 'row "71 response: navEntry.responseEnd - navEntry.responseStart," [ref=e251]':
+        - cell "71" [ref=e252]
+        - 'cell "response: navEntry.responseEnd - navEntry.responseStart," [ref=e253]'
+      - 'row "72 dom_parse: navEntry.domInteractive - navEntry.responseEnd," [ref=e254]':
+        - cell "72" [ref=e255]
+        - 'cell "dom_parse: navEntry.domInteractive - navEntry.responseEnd," [ref=e256]'
+      - 'row "73 dom_ready: navEntry.domContentLoadedEventEnd - navEntry.fetchStart," [ref=e257]':
+        - cell "73" [ref=e258]
+        - 'cell "dom_ready: navEntry.domContentLoadedEventEnd - navEntry.fetchStart," [ref=e259]'
+      - 'row "74 resource: navEntry.domComplete - navEntry.domContentLoadedEventEnd," [ref=e260]':
+        - cell "74" [ref=e261]
+        - 'cell "resource: navEntry.domComplete - navEntry.domContentLoadedEventEnd," [ref=e262]'
+      - 'row "75 first_interactive: navEntry.domInteractive - navEntry.fetchStart," [ref=e263]':
+        - cell "75" [ref=e264]
+        - 'cell "first_interactive: navEntry.domInteractive - navEntry.fetchStart," [ref=e265]'
+      - 'row "76 first_byte: navEntry.responseStart - navEntry.domainLookupStart," [ref=e266]':
+        - cell "76" [ref=e267]
+        - 'cell "first_byte: navEntry.responseStart - navEntry.domainLookupStart," [ref=e268]'
+      - 'row "77 loaded: navEntry.loadEventEnd - navEntry.fetchStart" [ref=e269]':
+        - cell "77" [ref=e270]
+        - 'cell "loaded: navEntry.loadEventEnd - navEntry.fetchStart" [ref=e271]'
+      - 'row "78 };" [ref=e272]':
+        - cell "78" [ref=e273]
+        - 'cell "};" [ref=e274]'
+      - row "79 sessionStorage.setItem('performance', JSON.stringify(metrics));" [ref=e275]:
+        - cell "79" [ref=e276]
+        - cell "sessionStorage.setItem('performance', JSON.stringify(metrics));" [ref=e277]
+      - row "80 // 发送性能指标到阿里云日志服务" [ref=e278]:
+        - cell "80" [ref=e279]
+        - cell "// 发送性能指标到阿里云日志服务" [ref=e280]
+      - 'row "81 }" [ref=e281]':
+        - cell "81" [ref=e282]
+        - 'cell "}" [ref=e283]'
+      - row "82 break;" [ref=e284]:
+        - cell "82" [ref=e285]
+        - cell "break;" [ref=e286]
+      - row "83" [ref=e287]:
+        - cell "83" [ref=e288]
+        - cell [ref=e289]
+      - row "84 case 'paint':" [ref=e290]:
+        - cell "84" [ref=e291]
+        - cell "case 'paint':" [ref=e292]
+      - 'row "85 if (entry.name === ''first-paint'') {" [ref=e293]':
+        - cell "85" [ref=e294]
+        - 'cell "if (entry.name === ''first-paint'') {" [ref=e295]'
+      - 'row "86 metrics = {" [ref=e296]':
+        - cell "86" [ref=e297]
+        - 'cell "metrics = {" [ref=e298]'
+      - row "87 ...metrics," [ref=e299]:
+        - cell "87" [ref=e300]
+        - cell "...metrics," [ref=e301]
+      - 'row "88 first_paint: entry.startTime" [ref=e302]':
+        - cell "88" [ref=e303]
+        - 'cell "first_paint: entry.startTime" [ref=e304]'
+      - 'row "89 };" [ref=e305]':
+        - cell "89" [ref=e306]
+        - 'cell "};" [ref=e307]'
+      - row "90 sessionStorage.setItem('performance', JSON.stringify(metrics));" [ref=e308]:
+        - cell "90" [ref=e309]
+        - cell "sessionStorage.setItem('performance', JSON.stringify(metrics));" [ref=e310]
+      - 'row "91 }" [ref=e311]':
+        - cell "91" [ref=e312]
+        - 'cell "}" [ref=e313]'
+      - 'row "92 if (entry.name === ''first-contentful-paint'') {" [ref=e314]':
+        - cell "92" [ref=e315]
+        - 'cell "if (entry.name === ''first-contentful-paint'') {" [ref=e316]'
+      - 'row "93 metrics = {" [ref=e317]':
+        - cell "93" [ref=e318]
+        - 'cell "metrics = {" [ref=e319]'
+      - row "94 ...metrics," [ref=e320]:
+        - cell "94" [ref=e321]
+        - cell "...metrics," [ref=e322]
+      - 'row "95 first_contentful_paint: entry.startTime" [ref=e323]':
+        - cell "95" [ref=e324]
+        - 'cell "first_contentful_paint: entry.startTime" [ref=e325]'
+      - 'row "96 };" [ref=e326]':
+        - cell "96" [ref=e327]
+        - 'cell "};" [ref=e328]'
+      - row "97 sessionStorage.setItem('performance', JSON.stringify(metrics));" [ref=e329]:
+        - cell "97" [ref=e330]
+        - cell "sessionStorage.setItem('performance', JSON.stringify(metrics));" [ref=e331]
+      - 'row "98 }" [ref=e332]':
+        - cell "98" [ref=e333]
+        - 'cell "}" [ref=e334]'
+      - row "99 break;" [ref=e335]:
+        - cell "99" [ref=e336]
+        - cell "break;" [ref=e337]
+      - 'row "100 }" [ref=e338]':
+        - cell "100" [ref=e339]
+        - 'cell "}" [ref=e340]'
+      - 'row "101 });" [ref=e341]':
+        - cell "101" [ref=e342]
+        - 'cell "});" [ref=e343]'
+      - 'row "102 });" [ref=e344]':
+        - cell "102" [ref=e345]
+        - 'cell "});" [ref=e346]'
+      - row "103" [ref=e347]:
+        - cell "103" [ref=e348]
+        - cell [ref=e349]
+      - row "104 // 观察的性能指标类型" [ref=e350]:
+        - cell "104" [ref=e351]
+        - cell "// 观察的性能指标类型" [ref=e352]
+      - 'row "105 observer.observe({" [ref=e353]':
+        - cell "105" [ref=e354]
+        - 'cell "observer.observe({" [ref=e355]'
+      - 'row "106 entryTypes: [''navigation'', ''paint'']" [ref=e356]':
+        - cell "106" [ref=e357]
+        - 'cell "entryTypes: [''navigation'', ''paint'']" [ref=e358]'
+      - 'row "107 });" [ref=e359]':
+        - cell "107" [ref=e360]
+        - 'cell "});" [ref=e361]'
+      - row "108 </script>" [ref=e362]:
+        - cell "108" [ref=e363]
+        - cell "</script>" [ref=e364]
+      - row "109" [ref=e365]:
+        - cell "109" [ref=e366]
+        - cell [ref=e367]
+      - row "110 <script>" [ref=e368]:
+        - cell "110" [ref=e369]
+        - cell "<script>" [ref=e370]
+      - 'row "111 function resizeIframe(obj) {" [ref=e371]':
+        - cell "111" [ref=e372]
+        - 'cell "function resizeIframe(obj) {" [ref=e373]'
+      - row "112 obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + 'px';" [ref=e374]:
+        - cell "112" [ref=e375]
+        - cell "obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + 'px';" [ref=e376]
+      - 'row "113 }" [ref=e377]':
+        - cell "113" [ref=e378]
+        - 'cell "}" [ref=e379]'
+      - row "114 </script>" [ref=e380]:
+        - cell "114" [ref=e381]
+        - cell "</script>" [ref=e382]
+      - row "115" [ref=e383]:
+        - cell "115" [ref=e384]
+        - cell [ref=e385]
+      - row "116 <script>" [ref=e386]:
+        - cell "116" [ref=e387]
+        - cell "<script>" [ref=e388]
+      - 'row "117 // On page load or when changing themes, best to add inline in `head` to avoid FOUC" [ref=e389]':
+        - cell "117" [ref=e390]
+        - 'cell "// On page load or when changing themes, best to add inline in `head` to avoid FOUC" [ref=e391]'
+      - 'row "118 const initTheme = () => {" [ref=e392]':
+        - cell "118" [ref=e393]
+        - 'cell "const initTheme = () => {" [ref=e394]'
+      - row "119 const metaThemeColorTag = document.querySelector('meta[name=\"theme-color\"]');" [ref=e395]:
+        - cell "119" [ref=e396]
+        - cell "const metaThemeColorTag = document.querySelector('meta[name=\"theme-color\"]');" [ref=e397]
+      - row "120 // 取用户浏览器设置的主题" [ref=e398]:
+        - cell "120" [ref=e399]
+        - cell "// 取用户浏览器设置的主题" [ref=e400]
+      - 'row "121 // const prefersTheme = window.matchMedia(''(prefers-color-scheme: light)'').matches ? ''light'' : window.matchMedia(''(prefers-color-scheme: dark)'').matches ? ''dark'' : ''light'';" [ref=e401]':
+        - cell "121" [ref=e402]
+        - 'cell "// const prefersTheme = window.matchMedia(''(prefers-color-scheme: light)'').matches ? ''light'' : window.matchMedia(''(prefers-color-scheme: dark)'').matches ? ''dark'' : ''light'';" [ref=e403]'
+      - row "122" [ref=e404]:
+        - cell "122" [ref=e405]
+        - cell [ref=e406]
+      - row "123 const prefersTheme = 'light';" [ref=e407]:
+        - cell "123" [ref=e408]
+        - cell "const prefersTheme = 'light';" [ref=e409]
+      - row "124" [ref=e410]:
+        - cell "124" [ref=e411]
+        - cell [ref=e412]
+      - 'row "125 if (!localStorage?.theme) {" [ref=e413]':
+        - cell "125" [ref=e414]
+        - 'cell "if (!localStorage?.theme) {" [ref=e415]'
+      - row "126 localStorage.theme = prefersTheme;" [ref=e416]:
+        - cell "126" [ref=e417]
+        - cell "localStorage.theme = prefersTheme;" [ref=e418]
+      - 'row "127 }" [ref=e419]':
+        - cell "127" [ref=e420]
+        - 'cell "}" [ref=e421]'
+      - row "128" [ref=e422]:
+        - cell "128" [ref=e423]
+        - cell [ref=e424]
+      - 'row "129 if (localStorage.theme === ''system'') {" [ref=e425]':
+        - cell "129" [ref=e426]
+        - 'cell "if (localStorage.theme === ''system'') {" [ref=e427]'
+      - row "130 document.documentElement.classList.add(prefersTheme);" [ref=e428]:
+        - cell "130" [ref=e429]
+        - cell "document.documentElement.classList.add(prefersTheme);" [ref=e430]
+      - row "131 metaThemeColorTag.setAttribute(" [ref=e431]:
+        - cell "131" [ref=e432]
+        - cell "metaThemeColorTag.setAttribute(" [ref=e433]
+      - row "132 'content'," [ref=e434]:
+        - cell "132" [ref=e435]
+        - cell "'content'," [ref=e436]
+      - 'row "133 prefersTheme === ''light'' ? ''#F4F6F8'' : ''#141618''" [ref=e437]':
+        - cell "133" [ref=e438]
+        - 'cell "prefersTheme === ''light'' ? ''#F4F6F8'' : ''#141618''" [ref=e439]'
+      - row "134 );" [ref=e440]:
+        - cell "134" [ref=e441]
+        - cell ");" [ref=e442]
+      - 'row "135 } else if (localStorage.theme === ''light'') {" [ref=e443]':
+        - cell "135" [ref=e444]
+        - 'cell "} else if (localStorage.theme === ''light'') {" [ref=e445]'
+      - row "136 document.documentElement.classList.add('light');" [ref=e446]:
+        - cell "136" [ref=e447]
+        - cell "document.documentElement.classList.add('light');" [ref=e448]
+      - row "137 metaThemeColorTag.setAttribute('content', '#F4F6F8');" [ref=e449]:
+        - cell "137" [ref=e450]
+        - cell "metaThemeColorTag.setAttribute('content', '#F4F6F8');" [ref=e451]
+      - 'row "138 } else {" [ref=e452]':
+        - cell "138" [ref=e453]
+        - 'cell "} else {" [ref=e454]'
+      - row "139 document.documentElement.classList.add('dark');" [ref=e455]:
+        - cell "139" [ref=e456]
+        - cell "document.documentElement.classList.add('dark');" [ref=e457]
+      - row "140 metaThemeColorTag.setAttribute('content', '#141618');" [ref=e458]:
+        - cell "140" [ref=e459]
+        - cell "metaThemeColorTag.setAttribute('content', '#141618');" [ref=e460]
+      - 'row "141 }" [ref=e461]':
+        - cell "141" [ref=e462]
+        - 'cell "}" [ref=e463]'
+      - row "142" [ref=e464]:
+        - cell "142" [ref=e465]
+        - cell [ref=e466]
+      - 'row "143 // window.matchMedia(''(prefers-color-scheme: dark)'').addListener((e) => {" [ref=e467]':
+        - cell "143" [ref=e468]
+        - 'cell "// window.matchMedia(''(prefers-color-scheme: dark)'').addListener((e) => {" [ref=e469]'
+      - 'row "144 // if (localStorage.theme === ''system'') {" [ref=e470]':
+        - cell "144" [ref=e471]
+        - 'cell "// if (localStorage.theme === ''system'') {" [ref=e472]'
+      - 'row "145 // if (e.matches) {" [ref=e473]':
+        - cell "145" [ref=e474]
+        - 'cell "// if (e.matches) {" [ref=e475]'
+      - row "146 // document.documentElement.classList.add('dark');" [ref=e476]:
+        - cell "146" [ref=e477]
+        - cell "// document.documentElement.classList.add('dark');" [ref=e478]
+      - row "147 // document.documentElement.classList.remove('light');" [ref=e479]:
+        - cell "147" [ref=e480]
+        - cell "// document.documentElement.classList.remove('light');" [ref=e481]
+      - row "148 // metaThemeColorTag.setAttribute('content', '#141618');" [ref=e482]:
+        - cell "148" [ref=e483]
+        - cell "// metaThemeColorTag.setAttribute('content', '#141618');" [ref=e484]
+      - 'row "149 // } else {" [ref=e485]':
+        - cell "149" [ref=e486]
+        - 'cell "// } else {" [ref=e487]'
+      - row "150 // document.documentElement.classList.add('light');" [ref=e488]:
+        - cell "150" [ref=e489]
+        - cell "// document.documentElement.classList.add('light');" [ref=e490]
+      - row "151 // document.documentElement.classList.remove('dark');" [ref=e491]:
+        - cell "151" [ref=e492]
+        - cell "// document.documentElement.classList.remove('dark');" [ref=e493]
+      - row "152 // metaThemeColorTag.setAttribute('content', '#F4F6F8');" [ref=e494]:
+        - cell "152" [ref=e495]
+        - cell "// metaThemeColorTag.setAttribute('content', '#F4F6F8');" [ref=e496]
+      - 'row "153 // }" [ref=e497]':
+        - cell "153" [ref=e498]
+        - 'cell "// }" [ref=e499]'
+      - 'row "154 // }" [ref=e500]':
+        - cell "154" [ref=e501]
+        - 'cell "// }" [ref=e502]'
+      - 'row "155 // });" [ref=e503]':
+        - cell "155" [ref=e504]
+        - 'cell "// });" [ref=e505]'
+      - row "156" [ref=e506]:
+        - cell "156" [ref=e507]
+        - cell [ref=e508]
+      - 'row "157 function setSplashImage() {" [ref=e509]':
+        - cell "157" [ref=e510]
+        - 'cell "function setSplashImage() {" [ref=e511]'
+      - row "158 const logo = document.getElementById('logo');" [ref=e512]:
+        - cell "158" [ref=e513]
+        - cell "const logo = document.getElementById('logo');" [ref=e514]
+      - row "159 const isDarkMode = document.documentElement.classList.contains('dark');" [ref=e515]:
+        - cell "159" [ref=e516]
+        - cell "const isDarkMode = document.documentElement.classList.contains('dark');" [ref=e517]
+      - row "160 const splashContainer = document.getElementById('splash-screen');" [ref=e518]:
+        - cell "160" [ref=e519]
+        - cell "const splashContainer = document.getElementById('splash-screen');" [ref=e520]
+      - row "161" [ref=e521]:
+        - cell "161" [ref=e522]
+        - cell [ref=e523]
+      - 'row "162 if (isDarkMode) {" [ref=e524]':
+        - cell "162" [ref=e525]
+        - 'cell "if (isDarkMode) {" [ref=e526]'
+      - row "163 const darkImage = new Image();" [ref=e527]:
+        - cell "163" [ref=e528]
+        - cell "const darkImage = new Image();" [ref=e529]
+      - row "164 darkImage.src = 'https://z-cdn.chatglm.cn/z-ai/static/logo.svg';" [ref=e530]:
+        - cell "164" [ref=e531]
+        - cell "darkImage.src = 'https://z-cdn.chatglm.cn/z-ai/static/logo.svg';" [ref=e532]
+      - row "165 splashContainer.style.backgroundColor = '#141618';" [ref=e533]:
+        - cell "165" [ref=e534]
+        - cell "splashContainer.style.backgroundColor = '#141618';" [ref=e535]
+      - row "166" [ref=e536]:
+        - cell "166" [ref=e537]
+        - cell [ref=e538]
+      - 'row "167 darkImage.onload = () => {" [ref=e539]':
+        - cell "167" [ref=e540]
+        - 'cell "darkImage.onload = () => {" [ref=e541]'
+      - row "168 logo.src = 'https://z-cdn.chatglm.cn/z-ai/static/logo.svg';" [ref=e542]:
+        - cell "168" [ref=e543]
+        - cell "logo.src = 'https://z-cdn.chatglm.cn/z-ai/static/logo.svg';" [ref=e544]
+      - row "169 logo.style.filter = ''; // Ensure no inversion is applied if splash-dark.png exists" [ref=e545]:
+        - cell "169" [ref=e546]
+        - cell "logo.style.filter = ''; // Ensure no inversion is applied if splash-dark.png exists" [ref=e547]
+      - 'row "170 };" [ref=e548]':
+        - cell "170" [ref=e549]
+        - 'cell "};" [ref=e550]'
+      - row "171" [ref=e551]:
+        - cell "171" [ref=e552]
+        - cell [ref=e553]
+      - 'row "172 darkImage.onerror = () => {" [ref=e554]':
+        - cell "172" [ref=e555]
+        - 'cell "darkImage.onerror = () => {" [ref=e556]'
+      - row "173 logo.style.filter = 'invert(1)'; // Invert image if splash-dark.png is missing" [ref=e557]:
+        - cell "173" [ref=e558]
+        - cell "logo.style.filter = 'invert(1)'; // Invert image if splash-dark.png is missing" [ref=e559]
+      - 'row "174 };" [ref=e560]':
+        - cell "174" [ref=e561]
+        - 'cell "};" [ref=e562]'
+      - 'row "175 } else {" [ref=e563]':
+        - cell "175" [ref=e564]
+        - 'cell "} else {" [ref=e565]'
+      - row "176 splashContainer.style.backgroundColor = '#F4F6F8';" [ref=e566]:
+        - cell "176" [ref=e567]
+        - cell "splashContainer.style.backgroundColor = '#F4F6F8';" [ref=e568]
+      - 'row "177 }" [ref=e569]':
+        - cell "177" [ref=e570]
+        - 'cell "}" [ref=e571]'
+      - 'row "178 }" [ref=e572]':
+        - cell "178" [ref=e573]
+        - 'cell "}" [ref=e574]'
+      - row "179" [ref=e575]:
+        - cell "179" [ref=e576]
+        - cell [ref=e577]
+      - row "180 // Runs after classes are assigned" [ref=e578]:
+        - cell "180" [ref=e579]
+        - cell "// Runs after classes are assigned" [ref=e580]
+      - 'row "181 window.addEventListener(''DOMContentLoaded'', setSplashImage, { once: true });" [ref=e581]':
+        - cell "181" [ref=e582]
+        - 'cell "window.addEventListener(''DOMContentLoaded'', setSplashImage, { once: true });" [ref=e583]'
+      - 'row "182 };" [ref=e584]':
+        - cell "182" [ref=e585]
+        - 'cell "};" [ref=e586]'
+      - row "183 initTheme();" [ref=e587]:
+        - cell "183" [ref=e588]
+        - cell "initTheme();" [ref=e589]
+      - row "184 </script>" [ref=e590]:
+        - cell "184" [ref=e591]
+        - cell "</script>" [ref=e592]
+      - row "185" [ref=e593]:
+        - cell "185" [ref=e594]
+        - cell [ref=e595]
+      - row "186 <title>Z.ai - Free AI Chatbot & Agent powered by GLM-5.1 & GLM-5</title>" [ref=e596]:
+        - cell "186" [ref=e597]
+        - cell "<title>Z.ai - Free AI Chatbot & Agent powered by GLM-5.1 & GLM-5</title>" [ref=e598]
+      - row "187" [ref=e599]:
+        - cell "187" [ref=e600]
+        - cell [ref=e601]
+      - row "188 <script>" [ref=e602]:
+        - cell "188" [ref=e603]
+        - cell "<script>" [ref=e604]
+      - row "189 // 炫酷的控制台介绍 - 根据语言显示" [ref=e605]:
+        - cell "189" [ref=e606]
+        - cell "// 炫酷的控制台介绍 - 根据语言显示" [ref=e607]
+      - 'row "190 (function () {" [ref=e608]':
+        - cell "190" [ref=e609]
+        - 'cell "(function () {" [ref=e610]'
+      - row "191 // 检测用户语言偏好" [ref=e611]:
+        - cell "191" [ref=e612]
+        - cell "// 检测用户语言偏好" [ref=e613]
+      - row "192 const userLang = navigator.language || navigator.userLanguage;" [ref=e614]:
+        - cell "192" [ref=e615]
+        - cell "const userLang = navigator.language || navigator.userLanguage;" [ref=e616]
+      - row "193 const isChinese =" [ref=e617]:
+        - cell "193" [ref=e618]
+        - cell "const isChinese =" [ref=e619]
+      - row "194 userLang.startsWith('zh') ||" [ref=e620]:
+        - cell "194" [ref=e621]
+        - cell "userLang.startsWith('zh') ||" [ref=e622]
+      - row "195 userLang.includes('CN') ||" [ref=e623]:
+        - cell "195" [ref=e624]
+        - cell "userLang.includes('CN') ||" [ref=e625]
+      - row "196 userLang.includes('TW') ||" [ref=e626]:
+        - cell "196" [ref=e627]
+        - cell "userLang.includes('TW') ||" [ref=e628]
+      - row "197 userLang.includes('HK');" [ref=e629]:
+        - cell "197" [ref=e630]
+        - cell "userLang.includes('HK');" [ref=e631]
+      - row "198" [ref=e632]:
+        - cell "198" [ref=e633]
+        - cell [ref=e634]
+      - row "199 // 共同的 ASCII Logo" [ref=e635]:
+        - cell "199" [ref=e636]
+        - cell "// 共同的 ASCII Logo" [ref=e637]
+      - row "200 const logoLines = [" [ref=e638]:
+        - cell "200" [ref=e639]
+        - cell "const logoLines = [" [ref=e640]
+      - row "201 '%c███████╗ █████╗ ██╗'," [ref=e641]:
+        - cell "201" [ref=e642]
+        - cell "'%c███████╗ █████╗ ██╗'," [ref=e643]
+      - row "202 '%c╚══███╔╝ ██╔══██╗██║'," [ref=e644]:
+        - cell "202" [ref=e645]
+        - cell "'%c╚══███╔╝ ██╔══██╗██║'," [ref=e646]
+      - row "203 '%c ███╔╝ ███████║██║'," [ref=e647]:
+        - cell "203" [ref=e648]
+        - cell "'%c ███╔╝ ███████║██║'," [ref=e649]
+      - row "204 '%c ███╔╝ ██╔══██║██║'," [ref=e650]:
+        - cell "204" [ref=e651]
+        - cell "'%c ███╔╝ ██╔══██║██║'," [ref=e652]
+      - row "205 '%c███████╗ ██╗██║ ██║██║'," [ref=e653]:
+        - cell "205" [ref=e654]
+        - cell "'%c███████╗ ██╗██║ ██║██║'," [ref=e655]
+      - row "206 '%c╚══════╝ ╚═╝╚═╝ ╚═╝╚═╝'" [ref=e656]:
+        - cell "206" [ref=e657]
+        - cell "'%c╚══════╝ ╚═╝╚═╝ ╚═╝╚═╝'" [ref=e658]
+      - row "207 ];" [ref=e659]:
+        - cell "207" [ref=e660]
+        - cell "];" [ref=e661]
+      - row "208 const logoColors = [" [ref=e662]:
+        - cell "208" [ref=e663]
+        - cell "const logoColors = [" [ref=e664]
+      - 'row "209 ''color: #ff6b6b; font-family: monospace; font-size: 12px;''," [ref=e665]':
+        - cell "209" [ref=e666]
+        - 'cell "''color: #ff6b6b; font-family: monospace; font-size: 12px;''," [ref=e667]'
+      - 'row "210 ''color: #4ecdc4; font-family: monospace; font-size: 12px;''," [ref=e668]':
+        - cell "210" [ref=e669]
+        - 'cell "''color: #4ecdc4; font-family: monospace; font-size: 12px;''," [ref=e670]'
+      - 'row "211 ''color: #45b7d1; font-family: monospace; font-size: 12px;''," [ref=e671]':
+        - cell "211" [ref=e672]
+        - 'cell "''color: #45b7d1; font-family: monospace; font-size: 12px;''," [ref=e673]'
+      - 'row "212 ''color: #f9ca24; font-family: monospace; font-size: 12px;''," [ref=e674]':
+        - cell "212" [ref=e675]
+        - 'cell "''color: #f9ca24; font-family: monospace; font-size: 12px;''," [ref=e676]'
+      - 'row "213 ''color: #ff9ff3; font-family: monospace; font-size: 12px;''," [ref=e677]':
+        - cell "213" [ref=e678]
+        - 'cell "''color: #ff9ff3; font-family: monospace; font-size: 12px;''," [ref=e679]'
+      - 'row "214 ''color: #6c5ce7; font-family: monospace; font-size: 12px;''" [ref=e680]':
+        - cell "214" [ref=e681]
+        - 'cell "''color: #6c5ce7; font-family: monospace; font-size: 12px;''" [ref=e682]'
+      - row "215 ];" [ref=e683]:
+        - cell "215" [ref=e684]
+        - cell "];" [ref=e685]
+      - row "216" [ref=e686]:
+        - cell "216" [ref=e687]
+        - cell [ref=e688]
+      - 'row "217 if (isChinese) {" [ref=e689]':
+        - cell "217" [ref=e690]
+        - 'cell "if (isChinese) {" [ref=e691]'
+      - row "218 // 中文版本" [ref=e692]:
+        - cell "218" [ref=e693]
+        - cell "// 中文版本" [ref=e694]
+      - row "219 console.log(" [ref=e695]:
+        - cell "219" [ref=e696]
+        - cell "console.log(" [ref=e697]
+      - row "220 '%c🚀 欢迎来到 Z.ai 🚀'," [ref=e698]:
+        - cell "220" [ref=e699]
+        - cell "'%c🚀 欢迎来到 Z.ai 🚀'," [ref=e700]
+      - 'row "221 ''color: #00d4ff; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #00d4ff;''" [ref=e701]':
+        - cell "221" [ref=e702]
+        - 'cell "''color: #00d4ff; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #00d4ff;''" [ref=e703]'
+      - row "222 );" [ref=e704]:
+        - cell "222" [ref=e705]
+        - cell ");" [ref=e706]
+      - row "223 logoLines.forEach((line, index) => console.log(line, logoColors[index]));" [ref=e707]:
+        - cell "223" [ref=e708]
+        - cell "logoLines.forEach((line, index) => console.log(line, logoColors[index]));" [ref=e709]
+      - row "224 console.log('');" [ref=e710]:
+        - cell "224" [ref=e711]
+        - cell "console.log('');" [ref=e712]
+      - row "225 console.log(" [ref=e713]:
+        - cell "225" [ref=e714]
+        - cell "console.log(" [ref=e715]
+      - row "226 '%c✨ 基于开源GLM模型的智能AI助手'," [ref=e716]:
+        - cell "226" [ref=e717]
+        - cell "'%c✨ 基于开源GLM模型的智能AI助手'," [ref=e718]
+      - 'row "227 ''color: #a29bfe; font-size: 14px; font-weight: bold;''" [ref=e719]':
+        - cell "227" [ref=e720]
+        - 'cell "''color: #a29bfe; font-size: 14px; font-weight: bold;''" [ref=e721]'
+      - row "228 );" [ref=e722]:
+        - cell "228" [ref=e723]
+        - cell ");" [ref=e724]
+      - 'row "229 console.log(''%c🧠 支持文本生成、推理和深度研究'', ''color: #fd79a8; font-size: 12px;'');" [ref=e725]':
+        - cell "229" [ref=e726]
+        - 'cell "console.log(''%c🧠 支持文本生成、推理和深度研究'', ''color: #fd79a8; font-size: 12px;'');" [ref=e727]'
+      - 'row "230 console.log(''%c🌍 为中英文用户量身定制'', ''color: #00b894; font-size: 12px;'');" [ref=e728]':
+        - cell "230" [ref=e729]
+        - 'cell "console.log(''%c🌍 为中英文用户量身定制'', ''color: #00b894; font-size: 12px;'');" [ref=e730]'
+      - 'row "231 console.log(''%c💡 免费开源的ChatGPT替代方案'', ''color: #fdcb6e; font-size: 12px;'');" [ref=e731]':
+        - cell "231" [ref=e732]
+        - 'cell "console.log(''%c💡 免费开源的ChatGPT替代方案'', ''color: #fdcb6e; font-size: 12px;'');" [ref=e733]'
+      - row "232 console.log('');" [ref=e734]:
+        - cell "232" [ref=e735]
+        - cell "console.log('');" [ref=e736]
+      - 'row "233 console.log(''%c---'', ''color: #ddd;'');" [ref=e737]':
+        - cell "233" [ref=e738]
+        - 'cell "console.log(''%c---'', ''color: #ddd;'');" [ref=e739]'
+      - row "234 console.log(" [ref=e740]:
+        - cell "234" [ref=e741]
+        - cell "console.log(" [ref=e742]
+      - row "235 '%c由 ❤️ 和大量 ☕ 驱动'," [ref=e743]:
+        - cell "235" [ref=e744]
+        - cell "'%c由 ❤️ 和大量 ☕ 驱动'," [ref=e745]
+      - 'row "236 ''color: #e84393; font-size: 11px; font-style: italic;''" [ref=e746]':
+        - cell "236" [ref=e747]
+        - 'cell "''color: #e84393; font-size: 11px; font-style: italic;''" [ref=e748]'
+      - row "237 );" [ref=e749]:
+        - cell "237" [ref=e750]
+        - cell ");" [ref=e751]
+      - row "238 console.log('');" [ref=e752]:
+        - cell "238" [ref=e753]
+        - cell "console.log('');" [ref=e754]
+      - row "239 console.log(" [ref=e755]:
+        - cell "239" [ref=e756]
+        - cell "console.log(" [ref=e757]
+      - row "240 '%c🚀 加入我们！我们正在招聘优秀人才！'," [ref=e758]:
+        - cell "240" [ref=e759]
+        - cell "'%c🚀 加入我们！我们正在招聘优秀人才！'," [ref=e760]
+      - 'row "241 ''color: #00b894; font-size: 13px; font-weight: bold;''" [ref=e761]':
+        - cell "241" [ref=e762]
+        - 'cell "''color: #00b894; font-size: 13px; font-weight: bold;''" [ref=e763]'
+      - row "242 );" [ref=e764]:
+        - cell "242" [ref=e765]
+        - cell ");" [ref=e766]
+      - row "243 console.log(" [ref=e767]:
+        - cell "243" [ref=e768]
+        - cell "console.log(" [ref=e769]
+      - 'row "244 ''%c💼 查看职位: https://zhipu-ai.jobs.feishu.cn/s/stmyTm5lxaU''," [ref=e770]':
+        - cell "244" [ref=e771]
+        - 'cell "''%c💼 查看职位: https://zhipu-ai.jobs.feishu.cn/s/stmyTm5lxaU''," [ref=e772]'
+      - 'row "245 ''color: #0984e3; font-size: 12px; text-decoration: underline;''" [ref=e773]':
+        - cell "245" [ref=e774]
+        - 'cell "''color: #0984e3; font-size: 12px; text-decoration: underline;''" [ref=e775]'
+      - row "246 );" [ref=e776]:
+        - cell "246" [ref=e777]
+        - cell ");" [ref=e778]
+      - 'row "247 } else {" [ref=e779]':
+        - cell "247" [ref=e780]
+        - 'cell "} else {" [ref=e781]'
+      - row "248 // 英文版本" [ref=e782]:
+        - cell "248" [ref=e783]
+        - cell "// 英文版本" [ref=e784]
+      - row "249 console.log(" [ref=e785]:
+        - cell "249" [ref=e786]
+        - cell "console.log(" [ref=e787]
+      - row "250 '%c🚀 Welcome to Z.ai 🚀'," [ref=e788]:
+        - cell "250" [ref=e789]
+        - cell "'%c🚀 Welcome to Z.ai 🚀'," [ref=e790]
+      - 'row "251 ''color: #00d4ff; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #00d4ff;''" [ref=e791]':
+        - cell "251" [ref=e792]
+        - 'cell "''color: #00d4ff; font-size: 20px; font-weight: bold; text-shadow: 0 0 10px #00d4ff;''" [ref=e793]'
+      - row "252 );" [ref=e794]:
+        - cell "252" [ref=e795]
+        - cell ");" [ref=e796]
+      - row "253 logoLines.forEach((line, index) => console.log(line, logoColors[index]));" [ref=e797]:
+        - cell "253" [ref=e798]
+        - cell "logoLines.forEach((line, index) => console.log(line, logoColors[index]));" [ref=e799]
+      - row "254 console.log('');" [ref=e800]:
+        - cell "254" [ref=e801]
+        - cell "console.log('');" [ref=e802]
+      - row "255 console.log(" [ref=e803]:
+        - cell "255" [ref=e804]
+        - cell "console.log(" [ref=e805]
+      - row "256 '%c✨ Advanced AI assistant powered by open-source GLM models'," [ref=e806]:
+        - cell "256" [ref=e807]
+        - cell "'%c✨ Advanced AI assistant powered by open-source GLM models'," [ref=e808]
+      - 'row "257 ''color: #a29bfe; font-size: 14px; font-weight: bold;''" [ref=e809]':
+        - cell "257" [ref=e810]
+        - 'cell "''color: #a29bfe; font-size: 14px; font-weight: bold;''" [ref=e811]'
+      - row "258 );" [ref=e812]:
+        - cell "258" [ref=e813]
+        - cell ");" [ref=e814]
+      - row "259 console.log(" [ref=e815]:
+        - cell "259" [ref=e816]
+        - cell "console.log(" [ref=e817]
+      - row "260 '%c🧠 Supports text generation, reasoning, and deep research'," [ref=e818]:
+        - cell "260" [ref=e819]
+        - cell "'%c🧠 Supports text generation, reasoning, and deep research'," [ref=e820]
+      - 'row "261 ''color: #fd79a8; font-size: 12px;''" [ref=e821]':
+        - cell "261" [ref=e822]
+        - 'cell "''color: #fd79a8; font-size: 12px;''" [ref=e823]'
+      - row "262 );" [ref=e824]:
+        - cell "262" [ref=e825]
+        - cell ");" [ref=e826]
+      - row "263 console.log(" [ref=e827]:
+        - cell "263" [ref=e828]
+        - cell "console.log(" [ref=e829]
+      - row "264 '%c🌍 Tailored for both English and Chinese users'," [ref=e830]:
+        - cell "264" [ref=e831]
+        - cell "'%c🌍 Tailored for both English and Chinese users'," [ref=e832]
+      - 'row "265 ''color: #00b894; font-size: 12px;''" [ref=e833]':
+        - cell "265" [ref=e834]
+        - 'cell "''color: #00b894; font-size: 12px;''" [ref=e835]'
+      - row "266 );" [ref=e836]:
+        - cell "266" [ref=e837]
+        - cell ");" [ref=e838]
+      - row "267 console.log(" [ref=e839]:
+        - cell "267" [ref=e840]
+        - cell "console.log(" [ref=e841]
+      - row "268 '%c💡 Free and open-source ChatGPT alternative'," [ref=e842]:
+        - cell "268" [ref=e843]
+        - cell "'%c💡 Free and open-source ChatGPT alternative'," [ref=e844]
+      - 'row "269 ''color: #fdcb6e; font-size: 12px;''" [ref=e845]':
+        - cell "269" [ref=e846]
+        - 'cell "''color: #fdcb6e; font-size: 12px;''" [ref=e847]'
+      - row "270 );" [ref=e848]:
+        - cell "270" [ref=e849]
+        - cell ");" [ref=e850]
+      - row "271 console.log('');" [ref=e851]:
+        - cell "271" [ref=e852]
+        - cell "console.log('');" [ref=e853]
+      - 'row "272 console.log(''%c---'', ''color: #ddd;'');" [ref=e854]':
+        - cell "272" [ref=e855]
+        - 'cell "console.log(''%c---'', ''color: #ddd;'');" [ref=e856]'
+      - row "273 console.log(" [ref=e857]:
+        - cell "273" [ref=e858]
+        - cell "console.log(" [ref=e859]
+      - row "274 '%cPowered by ❤️ and lots of ☕'," [ref=e860]:
+        - cell "274" [ref=e861]
+        - cell "'%cPowered by ❤️ and lots of ☕'," [ref=e862]
+      - 'row "275 ''color: #e84393; font-size: 11px; font-style: italic;''" [ref=e863]':
+        - cell "275" [ref=e864]
+        - 'cell "''color: #e84393; font-size: 11px; font-style: italic;''" [ref=e865]'
+      - row "276 );" [ref=e866]:
+        - cell "276" [ref=e867]
+        - cell ");" [ref=e868]
+      - row "277 console.log('');" [ref=e869]:
+        - cell "277" [ref=e870]
+        - cell "console.log('');" [ref=e871]
+      - row "278 console.log(" [ref=e872]:
+        - cell "278" [ref=e873]
+        - cell "console.log(" [ref=e874]
+      - row "279 '%c🚀 Join us! We are hiring talented people!'," [ref=e875]:
+        - cell "279" [ref=e876]
+        - cell "'%c🚀 Join us! We are hiring talented people!'," [ref=e877]
+      - 'row "280 ''color: #00b894; font-size: 13px; font-weight: bold;''" [ref=e878]':
+        - cell "280" [ref=e879]
+        - 'cell "''color: #00b894; font-size: 13px; font-weight: bold;''" [ref=e880]'
+      - row "281 );" [ref=e881]:
+        - cell "281" [ref=e882]
+        - cell ");" [ref=e883]
+      - row "282 console.log(" [ref=e884]:
+        - cell "282" [ref=e885]
+        - cell "console.log(" [ref=e886]
+      - 'row "283 ''%c💼 View jobs: https://zhipu-ai.jobs.feishu.cn/s/stmyTm5lxaU''," [ref=e887]':
+        - cell "283" [ref=e888]
+        - 'cell "''%c💼 View jobs: https://zhipu-ai.jobs.feishu.cn/s/stmyTm5lxaU''," [ref=e889]'
+      - 'row "284 ''color: #0984e3; font-size: 12px; text-decoration: underline;''" [ref=e890]':
+        - cell "284" [ref=e891]
+        - 'cell "''color: #0984e3; font-size: 12px; text-decoration: underline;''" [ref=e892]'
+      - row "285 );" [ref=e893]:
+        - cell "285" [ref=e894]
+        - cell ");" [ref=e895]
+      - 'row "286 }" [ref=e896]':
+        - cell "286" [ref=e897]
+        - 'cell "}" [ref=e898]'
+      - 'row "287 })();" [ref=e899]':
+        - cell "287" [ref=e900]
+        - 'cell "})();" [ref=e901]'
+      - row "288 </script>" [ref=e902]:
+        - cell "288" [ref=e903]
+        - cell "</script>" [ref=e904]
+      - row "289" [ref=e905]:
+        - cell "289" [ref=e906]
+        - cell [ref=e907]
+      - row "290" [ref=e908]:
+        - cell "290" [ref=e909]
+        - cell [ref=e910]
+      - row "291 <link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/start.BNUalOl4.js\">" [ref=e911]:
+        - cell "291" [ref=e912]
+        - cell "<link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/start.BNUalOl4.js\">" [ref=e913]:
+          - generic [ref=e914]:
+            - text: <link rel="modulepreload" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/start.BNUalOl4.js" [ref=e915] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/start.BNUalOl4.js
+            - text: "\">"
+      - row "292 <link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/BQtiYVo6.js\">" [ref=e916]:
+        - cell "292" [ref=e917]
+        - cell "<link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/BQtiYVo6.js\">" [ref=e918]:
+          - generic [ref=e919]:
+            - text: <link rel="modulepreload" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/BQtiYVo6.js" [ref=e920] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/BQtiYVo6.js
+            - text: "\">"
+      - row "293 <link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/BUua5J6T.js\">" [ref=e921]:
+        - cell "293" [ref=e922]
+        - cell "<link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/BUua5J6T.js\">" [ref=e923]:
+          - generic [ref=e924]:
+            - text: <link rel="modulepreload" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/BUua5J6T.js" [ref=e925] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/BUua5J6T.js
+            - text: "\">"
+      - row "294 <link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/CLLzPxsj.js\">" [ref=e926]:
+        - cell "294" [ref=e927]
+        - cell "<link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/CLLzPxsj.js\">" [ref=e928]:
+          - generic [ref=e929]:
+            - text: <link rel="modulepreload" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/CLLzPxsj.js" [ref=e930] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/CLLzPxsj.js
+            - text: "\">"
+      - row "295 <link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/app.OEgaSNYJ.js\">" [ref=e931]:
+        - cell "295" [ref=e932]
+        - cell "<link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/app.OEgaSNYJ.js\">" [ref=e933]:
+          - generic [ref=e934]:
+            - text: <link rel="modulepreload" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/app.OEgaSNYJ.js" [ref=e935] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/app.OEgaSNYJ.js
+            - text: "\">"
+      - row "296 <link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/C1FmrZbK.js\">" [ref=e936]:
+        - cell "296" [ref=e937]
+        - cell "<link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/C1FmrZbK.js\">" [ref=e938]:
+          - generic [ref=e939]:
+            - text: <link rel="modulepreload" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/C1FmrZbK.js" [ref=e940] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/C1FmrZbK.js
+            - text: "\">"
+      - row "297 <link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/DE2LdTMs.js\">" [ref=e941]:
+        - cell "297" [ref=e942]
+        - cell "<link rel=\"modulepreload\" href=\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/DE2LdTMs.js\">" [ref=e943]:
+          - generic [ref=e944]:
+            - text: <link rel="modulepreload" href="
+            - link "https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/DE2LdTMs.js" [ref=e945] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/chunks/DE2LdTMs.js
+            - text: "\">"
+      - row "298 </head>" [ref=e946]:
+        - cell "298" [ref=e947]
+        - cell "</head>" [ref=e948]
+      - row "299" [ref=e949]:
+        - cell "299" [ref=e950]
+        - cell [ref=e951]
+      - row "300 <body data-sveltekit-preload-data=\"hover\">" [ref=e952]:
+        - cell "300" [ref=e953]
+        - cell "<body data-sveltekit-preload-data=\"hover\">" [ref=e954]:
+          - generic [ref=e955]: <body data-sveltekit-preload-data="hover">
+      - row "301 <script>" [ref=e956]:
+        - cell "301" [ref=e957]
+        - cell "<script>" [ref=e958]
+      - 'row "302 const env = location.hostname === ''chat.z.ai'' ? ''prod'' : ''pre'';" [ref=e959]':
+        - cell "302" [ref=e960]
+        - 'cell "const env = location.hostname === ''chat.z.ai'' ? ''prod'' : ''pre'';" [ref=e961]'
+      - 'row "303 !(function (c, b, d, a) {" [ref=e962]':
+        - cell "303" [ref=e963]
+        - 'cell "!(function (c, b, d, a) {" [ref=e964]'
+      - 'row "304 c[a] || (c[a] = {});" [ref=e965]':
+        - cell "304" [ref=e966]
+        - 'cell "c[a] || (c[a] = {});" [ref=e967]'
+      - 'row "305 c[a] = {" [ref=e968]':
+        - cell "305" [ref=e969]
+        - 'cell "c[a] = {" [ref=e970]'
+      - 'row "306 pid: ''j2c03hoppk@9a8be198b65ba4b''," [ref=e971]':
+        - cell "306" [ref=e972]
+        - 'cell "pid: ''j2c03hoppk@9a8be198b65ba4b''," [ref=e973]'
+      - 'row "307 endpoint: ''https://j2c03hoppk-default-cn.rum.aliyuncs.com''," [ref=e974]':
+        - cell "307" [ref=e975]
+        - 'cell "endpoint: ''https://j2c03hoppk-default-cn.rum.aliyuncs.com''," [ref=e976]'
+      - row "308 // 设置环境信息，参考值：'prod' | 'gray' | 'pre' | 'daily' | 'local'" [ref=e977]:
+        - cell "308" [ref=e978]
+        - cell "// 设置环境信息，参考值：'prod' | 'gray' | 'pre' | 'daily' | 'local'" [ref=e979]
+      - 'row "309 env: env," [ref=e980]':
+        - cell "309" [ref=e981]
+        - 'cell "env: env," [ref=e982]'
+      - row "310 // 设置路由模式， 参考值：'history' | 'hash'" [ref=e983]:
+        - cell "310" [ref=e984]
+        - cell "// 设置路由模式， 参考值：'history' | 'hash'" [ref=e985]
+      - 'row "311 spaMode: ''history''," [ref=e986]':
+        - cell "311" [ref=e987]
+        - 'cell "spaMode: ''history''," [ref=e988]'
+      - 'row "312 collectors: {" [ref=e989]':
+        - cell "312" [ref=e990]
+        - 'cell "collectors: {" [ref=e991]'
+      - row "313 // 页面性能指标监听开关，默认开启" [ref=e992]:
+        - cell "313" [ref=e993]
+        - cell "// 页面性能指标监听开关，默认开启" [ref=e994]
+      - 'row "314 perf: true," [ref=e995]':
+        - cell "314" [ref=e996]
+        - 'cell "perf: true," [ref=e997]'
+      - row "315 // WebVitals指标监听开关，默认开启" [ref=e998]:
+        - cell "315" [ref=e999]
+        - cell "// WebVitals指标监听开关，默认开启" [ref=e1000]
+      - 'row "316 webVitals: false," [ref=e1001]':
+        - cell "316" [ref=e1002]
+        - 'cell "webVitals: false," [ref=e1003]'
+      - row "317 // Ajax监听开关，默认开启" [ref=e1004]:
+        - cell "317" [ref=e1005]
+        - cell "// Ajax监听开关，默认开启" [ref=e1006]
+      - 'row "318 api: true," [ref=e1007]':
+        - cell "318" [ref=e1008]
+        - 'cell "api: true," [ref=e1009]'
+      - row "319 // 静态资源开关，默认开启" [ref=e1010]:
+        - cell "319" [ref=e1011]
+        - cell "// 静态资源开关，默认开启" [ref=e1012]
+      - 'row "320 staticResource: true," [ref=e1013]':
+        - cell "320" [ref=e1014]
+        - 'cell "staticResource: true," [ref=e1015]'
+      - row "321 // JS错误监听开关，默认开启" [ref=e1016]:
+        - cell "321" [ref=e1017]
+        - cell "// JS错误监听开关，默认开启" [ref=e1018]
+      - 'row "322 jsError: true," [ref=e1019]':
+        - cell "322" [ref=e1020]
+        - 'cell "jsError: true," [ref=e1021]'
+      - row "323 // 控制台错误监听开关，默认开启" [ref=e1022]:
+        - cell "323" [ref=e1023]
+        - cell "// 控制台错误监听开关，默认开启" [ref=e1024]
+      - 'row "324 consoleError: false," [ref=e1025]':
+        - cell "324" [ref=e1026]
+        - 'cell "consoleError: false," [ref=e1027]'
+      - row "325 // 用户行为监听开关，默认开启" [ref=e1028]:
+        - cell "325" [ref=e1029]
+        - cell "// 用户行为监听开关，默认开启" [ref=e1030]
+      - 'row "326 action: true" [ref=e1031]':
+        - cell "326" [ref=e1032]
+        - 'cell "action: true" [ref=e1033]'
+      - 'row "327 }," [ref=e1034]':
+        - cell "327" [ref=e1035]
+        - 'cell "}," [ref=e1036]'
+      - row "328 // 链路追踪配置开关，默认关闭" [ref=e1037]:
+        - cell "328" [ref=e1038]
+        - cell "// 链路追踪配置开关，默认关闭" [ref=e1039]
+      - 'row "329 tracing: false," [ref=e1040]':
+        - cell "329" [ref=e1041]
+        - 'cell "tracing: false," [ref=e1042]'
+      - 'row "330 parseViewName(url) {" [ref=e1043]':
+        - cell "330" [ref=e1044]
+        - 'cell "parseViewName(url) {" [ref=e1045]'
+      - row "331 const pathname = new URL(url).pathname;" [ref=e1046]:
+        - cell "331" [ref=e1047]
+        - cell "const pathname = new URL(url).pathname;" [ref=e1048]
+      - 'row "332 if (!pathname) {" [ref=e1049]':
+        - cell "332" [ref=e1050]
+        - 'cell "if (!pathname) {" [ref=e1051]'
+      - row "333 return '/';" [ref=e1052]:
+        - cell "333" [ref=e1053]
+        - cell "return '/';" [ref=e1054]
+      - 'row "334 }" [ref=e1055]':
+        - cell "334" [ref=e1056]
+        - 'cell "}" [ref=e1057]'
+      - row "335 return pathname.replace(/(.*)\\/[a-f0-9-]+$/g, '$1');" [ref=e1058]:
+        - cell "335" [ref=e1059]
+        - cell "return pathname.replace(/(.*)\\/[a-f0-9-]+$/g, '$1');" [ref=e1060]
+      - 'row "336 }," [ref=e1061]':
+        - cell "336" [ref=e1062]
+        - 'cell "}," [ref=e1063]'
+      - 'row "337 evaluateApi(options, response) {" [ref=e1064]':
+        - cell "337" [ref=e1065]
+        - 'cell "evaluateApi(options, response) {" [ref=e1066]'
+      - row "338 const traceId = response?.headers?.get?.('X-Trace-Id') || 'unknown';" [ref=e1067]:
+        - cell "338" [ref=e1068]
+        - cell "const traceId = response?.headers?.get?.('X-Trace-Id') || 'unknown';" [ref=e1069]
+      - row "339" [ref=e1070]:
+        - cell "339" [ref=e1071]
+        - cell [ref=e1072]
+      - 'row "340 return {" [ref=e1073]':
+        - cell "340" [ref=e1074]
+        - 'cell "return {" [ref=e1075]'
+      - 'row "341 name: options.url.replace(/\\/[a-f0-9-]{36}/g, ''/**'')," [ref=e1076]':
+        - cell "341" [ref=e1077]
+        - 'cell "name: options.url.replace(/\\/[a-f0-9-]{36}/g, ''/**'')," [ref=e1078]'
+      - 'row "342 properties: {" [ref=e1079]':
+        - cell "342" [ref=e1080]
+        - 'cell "properties: {" [ref=e1081]'
+      - row "343 traceId" [ref=e1082]:
+        - cell "343" [ref=e1083]
+        - cell "traceId" [ref=e1084]
+      - 'row "344 }" [ref=e1085]':
+        - cell "344" [ref=e1086]
+        - 'cell "}" [ref=e1087]'
+      - 'row "345 };" [ref=e1088]':
+        - cell "345" [ref=e1089]
+        - 'cell "};" [ref=e1090]'
+      - 'row "346 }" [ref=e1091]':
+        - cell "346" [ref=e1092]
+        - 'cell "}" [ref=e1093]'
+      - 'row "347 };" [ref=e1094]':
+        - cell "347" [ref=e1095]
+        - 'cell "};" [ref=e1096]'
+      - row "348 with (b)" [ref=e1097]:
+        - cell "348" [ref=e1098]
+        - cell "with (b)" [ref=e1099]
+      - row "349 with (body)" [ref=e1100]:
+        - cell "349" [ref=e1101]
+        - cell "with (body)" [ref=e1102]
+      - row "350 with (insertBefore(createElement('script'), firstChild))" [ref=e1103]:
+        - cell "350" [ref=e1104]
+        - cell "with (insertBefore(createElement('script'), firstChild))" [ref=e1105]
+      - row "351 setAttribute('crossorigin', '', (src = d));" [ref=e1106]:
+        - cell "351" [ref=e1107]
+        - cell "setAttribute('crossorigin', '', (src = d));" [ref=e1108]
+      - 'row "352 })(window, document, ''https://sdk.rum.aliyuncs.com/v2/browser-sdk.js'', ''__rum'');" [ref=e1109]':
+        - cell "352" [ref=e1110]
+        - 'cell "})(window, document, ''https://sdk.rum.aliyuncs.com/v2/browser-sdk.js'', ''__rum'');" [ref=e1111]'
+      - row "353 </script>" [ref=e1112]:
+        - cell "353" [ref=e1113]
+        - cell "</script>" [ref=e1114]
+      - 'row "354 <div style=\"display: contents\">" [ref=e1115]':
+        - cell "354" [ref=e1116]
+        - 'cell "<div style=\"display: contents\">" [ref=e1117]':
+          - generic [ref=e1118]: "<div style=\"display: contents\">"
+      - row "355 <script>" [ref=e1119]:
+        - cell "355" [ref=e1120]
+        - cell "<script>" [ref=e1121]
+      - 'row "356 {" [ref=e1122]':
+        - cell "356" [ref=e1123]
+        - 'cell "{" [ref=e1124]'
+      - 'row "357 __sveltekit_platq5 = {" [ref=e1125]':
+        - cell "357" [ref=e1126]
+        - 'cell "__sveltekit_platq5 = {" [ref=e1127]'
+      - 'row "358 base: \"\"," [ref=e1128]':
+        - cell "358" [ref=e1129]
+        - 'cell "base: \"\"," [ref=e1130]'
+      - 'row "359 assets: \"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7\"" [ref=e1131]':
+        - cell "359" [ref=e1132]
+        - 'cell "assets: \"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7\"" [ref=e1133]'
+      - 'row "360 };" [ref=e1134]':
+        - cell "360" [ref=e1135]
+        - 'cell "};" [ref=e1136]'
+      - row "361" [ref=e1137]:
+        - cell "361" [ref=e1138]
+        - cell [ref=e1139]
+      - row "362 const element = document.currentScript.parentElement;" [ref=e1140]:
+        - cell "362" [ref=e1141]
+        - cell "const element = document.currentScript.parentElement;" [ref=e1142]
+      - row "363" [ref=e1143]:
+        - cell "363" [ref=e1144]
+        - cell [ref=e1145]
+      - row "364 Promise.all([" [ref=e1146]:
+        - cell "364" [ref=e1147]
+        - cell "Promise.all([" [ref=e1148]
+      - row "365 import(\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/start.BNUalOl4.js\")," [ref=e1149]:
+        - cell "365" [ref=e1150]
+        - cell "import(\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/start.BNUalOl4.js\")," [ref=e1151]
+      - row "366 import(\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/app.OEgaSNYJ.js\")" [ref=e1152]:
+        - cell "366" [ref=e1153]
+        - cell "import(\"https://z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.7/_app/immutable/entry/app.OEgaSNYJ.js\")" [ref=e1154]
+      - 'row "367 ]).then(([kit, app]) => {" [ref=e1155]':
+        - cell "367" [ref=e1156]
+        - 'cell "]).then(([kit, app]) => {" [ref=e1157]'
+      - row "368 kit.start(app, element);" [ref=e1158]:
+        - cell "368" [ref=e1159]
+        - cell "kit.start(app, element);" [ref=e1160]
+      - 'row "369 });" [ref=e1161]':
+        - cell "369" [ref=e1162]
+        - 'cell "});" [ref=e1163]'
+      - 'row "370 }" [ref=e1164]':
+        - cell "370" [ref=e1165]
+        - 'cell "}" [ref=e1166]'
+      - row "371 </script>" [ref=e1167]:
+        - cell "371" [ref=e1168]
+        - cell "</script>" [ref=e1169]
+      - row "372 </div>" [ref=e1170]:
+        - cell "372" [ref=e1171]
+        - cell "</div>" [ref=e1172]
+      - row "373" [ref=e1173]:
+        - cell "373" [ref=e1174]
+        - cell [ref=e1175]
+      - row "374 <div" [ref=e1176]:
+        - cell "374" [ref=e1177]
+        - cell "<div" [ref=e1178]
+      - row "375 id=\"splash-screen\"" [ref=e1179]:
+        - cell "375" [ref=e1180]
+        - cell "id=\"splash-screen\"" [ref=e1181]:
+          - generic [ref=e1182]: id="splash-screen"
+      - row "376 style=\"" [ref=e1183]:
+        - cell "376" [ref=e1184]
+        - cell "style=\"" [ref=e1185]:
+          - generic [ref=e1186]: style="
+      - 'row "377 position: fixed;" [ref=e1187]':
+        - cell "377" [ref=e1188]
+        - 'cell "position: fixed;" [ref=e1189]':
+          - generic [ref=e1190]: "position: fixed;"
+      - 'row "378 z-index: 100;" [ref=e1191]':
+        - cell "378" [ref=e1192]
+        - 'cell "z-index: 100;" [ref=e1193]':
+          - generic [ref=e1194]: "z-index: 100;"
+      - 'row "379 top: 0;" [ref=e1195]':
+        - cell "379" [ref=e1196]
+        - 'cell "top: 0;" [ref=e1197]':
+          - generic [ref=e1198]: "top: 0;"
+      - 'row "380 left: 0;" [ref=e1199]':
+        - cell "380" [ref=e1200]
+        - 'cell "left: 0;" [ref=e1201]':
+          - generic [ref=e1202]: "left: 0;"
+      - 'row "381 width: 100%;" [ref=e1203]':
+        - cell "381" [ref=e1204]
+        - 'cell "width: 100%;" [ref=e1205]':
+          - generic [ref=e1206]: "width: 100%;"
+      - 'row "382 height: 100%;" [ref=e1207]':
+        - cell "382" [ref=e1208]
+        - 'cell "height: 100%;" [ref=e1209]':
+          - generic [ref=e1210]: "height: 100%;"
+      - 'row "383 background-color: #f4f6f8;" [ref=e1211]':
+        - cell "383" [ref=e1212]
+        - 'cell "background-color: #f4f6f8;" [ref=e1213]':
+          - generic [ref=e1214]: "background-color: #f4f6f8;"
+      - row "384 \"" [ref=e1215]:
+        - cell "384" [ref=e1216]
+        - cell "\"" [ref=e1217]:
+          - generic [ref=e1218]: "\""
+      - row "385 >" [ref=e1219]:
+        - cell "385" [ref=e1220]
+        - cell ">" [ref=e1221]
+      - row "386 <style type=\"text/css\" nonce=\"\">" [ref=e1222]:
+        - cell "386" [ref=e1223]
+        - cell "<style type=\"text/css\" nonce=\"\">" [ref=e1224]:
+          - generic [ref=e1225]: <style type="text/css" nonce="">
+      - 'row "387 html {" [ref=e1226]':
+        - cell "387" [ref=e1227]
+        - 'cell "html {" [ref=e1228]'
+      - 'row "388 overflow-y: scroll !important;" [ref=e1229]':
+        - cell "388" [ref=e1230]
+        - 'cell "overflow-y: scroll !important;" [ref=e1231]'
+      - 'row "389 }" [ref=e1232]':
+        - cell "389" [ref=e1233]
+        - 'cell "}" [ref=e1234]'
+      - row "390 </style>" [ref=e1235]:
+        - cell "390" [ref=e1236]
+        - cell "</style>" [ref=e1237]
+      - row "391" [ref=e1238]:
+        - cell "391" [ref=e1239]
+        - cell [ref=e1240]
+      - row "392 <img" [ref=e1241]:
+        - cell "392" [ref=e1242]
+        - cell "<img" [ref=e1243]
+      - row "393 id=\"logo\"" [ref=e1244]:
+        - cell "393" [ref=e1245]
+        - cell "id=\"logo\"" [ref=e1246]:
+          - generic [ref=e1247]: id="logo"
+      - row "394 style=\"" [ref=e1248]:
+        - cell "394" [ref=e1249]
+        - cell "style=\"" [ref=e1250]:
+          - generic [ref=e1251]: style="
+      - 'row "395 position: absolute;" [ref=e1252]':
+        - cell "395" [ref=e1253]
+        - 'cell "position: absolute;" [ref=e1254]':
+          - generic [ref=e1255]: "position: absolute;"
+      - 'row "396 width: auto;" [ref=e1256]':
+        - cell "396" [ref=e1257]
+        - 'cell "width: auto;" [ref=e1258]':
+          - generic [ref=e1259]: "width: auto;"
+      - 'row "397 height: 5rem;" [ref=e1260]':
+        - cell "397" [ref=e1261]
+        - 'cell "height: 5rem;" [ref=e1262]':
+          - generic [ref=e1263]: "height: 5rem;"
+      - 'row "398 top: 50%;" [ref=e1264]':
+        - cell "398" [ref=e1265]
+        - 'cell "top: 50%;" [ref=e1266]':
+          - generic [ref=e1267]: "top: 50%;"
+      - 'row "399 left: 50%;" [ref=e1268]':
+        - cell "399" [ref=e1269]
+        - 'cell "left: 50%;" [ref=e1270]':
+          - generic [ref=e1271]: "left: 50%;"
+      - 'row "400 transform: translate(-50%, -50%);" [ref=e1272]':
+        - cell "400" [ref=e1273]
+        - 'cell "transform: translate(-50%, -50%);" [ref=e1274]':
+          - generic [ref=e1275]: "transform: translate(-50%, -50%);"
+      - row "401 \"" [ref=e1276]:
+        - cell "401" [ref=e1277]
+        - cell "\"" [ref=e1278]:
+          - generic [ref=e1279]: "\""
+      - row "402 src=\"https://z-cdn.chatglm.cn/z-ai/static/logo.svg\"" [ref=e1280]:
+        - cell "402" [ref=e1281]
+        - cell "src=\"https://z-cdn.chatglm.cn/z-ai/static/logo.svg\"" [ref=e1282]:
+          - generic [ref=e1283]:
+            - text: src="
+            - link "https://z-cdn.chatglm.cn/z-ai/static/logo.svg" [ref=e1284] [cursor=pointer]:
+              - /url: https://z-cdn.chatglm.cn/z-ai/static/logo.svg
+            - text: "\""
+      - row "403 />" [ref=e1285]:
+        - cell "403" [ref=e1286]
+        - cell "/>" [ref=e1287]
+      - row "404" [ref=e1288]:
+        - cell "404" [ref=e1289]
+        - cell [ref=e1290]
+      - row "405 <div" [ref=e1291]:
+        - cell "405" [ref=e1292]
+        - cell "<div" [ref=e1293]
+      - row "406 style=\"" [ref=e1294]:
+        - cell "406" [ref=e1295]
+        - cell "style=\"" [ref=e1296]:
+          - generic [ref=e1297]: style="
+      - 'row "407 position: absolute;" [ref=e1298]':
+        - cell "407" [ref=e1299]
+        - 'cell "position: absolute;" [ref=e1300]':
+          - generic [ref=e1301]: "position: absolute;"
+      - 'row "408 top: 33%;" [ref=e1302]':
+        - cell "408" [ref=e1303]
+        - 'cell "top: 33%;" [ref=e1304]':
+          - generic [ref=e1305]: "top: 33%;"
+      - 'row "409 left: 50%;" [ref=e1306]':
+        - cell "409" [ref=e1307]
+        - 'cell "left: 50%;" [ref=e1308]':
+          - generic [ref=e1309]: "left: 50%;"
+      - row "410" [ref=e1310]:
+        - cell "410" [ref=e1311]
+        - cell [ref=e1312]
+      - 'row "411 width: 24rem;" [ref=e1313]':
+        - cell "411" [ref=e1314]
+        - 'cell "width: 24rem;" [ref=e1315]':
+          - generic [ref=e1316]: "width: 24rem;"
+      - 'row "412 transform: translateX(-50%);" [ref=e1317]':
+        - cell "412" [ref=e1318]
+        - 'cell "transform: translateX(-50%);" [ref=e1319]':
+          - generic [ref=e1320]: "transform: translateX(-50%);"
+      - row "413" [ref=e1321]:
+        - cell "413" [ref=e1322]
+        - cell [ref=e1323]
+      - 'row "414 display: flex;" [ref=e1324]':
+        - cell "414" [ref=e1325]
+        - 'cell "display: flex;" [ref=e1326]':
+          - generic [ref=e1327]: "display: flex;"
+      - 'row "415 flex-direction: column;" [ref=e1328]':
+        - cell "415" [ref=e1329]
+        - 'cell "flex-direction: column;" [ref=e1330]':
+          - generic [ref=e1331]: "flex-direction: column;"
+      - 'row "416 align-items: center;" [ref=e1332]':
+        - cell "416" [ref=e1333]
+        - 'cell "align-items: center;" [ref=e1334]':
+          - generic [ref=e1335]: "align-items: center;"
+      - row "417 \"" [ref=e1336]:
+        - cell "417" [ref=e1337]
+        - cell "\"" [ref=e1338]:
+          - generic [ref=e1339]: "\""
+      - row "418 >" [ref=e1340]:
+        - cell "418" [ref=e1341]
+        - cell ">" [ref=e1342]
+      - 'row "419 <div style=\"position: relative; width: 24rem; margin-top: 0.5rem\">" [ref=e1343]':
+        - cell "419" [ref=e1344]
+        - 'cell "<div style=\"position: relative; width: 24rem; margin-top: 0.5rem\">" [ref=e1345]':
+          - generic [ref=e1346]: "<div style=\"position: relative; width: 24rem; margin-top: 0.5rem\">"
+      - row "420 <div" [ref=e1347]:
+        - cell "420" [ref=e1348]
+        - cell "<div" [ref=e1349]
+      - row "421 id=\"progress-background\"" [ref=e1350]:
+        - cell "421" [ref=e1351]
+        - cell "id=\"progress-background\"" [ref=e1352]:
+          - generic [ref=e1353]: id="progress-background"
+      - row "422 style=\"" [ref=e1354]:
+        - cell "422" [ref=e1355]
+        - cell "style=\"" [ref=e1356]:
+          - generic [ref=e1357]: style="
+      - 'row "423 position: absolute;" [ref=e1358]':
+        - cell "423" [ref=e1359]
+        - 'cell "position: absolute;" [ref=e1360]':
+          - generic [ref=e1361]: "position: absolute;"
+      - 'row "424 width: 100%;" [ref=e1362]':
+        - cell "424" [ref=e1363]
+        - 'cell "width: 100%;" [ref=e1364]':
+          - generic [ref=e1365]: "width: 100%;"
+      - 'row "425 height: 0.75rem;" [ref=e1366]':
+        - cell "425" [ref=e1367]
+        - 'cell "height: 0.75rem;" [ref=e1368]':
+          - generic [ref=e1369]: "height: 0.75rem;"
+      - row "426" [ref=e1370]:
+        - cell "426" [ref=e1371]
+        - cell [ref=e1372]
+      - 'row "427 border-radius: 9999px;" [ref=e1373]':
+        - cell "427" [ref=e1374]
+        - 'cell "border-radius: 9999px;" [ref=e1375]':
+          - generic [ref=e1376]: "border-radius: 9999px;"
+      - 'row "428 background-color: #f4f6f8;" [ref=e1377]':
+        - cell "428" [ref=e1378]
+        - 'cell "background-color: #f4f6f8;" [ref=e1379]':
+          - generic [ref=e1380]: "background-color: #f4f6f8;"
+      - row "429 \"" [ref=e1381]:
+        - cell "429" [ref=e1382]
+        - cell "\"" [ref=e1383]:
+          - generic [ref=e1384]: "\""
+      - row "430 ></div>" [ref=e1385]:
+        - cell "430" [ref=e1386]
+        - cell "></div>" [ref=e1387]
+      - row "431" [ref=e1388]:
+        - cell "431" [ref=e1389]
+        - cell [ref=e1390]
+      - row "432 <div" [ref=e1391]:
+        - cell "432" [ref=e1392]
+        - cell "<div" [ref=e1393]
+      - row "433 id=\"progress-bar\"" [ref=e1394]:
+        - cell "433" [ref=e1395]
+        - cell "id=\"progress-bar\"" [ref=e1396]:
+          - generic [ref=e1397]: id="progress-bar"
+      - row "434 style=\"" [ref=e1398]:
+        - cell "434" [ref=e1399]
+        - cell "style=\"" [ref=e1400]:
+          - generic [ref=e1401]: style="
+      - 'row "435 position: absolute;" [ref=e1402]':
+        - cell "435" [ref=e1403]
+        - 'cell "position: absolute;" [ref=e1404]':
+          - generic [ref=e1405]: "position: absolute;"
+      - 'row "436 width: 0%;" [ref=e1406]':
+        - cell "436" [ref=e1407]
+        - 'cell "width: 0%;" [ref=e1408]':
+          - generic [ref=e1409]: "width: 0%;"
+      - 'row "437 height: 0.75rem;" [ref=e1410]':
+        - cell "437" [ref=e1411]
+        - 'cell "height: 0.75rem;" [ref=e1412]':
+          - generic [ref=e1413]: "height: 0.75rem;"
+      - 'row "438 border-radius: 9999px;" [ref=e1414]':
+        - cell "438" [ref=e1415]
+        - 'cell "border-radius: 9999px;" [ref=e1416]':
+          - generic [ref=e1417]: "border-radius: 9999px;"
+      - 'row "439 background-color: #fff;" [ref=e1418]':
+        - cell "439" [ref=e1419]
+        - 'cell "background-color: #fff;" [ref=e1420]':
+          - generic [ref=e1421]: "background-color: #fff;"
+      - row "440 \"" [ref=e1422]:
+        - cell "440" [ref=e1423]
+        - cell "\"" [ref=e1424]:
+          - generic [ref=e1425]: "\""
+      - row "441 class=\"bg-white\"" [ref=e1426]:
+        - cell "441" [ref=e1427]
+        - cell "class=\"bg-white\"" [ref=e1428]:
+          - generic [ref=e1429]: class="bg-white"
+      - row "442 ></div>" [ref=e1430]:
+        - cell "442" [ref=e1431]
+        - cell "></div>" [ref=e1432]
+      - row "443 </div>" [ref=e1433]:
+        - cell "443" [ref=e1434]
+        - cell "</div>" [ref=e1435]
+      - row "444 </div>" [ref=e1436]:
+        - cell "444" [ref=e1437]
+        - cell "</div>" [ref=e1438]
+      - row "445 </div>" [ref=e1439]:
+        - cell "445" [ref=e1440]
+        - cell "</div>" [ref=e1441]
+      - row "446" [ref=e1442]:
+        - cell "446" [ref=e1443]
+        - cell [ref=e1444]
+      - row "447 <script>" [ref=e1445]:
+        - cell "447" [ref=e1446]
+        - cell "<script>" [ref=e1447]
+      - row "448 var token = localStorage.getItem('token');" [ref=e1448]:
+        - cell "448" [ref=e1449]
+        - cell "var token = localStorage.getItem('token');" [ref=e1450]
+      - row "449 var base = window.WEBUI_BASE_URL || '';" [ref=e1451]:
+        - cell "449" [ref=e1452]
+        - cell "var base = window.WEBUI_BASE_URL || '';" [ref=e1453]
+      - 'row "450 var lang = localStorage.locale ?? (navigator.language.includes(''zh'') ? ''zh-CN'' : ''en-US'');" [ref=e1454]':
+        - cell "450" [ref=e1455]
+        - 'cell "var lang = localStorage.locale ?? (navigator.language.includes(''zh'') ? ''zh-CN'' : ''en-US'');" [ref=e1456]'
+      - 'row "451 var config = {" [ref=e1457]':
+        - cell "451" [ref=e1458]
+        - 'cell "var config = {" [ref=e1459]'
+      - 'row "452 credentials: ''include''," [ref=e1460]':
+        - cell "452" [ref=e1461]
+        - 'cell "credentials: ''include''," [ref=e1462]'
+      - 'row "453 headers: {" [ref=e1463]':
+        - cell "453" [ref=e1464]
+        - 'cell "headers: {" [ref=e1465]'
+      - 'row "454 Accept: ''application/json''," [ref=e1466]':
+        - cell "454" [ref=e1467]
+        - 'cell "Accept: ''application/json''," [ref=e1468]'
+      - 'row "455 ''Content-Type'': ''application/json''," [ref=e1469]':
+        - cell "455" [ref=e1470]
+        - 'cell "''Content-Type'': ''application/json''," [ref=e1471]'
+      - 'row "456 ...(token ? { Authorization: `Bearer ${token}` } : {})," [ref=e1472]':
+        - cell "456" [ref=e1473]
+        - 'cell "...(token ? { Authorization: `Bearer ${token}` } : {})," [ref=e1474]'
+      - 'row "457 ''Accept-Language'': lang" [ref=e1475]':
+        - cell "457" [ref=e1476]
+        - 'cell "''Accept-Language'': lang" [ref=e1477]'
+      - 'row "458 }" [ref=e1478]':
+        - cell "458" [ref=e1479]
+        - 'cell "}" [ref=e1480]'
+      - 'row "459 };" [ref=e1481]':
+        - cell "459" [ref=e1482]
+        - 'cell "};" [ref=e1483]'
+      - row "460" [ref=e1484]:
+        - cell "460" [ref=e1485]
+        - cell [ref=e1486]
+      - 'row "461 window.GLOBAL_FETCHES = {" [ref=e1487]':
+        - cell "461" [ref=e1488]
+        - 'cell "window.GLOBAL_FETCHES = {" [ref=e1489]'
+      - 'row "462 session: fetch(`${base}/api/v1/auths/`, config).then(async (res) => {" [ref=e1490]':
+        - cell "462" [ref=e1491]
+        - 'cell "session: fetch(`${base}/api/v1/auths/`, config).then(async (res) => {" [ref=e1492]'
+      - 'row "463 if (res.status === 401) {" [ref=e1493]':
+        - cell "463" [ref=e1494]
+        - 'cell "if (res.status === 401) {" [ref=e1495]'
+      - row "464 location.replace('/auth');" [ref=e1496]:
+        - cell "464" [ref=e1497]
+        - cell "location.replace('/auth');" [ref=e1498]
+      - 'row "465 }" [ref=e1499]':
+        - cell "465" [ref=e1500]
+        - 'cell "}" [ref=e1501]'
+      - row "466 if (!res.ok) throw await res.json();" [ref=e1502]:
+        - cell "466" [ref=e1503]
+        - cell "if (!res.ok) throw await res.json();" [ref=e1504]
+      - row "467 return res.json();" [ref=e1505]:
+        - cell "467" [ref=e1506]
+        - cell "return res.json();" [ref=e1507]
+      - 'row "468 })," [ref=e1508]':
+        - cell "468" [ref=e1509]
+        - 'cell "})," [ref=e1510]'
+      - 'row "469 config: fetch(`${base}/api/config`, config).then(async (res) => {" [ref=e1511]':
+        - cell "469" [ref=e1512]
+        - 'cell "config: fetch(`${base}/api/config`, config).then(async (res) => {" [ref=e1513]'
+      - row "470 if (!res.ok) throw await res.json();" [ref=e1514]:
+        - cell "470" [ref=e1515]
+        - cell "if (!res.ok) throw await res.json();" [ref=e1516]
+      - row "471 return res.json();" [ref=e1517]:
+        - cell "471" [ref=e1518]
+        - cell "return res.json();" [ref=e1519]
+      - 'row "472 })," [ref=e1520]':
+        - cell "472" [ref=e1521]
+        - 'cell "})," [ref=e1522]'
+      - 'row "473 models: token && fetch(`${base}/api/models`, config)," [ref=e1523]':
+        - cell "473" [ref=e1524]
+        - 'cell "models: token && fetch(`${base}/api/models`, config)," [ref=e1525]'
+      - row "474 settings:" [ref=e1526]:
+        - cell "474" [ref=e1527]
+        - cell "settings:" [ref=e1528]
+      - row "475 token &&" [ref=e1529]:
+        - cell "475" [ref=e1530]
+        - cell "token &&" [ref=e1531]
+      - 'row "476 fetch(`${base}/api/v1/users/user/settings`, config).then(async (res) => {" [ref=e1532]':
+        - cell "476" [ref=e1533]
+        - 'cell "fetch(`${base}/api/v1/users/user/settings`, config).then(async (res) => {" [ref=e1534]'
+      - row "477 if (!res.ok) throw await res.json();" [ref=e1535]:
+        - cell "477" [ref=e1536]
+        - cell "if (!res.ok) throw await res.json();" [ref=e1537]
+      - row "478 return res.json();" [ref=e1538]:
+        - cell "478" [ref=e1539]
+        - cell "return res.json();" [ref=e1540]
+      - 'row "479 })" [ref=e1541]':
+        - cell "479" [ref=e1542]
+        - 'cell "})" [ref=e1543]'
+      - 'row "480 };" [ref=e1544]':
+        - cell "480" [ref=e1545]
+        - 'cell "};" [ref=e1546]'
+      - row "481 </script>" [ref=e1547]:
+        - cell "481" [ref=e1548]
+        - cell "</script>" [ref=e1549]
+      - row "482 <script async src=\"//o.alicdn.com/frontend-lib/common-lib/jquery.min.js\"></script>" [ref=e1550]:
+        - cell "482" [ref=e1551]
+        - cell "<script async src=\"//o.alicdn.com/frontend-lib/common-lib/jquery.min.js\"></script>" [ref=e1552]:
+          - generic [ref=e1553]:
+            - text: <script async src="
+            - link "//o.alicdn.com/frontend-lib/common-lib/jquery.min.js" [ref=e1554] [cursor=pointer]:
+              - /url: //o.alicdn.com/frontend-lib/common-lib/jquery.min.js
+            - text: "\">"
+          - text: </script>
+      - row "483 </body>" [ref=e1555]:
+        - cell "483" [ref=e1556]
+        - cell "</body>" [ref=e1557]
+      - row "484 </html>" [ref=e1558]:
+        - cell "484" [ref=e1559]
+        - cell "</html>" [ref=e1560]
+      - row "485" [ref=e1561]:
+        - cell "485" [ref=e1562]
+        - cell [ref=e1563]
+      - row "486 <style type=\"text/css\" nonce=\"\">" [ref=e1564]:
+        - cell "486" [ref=e1565]
+        - cell "<style type=\"text/css\" nonce=\"\">" [ref=e1566]:
+          - generic [ref=e1567]: <style type="text/css" nonce="">
+      - 'row "487 html {" [ref=e1568]':
+        - cell "487" [ref=e1569]
+        - 'cell "html {" [ref=e1570]'
+      - 'row "488 overflow-y: hidden !important;" [ref=e1571]':
+        - cell "488" [ref=e1572]
+        - 'cell "overflow-y: hidden !important;" [ref=e1573]'
+      - 'row "489 }" [ref=e1574]':
+        - cell "489" [ref=e1575]
+        - 'cell "}" [ref=e1576]'
+      - row "490" [ref=e1577]:
+        - cell "490" [ref=e1578]
+        - cell [ref=e1579]
+      - 'row "491 #splash-screen {" [ref=e1580]':
+        - cell "491" [ref=e1581]
+        - 'cell "#splash-screen {" [ref=e1582]'
+      - 'row "492 background: #f4f6f8;" [ref=e1583]':
+        - cell "492" [ref=e1584]
+        - 'cell "background: #f4f6f8;" [ref=e1585]'
+      - 'row "493 }" [ref=e1586]':
+        - cell "493" [ref=e1587]
+        - 'cell "}" [ref=e1588]'
+      - row "494" [ref=e1589]:
+        - cell "494" [ref=e1590]
+        - cell [ref=e1591]
+      - 'row "495 html.dark #splash-screen {" [ref=e1592]':
+        - cell "495" [ref=e1593]
+        - 'cell "html.dark #splash-screen {" [ref=e1594]'
+      - 'row "496 background: #141618;" [ref=e1595]':
+        - cell "496" [ref=e1596]
+        - 'cell "background: #141618;" [ref=e1597]'
+      - 'row "497 }" [ref=e1598]':
+        - cell "497" [ref=e1599]
+        - 'cell "}" [ref=e1600]'
+      - row "498" [ref=e1601]:
+        - cell "498" [ref=e1602]
+        - cell [ref=e1603]
+      - 'row "499 #progress-background {" [ref=e1604]':
+        - cell "499" [ref=e1605]
+        - 'cell "#progress-background {" [ref=e1606]'
+      - 'row "500 display: none;" [ref=e1607]':
+        - cell "500" [ref=e1608]
+        - 'cell "display: none;" [ref=e1609]'
+      - 'row "501 }" [ref=e1610]':
+        - cell "501" [ref=e1611]
+        - 'cell "}" [ref=e1612]'
+      - row "502" [ref=e1613]:
+        - cell "502" [ref=e1614]
+        - cell [ref=e1615]
+      - 'row "503 #progress-bar {" [ref=e1616]':
+        - cell "503" [ref=e1617]
+        - 'cell "#progress-bar {" [ref=e1618]'
+      - 'row "504 display: none;" [ref=e1619]':
+        - cell "504" [ref=e1620]
+        - 'cell "display: none;" [ref=e1621]'
+      - 'row "505 }" [ref=e1622]':
+        - cell "505" [ref=e1623]
+        - 'cell "}" [ref=e1624]'
+      - row "506" [ref=e1625]:
+        - cell "506" [ref=e1626]
+        - cell [ref=e1627]
+      - 'row "507 html.her #logo {" [ref=e1628]':
+        - cell "507" [ref=e1629]
+        - 'cell "html.her #logo {" [ref=e1630]'
+      - 'row "508 display: none;" [ref=e1631]':
+        - cell "508" [ref=e1632]
+        - 'cell "display: none;" [ref=e1633]'
+      - 'row "509 }" [ref=e1634]':
+        - cell "509" [ref=e1635]
+        - 'cell "}" [ref=e1636]'
+      - row "510" [ref=e1637]:
+        - cell "510" [ref=e1638]
+        - cell [ref=e1639]
+      - 'row "511 html.her #progress-background {" [ref=e1640]':
+        - cell "511" [ref=e1641]
+        - 'cell "html.her #progress-background {" [ref=e1642]'
+      - 'row "512 display: block;" [ref=e1643]':
+        - cell "512" [ref=e1644]
+        - 'cell "display: block;" [ref=e1645]'
+      - 'row "513 }" [ref=e1646]':
+        - cell "513" [ref=e1647]
+        - 'cell "}" [ref=e1648]'
+      - row "514" [ref=e1649]:
+        - cell "514" [ref=e1650]
+        - cell [ref=e1651]
+      - 'row "515 html.her #progress-bar {" [ref=e1652]':
+        - cell "515" [ref=e1653]
+        - 'cell "html.her #progress-bar {" [ref=e1654]'
+      - 'row "516 display: block;" [ref=e1655]':
+        - cell "516" [ref=e1656]
+        - 'cell "display: block;" [ref=e1657]'
+      - 'row "517 }" [ref=e1658]':
+        - cell "517" [ref=e1659]
+        - 'cell "}" [ref=e1660]'
+      - row "518" [ref=e1661]:
+        - cell "518" [ref=e1662]
+        - cell [ref=e1663]
+      - 'row "519 @media (max-width: 24rem) {" [ref=e1664]':
+        - cell "519" [ref=e1665]
+        - 'cell "@media (max-width: 24rem) {" [ref=e1666]'
+      - 'row "520 html.her #progress-background {" [ref=e1667]':
+        - cell "520" [ref=e1668]
+        - 'cell "html.her #progress-background {" [ref=e1669]'
+      - 'row "521 display: none;" [ref=e1670]':
+        - cell "521" [ref=e1671]
+        - 'cell "display: none;" [ref=e1672]'
+      - 'row "522 }" [ref=e1673]':
+        - cell "522" [ref=e1674]
+        - 'cell "}" [ref=e1675]'
+      - row "523" [ref=e1676]:
+        - cell "523" [ref=e1677]
+        - cell [ref=e1678]
+      - 'row "524 html.her #progress-bar {" [ref=e1679]':
+        - cell "524" [ref=e1680]
+        - 'cell "html.her #progress-bar {" [ref=e1681]'
+      - 'row "525 display: none;" [ref=e1682]':
+        - cell "525" [ref=e1683]
+        - 'cell "display: none;" [ref=e1684]'
+      - 'row "526 }" [ref=e1685]':
+        - cell "526" [ref=e1686]
+        - 'cell "}" [ref=e1687]'
+      - 'row "527 }" [ref=e1688]':
+        - cell "527" [ref=e1689]
+        - 'cell "}" [ref=e1690]'
+      - row "528" [ref=e1691]:
+        - cell "528" [ref=e1692]
+        - cell [ref=e1693]
+      - 'row "529 @keyframes pulse {" [ref=e1694]':
+        - cell "529" [ref=e1695]
+        - 'cell "@keyframes pulse {" [ref=e1696]'
+      - 'row "530 50% {" [ref=e1697]':
+        - cell "530" [ref=e1698]
+        - 'cell "50% {" [ref=e1699]'
+      - 'row "531 opacity: 0.65;" [ref=e1700]':
+        - cell "531" [ref=e1701]
+        - 'cell "opacity: 0.65;" [ref=e1702]'
+      - 'row "532 }" [ref=e1703]':
+        - cell "532" [ref=e1704]
+        - 'cell "}" [ref=e1705]'
+      - 'row "533 }" [ref=e1706]':
+        - cell "533" [ref=e1707]
+        - 'cell "}" [ref=e1708]'
+      - row "534" [ref=e1709]:
+        - cell "534" [ref=e1710]
+        - cell [ref=e1711]
+      - 'row "535 .animate-pulse-fast {" [ref=e1712]':
+        - cell "535" [ref=e1713]
+        - 'cell ".animate-pulse-fast {" [ref=e1714]'
+      - 'row "536 animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;" [ref=e1715]':
+        - cell "536" [ref=e1716]
+        - 'cell "animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;" [ref=e1717]'
+      - 'row "537 }" [ref=e1718]':
+        - cell "537" [ref=e1719]
+        - 'cell "}" [ref=e1720]'
+      - row "538 </style>" [ref=e1721]:
+        - cell "538" [ref=e1722]
+        - cell "</style>" [ref=e1723]
+      - row "539" [ref=e1724]:
+        - cell "539" [ref=e1725]
+        - cell [ref=e1726]

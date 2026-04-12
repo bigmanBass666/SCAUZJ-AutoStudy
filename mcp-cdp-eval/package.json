@@ -1,0 +1,8 @@
+{
+  "name": "mcp-cdp-eval",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "ws": "^8.18.0"
+  }
+}
