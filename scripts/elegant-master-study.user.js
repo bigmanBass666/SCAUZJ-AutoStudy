@@ -762,7 +762,7 @@
                 lastUrl = location.href;
                 console.log('🔄 URL 变化，重新检测环境:', location.href);
                 let attempts = 0;
-                const maxAttempts = 15;
+                const maxAttempts = 30;  // 延长到9秒（30×300ms）
                 const tryDetect = () => {
                     const newEnv = engine.detectEnvironment();
                     if (newEnv) {
