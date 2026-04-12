@@ -662,6 +662,7 @@
                 return success;
             } finally {
                 this.running = false;
+                this.bot = null;
             }
         }
 
@@ -671,22 +672,29 @@
         }
 
         detectEnvironment() {
-            const pathMatch = location.pathname.match(/\/node\/(\d+)/);
+            const pathMatch = location.pathname.match(//node/(d+)/);
             const params = new URLSearchParams(location.search);
             const paramNodeId = params.get("nodeId");
-            let match = pathMatch;
-            if (!match && paramNodeId) {
-                match = {1: paramNodeId};
-            }
-            if (!match) return null;
-            const nodeId = match[1];
+            if (!pathMatch && !paramNodeId) return null;
+            const nodeId = pathMatch ? pathMatch[1] : paramNodeId;
+
             let duration = 0;
             const video = document.querySelector("video");
-            if (video && video.duration && video.duration !== Infinity) {
+            if (video && video.readyState >= 1 && video.duration && video.duration !== Infinity) {
                 duration = Math.floor(video.duration);
             } else {
-                const m = document.body.textContent.match(/(\d{1,2}):(\d{2})/);
-                if (m) duration = parseInt(m[1]) * 60 + parseInt(m[2]);
+                const allTexts = Array.from(document.querySelectorAll("*")).map(el => el.textContent).join("
+");
+                const matches = allTexts.match(/(d{1,2})s*[:：]s*(d{2})/g);
+                if (matches) {
+                    for (let i = matches.length - 1; i >= 0; i--) {
+                        const m = matches[i].match(/(d{1,2})s*[:：]s*(d{2})/);
+                        if (m) {
+                            const min = parseInt(m[1]), sec = parseInt(m[2]);
+                            if (min > 0 || sec > 0) { duration = min * 60 + sec; break; }
+                        }
+                    }
+                }
             }
             if (!duration || duration <= 0) duration = 3600;
             return { nodeId, duration };
@@ -743,14 +751,26 @@
             if (location.href !== lastUrl) {
                 lastUrl = location.href;
                 console.log('🔄 URL 变化，重新检测环境:', location.href);
-                const newEnv = engine.detectEnvironment();
-                if (newEnv) {
-                    engine.env = newEnv;
-                    ui.updateStatus(newEnv.nodeId, newEnv.duration, null, '待机');
-                    console.log('✅ 环境已更新:', newEnv);
-                } else {
-                    console.log('⚠️  当前页面不是学习节点');
-                }
+                let attempts = 0;
+                const maxAttempts = 15;
+                const tryDetect = () => {
+                    const newEnv = engine.detectEnvironment();
+                    if (newEnv) {
+                        engine.env = newEnv;
+                        ui.updateStatus(newEnv.nodeId, newEnv.duration, null, '待机');
+                        console.log('✅ 环境已更新:', newEnv);
+                        const autoNextEnabled = engine.config.get('autoNext.enabled');
+                        if (autoNextEnabled && !engine.bot) {
+                            console.log('➡️  自动下一节: 重新启动刷课');
+                            setTimeout(() => engine.start(), 1500);
+                        }
+                    } else if (++attempts < maxAttempts) {
+                        setTimeout(tryDetect, 300);
+                    } else {
+                        console.log('⚠️  环境检测超时（非学习节点页面）');
+                    }
+                };
+                tryDetect();
             }
         }, 500);
     }
