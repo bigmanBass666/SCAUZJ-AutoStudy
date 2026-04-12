@@ -32,25 +32,18 @@ browser_navigate → https://z.ai
 
 **第三步：输入问题**
 ```
-browser_execute → 清空输入框并输入问题：
-  const editor = document.querySelector('[contenteditable="true"]') || document.querySelector('textarea');
-  if (editor) {
-    editor.focus();
-    editor.innerHTML = '';  // 清空
-    document.execCommand('insertText', false, `你的问题文本`);
-  }
+browser_type → ref=e77, text: 你的问题文本
 ```
 注意：问题文本中不要有反引号包裹，直接写纯文本。
 
 **第四步：发送消息**
 ```
-browser_click → 找 aria-label 包含"发送"或"Send"的按钮
+browser_click → ref=e100
 ```
-或者用 JS：
+或者用 JS（更健壮）：
 ```
 browser_execute →
-  const sendBtn = document.querySelector('button[aria-label*="Send"], button[aria-label*="发送"]')
-    || document.querySelector('[data-testid="send-button"]');
+  const sendBtn = document.querySelector('button[ref]') || document.querySelector('button[type="submit"]');
   sendBtn?.click();
 ```
 
