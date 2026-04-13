@@ -16,7 +16,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
     const DEFAULTS = {
         speed: { mode: 'normal', reportInterval: 2000, jumpSize: 30 },
-        ai: { enabled: false, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'K88766094088957' },
+        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'K88766094088957' },
         autoNext: { enabled: true, delay: 2000 },
         completion: { targetPercent: 0.95 }
     };
@@ -58,107 +58,139 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
     }
 
-    // ==================== OCR 验证码求解器 ====================
-    class CaptchaSolver {
+    // ==================== OCR 三重降级引擎 ====================
+    class OCREngine {
         constructor(configMgr) {
             this.config = configMgr;
-            this.THRESHOLDS = [110, 120, 130, 140];
-            this.maxRetries = 5;
+            this.apiKey = configMgr.get('ai.ocrSpaceKey', 'K88766094088957');
+            this.THRESHOLDS = [80, 100, 120, 140, 160];
+            this.SCALE_FACTOR = 4;
+            this.maxRetries = 8;
         }
 
         async solveWithRetry(getCaptchaImg, fillInput, submitLogin) {
             for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
                 console.log(`🔍 验证码识别尝试 ${attempt}/${this.maxRetries}`);
-                const imgSrc = getCaptchaImg();
-                if (!imgSrc) { console.warn('⚠️ 未找到验证码图片'); continue; }
+                const imgElement = getCaptchaImg();
+                if (!imgElement) { console.warn('⚠️ 未找到验证码图片'); continue; }
 
-                const code = await this.solve(imgSrc);
-                if (code && code.length >= 3) {
-                    console.log(`✅ 识别成功: ${code} (第${attempt}次尝试)`);
-                    fillInput(code);
-                    const loginOk = await submitLogin();
-                    if (loginOk) return true;
-                    console.warn('⚠️ 验证码错误，换下一个重试');
-                } else {
-                    console.warn(`⚠️ 第${attempt}次识别无有效结果，刷新验证码`);
+                try {
+                    const code = await this.recognize(imgElement);
+                    if (code && code.length >= 3) {
+                        console.log(`✅ 识别成功: ${code} (第${attempt}次尝试)`);
+                        fillInput(code);
+                        const loginOk = await submitLogin();
+                        if (loginOk) return true;
+                        console.warn('⚠️ 验证码错误，换下一个重试');
+                    } else {
+                        console.warn(`⚠️ 第${attempt}次识别无有效结果，刷新验证码`);
+                    }
+                } catch (e) {
+                    console.warn(`⚠️ 第${attempt}次识别失败: ${e.message}`);
                 }
 
                 const captchaImg = document.getElementById('codeImg');
-                if (captchaImg) { captchaImg.click(); await new Promise(r => setTimeout(r, 1200)); }
+                if (captchaImg) { captchaImg.click(); await new Promise(r => setTimeout(r, 1500)); }
             }
             console.error(`❌ ${this.maxRetries}次尝试均失败，请手动输入`);
             return false;
         }
 
-        async solve(imgSrc) {
-            const allResults = [];
+        async recognize(imgElement) {
+            if (!imgElement) throw new Error("未找到图片元素");
+            console.log("[OCR] 开始双重降级识别 (4x缩放+六路预处理+反色)...");
 
-            const urlResult = await this._ocrByUrl(imgSrc);
-            if (urlResult) {
-                if (/^[a-zA-Z0-9]{3,6}$/.test(urlResult.text)) return urlResult.text;
-                allResults.push(urlResult);
-            }
+            const scaled = this._extractScaled(imgElement);
+            const base64Raw = scaled.canvas.toDataURL('image/png').split(',')[1];
+            const base64Grayscale = this._preprocessGrayscale(scaled.canvas);
+            const base64Inverted = this._preprocessInvert(scaled.canvas);
+            const sixWayImages = this._sixWayPreprocess(scaled.canvas);
+            console.log(`[OCR] 原始${scaled.origW}x${scaled.origH} → 缩放${scaled.newW}x${scaled.newH}, 六路预处理+反色共${sixWayImages.length + 2}张图`);
 
-            for (const thresh of this.THRESHOLDS) {
-                const result = await this._ocrByPreprocessed(imgSrc, thresh);
-                if (result) {
-                    if (/^[a-zA-Z0-9]{3,6}$/.test(result.text)) return result.text;
-                    allResults.push(result);
+            if (this.apiKey) {
+                try {
+                    console.log("[OCR] 第一重: OCR.space (4x缩放+灰度+反色+六路预处理)...");
+                    const text = await this._tryOCRSpace(base64Raw, base64Grayscale, base64Inverted, sixWayImages);
+                    if (text) return this._cleanText(text);
+                } catch (e) {
+                    console.warn("[OCR] OCR.space 失败:", e.message);
                 }
+            } else {
+                console.log("[OCR] 未配置 OCR.space Key，跳过第一重");
             }
 
-            for (const r of allResults) {
-                const cleaned = r.text.replace(/[^a-zA-Z0-9]/g, '');
-                if (cleaned.length >= 3) return cleaned;
+            try {
+                console.log("[OCR] 第二重: Tesseract.js (本地离线)...");
+                const text = await this._tryTesseract(imgElement);
+                if (text) return this._cleanText(text);
+            } catch (e) {
+                console.error("[OCR] Tesseract.js 失败:", e.message);
             }
 
-            return null;
+            throw new Error("所有 OCR 通道均识别失败");
         }
 
-        async _ocrByUrl(imgSrc) {
-            try {
-                const apiKey = this.config.get('ai.ocrSpaceKey', 'K88766094088957');
-                const res = await fetch('https://api.ocr.space/parse/image', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        apikey: apiKey,
-                        url: imgSrc,
-                        language: 'eng',
-                        isOverlayRequired: false,
-                        scale: true,
-                        OCREngine: 2
-                    }).toString()
-                });
-                const data = await res.json();
-                if (data.IsErroredOnProcessing) return null;
-                const text = data.ParsedResults?.[0]?.ParsedText?.replace(/[\s\n\r]/g, '') || '';
-                return text ? { method: 'url_original', text } : null;
-            } catch (e) { return null; }
+        _extractScaled(imgElement) {
+            const origW = imgElement.naturalWidth || imgElement.width || 90;
+            const origH = imgElement.naturalHeight || imgElement.height || 40;
+            const newW = origW * this.SCALE_FACTOR;
+            const newH = origH * this.SCALE_FACTOR;
+            const canvas = document.createElement('canvas');
+            canvas.width = newW;
+            canvas.height = newH;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(imgElement, 0, 0, newW, newH);
+            return { canvas, origW, origH, newW, newH };
         }
 
-        async _ocrByPreprocessed(imgSrc, threshold) {
-            try {
-                const resp = await fetch(imgSrc);
-                const blob = await resp.blob();
-                const bitmap = await createImageBitmap(blob);
-                const canvas = document.createElement('canvas');
-                canvas.width = bitmap.width;
-                canvas.height = bitmap.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(bitmap, 0, 0);
+        _preprocessGrayscale(sourceCanvas) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = sourceCanvas.width;
+            canvas.height = sourceCanvas.height;
+            ctx.drawImage(sourceCanvas, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                data[i] = data[i+1] = data[i+2] = gray;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas.toDataURL('image/png').split(',')[1];
+        }
 
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        _preprocessInvert(sourceCanvas) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = sourceCanvas.width;
+            canvas.height = sourceCanvas.height;
+            ctx.drawImage(sourceCanvas, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                data[i] = data[i+1] = data[i+2] = 255 - gray;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas.toDataURL('image/png').split(',')[1];
+        }
+
+        _sixWayPreprocess(sourceCanvas) {
+            const results = [];
+            const ctx = sourceCanvas.getContext('2d');
+            const origData = ctx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+            const w = sourceCanvas.width, h = sourceCanvas.height;
+
+            for (const threshold of this.THRESHOLDS) {
+                const imageData = new ImageData(w, h);
                 const data = imageData.data;
-                const origData = new Uint8ClampedArray(data);
-
-                for (let i = 0; i < data.length; i += 4) {
-                    const brightness = 0.299 * origData[i] + 0.587 * origData[i+1] + 0.114 * origData[i+2];
+                for (let i = 0; i < origData.data.length; i += 4) {
+                    const brightness = 0.299 * origData.data[i] + 0.587 * origData.data[i+1] + 0.114 * origData.data[i+2];
                     const v = brightness > threshold ? 255 : 0;
                     data[i] = data[i+1] = data[i+2] = v;
+                    data[i+3] = 255;
                 }
-
-                const w = canvas.width, h = canvas.height;
                 for (let y = 1; y < h - 1; y++) {
                     for (let x = 1; x < w - 1; x++) {
                         const idx = (y * w + x) * 4;
@@ -167,35 +199,192 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                             for (let dy = -1; dy <= 1; dy++) {
                                 for (let dx = -1; dx <= 1; dx++) {
                                     if (dx === 0 && dy === 0) continue;
-                                    if (origData[((y+dy)*w+(x+dx))*4] === 0) neighbors++;
+                                    if (data[((y+dy)*w+(x+dx))*4] === 0) neighbors++;
                                 }
                             }
-                            if (neighbors < 2) data[idx] = data[idx+1] = data[idx+2] = 255;
+                            if (neighbors < 2) { data[idx] = data[idx+1] = data[idx+2] = 255; }
                         }
                     }
                 }
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = w;
+                tempCanvas.height = h;
+                tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+                results.push({ threshold, base64: tempCanvas.toDataURL('image/png').split(',')[1] });
+            }
 
-                ctx.putImageData(imageData, 0, 0);
-                const base64 = canvas.toDataURL('image/png');
+            const invertedBinCanvas = document.createElement('canvas');
+            invertedBinCanvas.width = w;
+            invertedBinCanvas.height = h;
+            const invCtx = invertedBinCanvas.getContext('2d');
+            invCtx.drawImage(sourceCanvas, 0, 0);
+            const invData = invCtx.getImageData(0, 0, w, h);
+            const invPixels = invData.data;
+            for (let i = 0; i < invPixels.length; i += 4) {
+                const gray = 0.299 * invPixels[i] + 0.587 * invPixels[i+1] + 0.114 * invPixels[i+2];
+                const v = gray < 120 ? 255 : 0;
+                invPixels[i] = invPixels[i+1] = invPixels[i+2] = v;
+                invPixels[i+3] = 255;
+            }
+            invCtx.putImageData(invData, 0, 0);
+            results.push({ threshold: 'inv', base64: invertedBinCanvas.toDataURL('image/png').split(',')[1] });
 
-                const apiKey = this.config.get('ai.ocrSpaceKey', 'K88766094088957');
-                const ocrRes = await fetch('https://api.ocr.space/parse/image', {
+            return results;
+        }
+
+        _cleanText(text) {
+            if (!text) return "";
+            return text.replace(/[\s\n\r]/g, '').trim();
+        }
+
+        async _tryOCRSpace(base64Raw, base64Grayscale, base64Inverted, sixWayImages) {
+            const allResults = [];
+            const candidates = [];
+
+            if (base64Raw) {
+                const rawResult = await this._callOCRSpace({ base64: base64Raw });
+                if (rawResult) {
+                    const cleaned = rawResult.replace(/[^a-zA-Z0-9]/g, '');
+                    if (cleaned.length >= 3 && cleaned.length <= 6) candidates.push(cleaned);
+                    allResults.push(rawResult);
+                }
+            }
+            if (base64Grayscale) {
+                const grayResult = await this._callOCRSpace({ base64: base64Grayscale });
+                if (grayResult) {
+                    const cleaned = grayResult.replace(/[^a-zA-Z0-9]/g, '');
+                    if (cleaned.length >= 3 && cleaned.length <= 6) candidates.push(cleaned);
+                    allResults.push(grayResult);
+                }
+            }
+
+            if (candidates.length >= 2) {
+                const same = candidates.every(c => c === candidates[0]);
+                if (same) {
+                    console.log(`[OCR] 原图+灰度交叉验证一致: ${candidates[0]}`);
+                    return candidates[0];
+                }
+            }
+
+            if (base64Inverted) {
+                const invResult = await this._callOCRSpace({ base64: base64Inverted });
+                if (invResult) {
+                    const cleaned = invResult.replace(/[^a-zA-Z0-9]/g, '');
+                    if (cleaned.length >= 3 && cleaned.length <= 6) {
+                        if (candidates.includes(cleaned)) {
+                            console.log(`[OCR] 反色与之前结果交叉验证: ${cleaned}`);
+                            return cleaned;
+                        }
+                        candidates.push(cleaned);
+                    }
+                    allResults.push(invResult);
+                }
+            }
+
+            for (const img of sixWayImages) {
+                console.log(`[OCR] OCR.space 六路预处理 t=${img.threshold}...`);
+                const result = await this._callOCRSpace({ base64: img.base64 });
+                if (result) {
+                    const cleaned = result.replace(/[^a-zA-Z0-9]/g, '');
+                    if (cleaned.length >= 3 && cleaned.length <= 6) {
+                        if (candidates.includes(cleaned)) {
+                            console.log(`[OCR] 六路t=${img.threshold}与之前结果交叉验证: ${cleaned}`);
+                            return cleaned;
+                        }
+                        candidates.push(cleaned);
+                    }
+                    allResults.push(result);
+                }
+            }
+
+            const freq = {};
+            for (const c of candidates) { freq[c] = (freq[c] || 0) + 1; }
+            let best = null, bestCount = 0;
+            for (const [text, count] of Object.entries(freq)) {
+                if (count > bestCount) { best = text; bestCount = count; }
+            }
+            if (best && bestCount >= 2) {
+                console.log(`[OCR] 多数投票结果: ${best} (${bestCount}次)`);
+                return best;
+            }
+
+            if (candidates.length > 0) return candidates[0];
+            for (const r of allResults) {
+                const cleaned = r.replace(/[^a-zA-Z0-9]/g, '');
+                if (cleaned.length >= 3) return cleaned;
+            }
+            return null;
+        }
+
+        async _callOCRSpace({ base64 }) {
+            try {
+                const params = {
+                    apikey: this.apiKey,
+                    language: 'eng',
+                    isOverlayRequired: false,
+                    scale: true,
+                    OCREngine: 2
+                };
+                if (base64) params.base64Image = `data:image/png;base64,${base64}`;
+                else return null;
+                const res = await fetch('https://api.ocr.space/parse/image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        apikey: apiKey,
-                        base64Image: base64,
-                        language: 'eng',
-                        isOverlayRequired: false,
-                        scale: true,
-                        OCREngine: 2
-                    }).toString()
+                    body: new URLSearchParams(params).toString()
                 });
-                const ocrData = await ocrRes.json();
-                if (ocrData.IsErroredOnProcessing) return null;
-                const text = ocrData.ParsedResults?.[0]?.ParsedText?.replace(/[\s\n\r]/g, '') || '';
-                return text ? { method: `preprocessed_t${threshold}`, text } : null;
+                const data = await res.json();
+                if (data.IsErroredOnProcessing) return null;
+                return data.ParsedResults?.[0]?.ParsedText?.replace(/[\s\n\r]/g, '') || null;
             } catch (e) { return null; }
+        }
+
+        async _tryTesseract(imgElement) {
+            if (typeof Tesseract === 'undefined') {
+                await this._loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', 'Tesseract.js');
+            }
+            if (typeof Tesseract === 'undefined') throw new Error("Tesseract.js 加载失败");
+
+            const scaled = this._extractScaled(imgElement);
+            const worker = await Tesseract.createWorker('eng');
+            const ret = await worker.recognize(scaled.canvas);
+            await worker.terminate();
+
+            const grayCanvas = document.createElement('canvas');
+            grayCanvas.width = scaled.canvas.width;
+            grayCanvas.height = scaled.canvas.height;
+            const gCtx = grayCanvas.getContext('2d');
+            gCtx.drawImage(scaled.canvas, 0, 0);
+            const gData = gCtx.getImageData(0, 0, grayCanvas.width, grayCanvas.height);
+            const gPixels = gData.data;
+            for (let i = 0; i < gPixels.length; i += 4) {
+                const gray = 0.299 * gPixels[i] + 0.587 * gPixels[i+1] + 0.114 * gPixels[i+2];
+                const v = gray > 128 ? 255 : 0;
+                gPixels[i] = gPixels[i+1] = gPixels[i+2] = v;
+            }
+            gCtx.putImageData(gData, 0, 0);
+
+            const worker2 = await Tesseract.createWorker('eng');
+            const ret2 = await worker2.recognize(grayCanvas);
+            await worker2.terminate();
+
+            const text1 = (ret.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
+            const text2 = (ret2.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
+            console.log(`[OCR] Tesseract 原图: ${text1}, 二值化: ${text2}`);
+
+            if (text1 === text2 && text1.length >= 3) return text1;
+            if (text2.length >= 3 && text2.length <= 6) return text2;
+            if (text1.length >= 3 && text1.length <= 6) return text1;
+            return text2 || text1 || null;
+        }
+
+        _loadScript(url, name) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.onload = () => { console.log(`[OCR] ${name} 加载成功`); resolve(); };
+                script.onerror = () => reject(new Error(`${name} 加载失败`));
+                document.head.appendChild(script);
+            });
         }
     }
 
@@ -206,6 +395,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.panel = null;
             this.elements = {};
             this._engine = null;
+            this._lastNodeId = null;
+            this._lastDuration = null;
         }
 
         setEngine(engine) {
@@ -594,8 +785,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         updateStatus(nodeId, duration, progress, status) {
-            if (this.elements.statNode && nodeId) this.elements.statNode.textContent = nodeId;
-            if (this.elements.statDuration && duration) this.elements.statDuration.textContent = duration + 's';
+            if (nodeId) this._lastNodeId = nodeId;
+            if (duration) this._lastDuration = duration;
+            if (this.elements.statNode && this._lastNodeId) this.elements.statNode.textContent = this._lastNodeId;
+            if (this.elements.statDuration && this._lastDuration) this.elements.statDuration.textContent = this._lastDuration + 's';
             if (this.elements.statProgress && progress !== null && progress !== undefined) {
                 this.elements.statProgress.textContent = progress + '%';
             }
@@ -618,7 +811,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             content.innerHTML = `
                 <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px;">
                     <div style="font-size: 18px; font-weight: 600;">⚙️ AI验证码配置</div>
-                    <div style="font-size: 12px; opacity: 0.8;">OCR.space + 智谱AI GLM-4V-Flash</div>
+                    <div style="font-size: 12px; opacity: 0.8;">OCR.space + Tesseract.js 双引擎</div>
                 </div>
                 <div style="padding: 20px;">
                     <div style="margin-bottom: 16px;">
@@ -687,7 +880,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.startTime = null;
             this._api = null;
             this._timer = null;
-            this.captchaSolver = new CaptchaSolver(configMgr);
+            this.ocrEngine = new OCREngine(configMgr);
+            this._lastNodeId = env.nodeId;
+            this._lastDuration = env.duration;
         }
 
         async start() {
@@ -699,10 +894,25 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             const init = await this.api.study(1);
             if (!init.ok) {
-                console.warn('⚠️ 初始化上报失败，继续执行:', init.error);
+                if (init.needCode) {
+                    console.warn('⚠️ 需要验证码，尝试自动识别...');
+                    const code = await this.checkCaptcha();
+                    if (code) {
+                        this.api._captchaCode = code;
+                        const retryRes = await this.api.study(1, null, code);
+                        if (retryRes.ok) {
+                            this.studyId = this._extractStudyId(retryRes.data);
+                            console.log('✅ 验证码通过！会话:', this.studyId);
+                        } else {
+                            console.warn('⚠️ 验证码验证失败:', retryRes.error);
+                        }
+                    }
+                } else {
+                    console.warn('⚠️ 初始化上报失败，继续执行:', init.error);
+                }
             } else {
-                this.studyId = init.data?.studyId || init.data?.data?.studyId || null;
-                console.log('✅ 会话:', this.studyId, '| 原始响应:', JSON.stringify(init.data).substring(0, 200));
+                this.studyId = this._extractStudyId(init.data);
+                console.log('✅ 会话:', this.studyId, '| 原始响应:', JSON.stringify(init.data).substring(0, 300));
             }
 
             const jumpSize = this.config.get('speed.jumpSize', 30);
@@ -713,25 +923,59 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             console.log(`⚡ 上报: ${loops}次, 间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%`);
 
+            let captchaFailCount = 0;
+            const maxCaptchaFails = 5;
+
             for (let i = 0; i < loops && this.running; i++) {
                 const time = (i + 1) * jumpSize;
 
-                await this.checkCaptcha();
-
                 const res = await this.api.study(time, this.studyId);
                 if (!res.ok) {
+                    if (res.needCode) {
+                        if (captchaFailCount >= maxCaptchaFails) {
+                            console.error(`❌ 验证码连续失败${maxCaptchaFails}次，停止重试`);
+                            break;
+                        }
+                        console.warn(`⚠️ 上报需要验证码 (${captchaFailCount + 1}/${maxCaptchaFails})，尝试自动识别...`);
+                        const captchaImg = document.querySelector('#codeImg, img[src*="/service/code"]');
+                        if (captchaImg) captchaImg.click();
+                        await this.sleep(1500);
+                        const code = await this.checkCaptcha();
+                        if (code) {
+                            this.api._captchaCode = code;
+                            const retryRes = await this.api.study(time, this.studyId, code);
+                            if (retryRes.ok) {
+                                this.studyId = this._extractStudyId(retryRes.data) || this.studyId;
+                                console.log('✅ 验证码通过，继续上报');
+                                captchaFailCount = 0;
+                            } else {
+                                console.warn('⚠️ 验证码验证失败:', retryRes.error);
+                                captchaFailCount++;
+                                i--;
+                                await this.sleep(2000);
+                            }
+                        } else {
+                            captchaFailCount++;
+                            i--;
+                            await this.sleep(3000);
+                        }
+                        continue;
+                    }
                     if (res.error && res.error.includes('学时')) {
                         console.warn('上报失败，回退重试');
                         i--;
                         await this.sleep(3000);
                         continue;
                     }
-                } else if (!this.studyId && res.data) {
-                    this.studyId = res.data?.studyId || res.data?.data?.studyId || this.studyId;
+                } else {
+                    captchaFailCount = 0;
+                    if (!this.studyId && res.data) {
+                        this.studyId = this._extractStudyId(res.data) || this.studyId;
+                    }
                 }
 
                 const pct = Math.min(Math.floor(time / this.env.duration * 100), 100);
-                this.ui.updateStatus(null, null, pct, '运行中');
+                this.ui.updateStatus(this._lastNodeId, this._lastDuration, pct, '运行中');
 
                 if (i < loops - 1 && this.running) {
                     await this.sleep(interval);
@@ -740,12 +984,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             const finalRes = await this.api.study(this.env.duration, this.studyId);
             if (finalRes.ok && !this.studyId) {
-                this.studyId = finalRes.data?.studyId || finalRes.data?.data?.studyId || this.studyId;
+                this.studyId = this._extractStudyId(finalRes.data) || this.studyId;
             }
 
             const elapsed = (Date.now() - this.startTime) / 1000;
             console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 记录: ${this.env.duration}秒`);
-            this.ui.updateStatus(null, null, 100, '完成');
+            this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
 
             if (this.config.get('autoNext.enabled', true)) {
                 await this.autoNext();
@@ -755,36 +999,38 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         async checkCaptcha() {
-            const captchaPopup = document.querySelector('.captchaPopupVisible, .captcha-popup, [class*="captcha"][style*="display: block"], [class*="captcha"][style*="display:block"]');
-            if (!captchaPopup) return;
+            const captchaImg = document.querySelector('#codeImg, img[src*="/service/code"]');
+            if (!captchaImg) return null;
 
-            console.warn('⚠️ 检测到验证码弹窗！');
+            console.log('🔍 发现验证码图片，4x缩放+六路预处理+反色识别中...');
+            try {
+                const code = await this.ocrEngine.recognize(captchaImg);
+                if (code && code.length >= 3) {
+                    console.log('✅ 验证码识别结果:', code);
 
-            if (this.config.get('ai.enabled', false)) {
-                const captchaImg = document.querySelector('img[src*="code"], img[src*="captcha"]');
-                if (captchaImg) {
-                    console.log('🔍 发现验证码图片，AI识别中...');
-                    try {
-                        const code = await this.captchaSolver.solve(captchaImg.src);
-                        if (code) {
-                            const input = document.querySelector('input[placeholder*="验证码"], input[name*="captcha"], input[name*="code"]');
-                            if (input) {
-                                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                                nativeSetter.call(input, code);
-                                input.dispatchEvent(new Event('input', {bubbles: true}));
-                                input.dispatchEvent(new Event('change', {bubbles: true}));
-                                console.log('✅ 验证码已自动填入:', code);
-
-                                const submitBtn = document.querySelector('button[type="submit"], input[type="submit"], .captcha-submit, [onclick*="captcha"]');
-                                if (submitBtn) submitBtn.click();
-                            }
-                        }
-                    } catch (e) {
-                        console.error('验证码识别失败:', e);
+                    const input = document.querySelector('input[placeholder*="验证码"], input[name*="code"], #yzm');
+                    if (input) {
+                        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                        nativeSetter.call(input, code);
+                        input.dispatchEvent(new Event('input', {bubbles: true}));
+                        input.dispatchEvent(new Event('change', {bubbles: true}));
+                        console.log('✅ 验证码已自动填入:', code);
                     }
+
+                    const playBtn = document.querySelector('.layui-layer-btn0, [class*="layer-btn0"]');
+                    if (playBtn) playBtn.click();
+
+                    this._captchaCode = code;
+                    return code;
+                } else {
+                    console.warn('⚠️ 验证码识别结果无效:', code);
+                    captchaImg.click();
+                    return null;
                 }
-            } else {
-                console.warn('⚠️ AI识别未启用，请手动输入验证码或在设置中启用AI识别');
+            } catch (e) {
+                console.error('验证码识别失败:', e);
+                captchaImg.click();
+                return null;
             }
         }
 
@@ -794,7 +1040,29 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const nextId = (parseInt(this.env.nodeId) + 1).toString();
             const targetUrl = location.pathname + '?nodeId=' + nextId;
             console.log(`➡️  自动下一节: ${targetUrl}`);
+            sessionStorage.setItem('elegant_autostart', '1');
             window.location.assign(targetUrl);
+        }
+
+        _extractStudyId(data) {
+            if (!data) return null;
+            if (typeof data === 'string') return data;
+            if (data.studyId) return data.studyId;
+            if (data.data) {
+                if (typeof data.data === 'string') return data.data;
+                if (data.data.studyId) return data.data.studyId;
+            }
+            if (data.result) {
+                if (typeof data.result === 'string') return data.result;
+                if (data.result.studyId) return data.result.studyId;
+            }
+            for (const key of Object.keys(data)) {
+                const val = data[key];
+                if (typeof val === 'string' && val.length > 10 && val.length < 50) {
+                    return val;
+                }
+            }
+            return null;
         }
 
         stop() {
@@ -813,19 +1081,31 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             if (!this._api) {
                 this._api = {
                     nodeId: this.env.nodeId,
-                    async study(time, studyId = null) {
-                        const body = { nodeId: this.nodeId, studyTime: time };
-                        if (studyId) body.studyId = studyId;
+                    _captchaCode: null,
+                    async study(time, studyId = null, code = null) {
+                        const params = new URLSearchParams();
+                        params.append('nodeId', this.nodeId);
+                        params.append('studyId', studyId || '0');
+                        params.append('studyTime', String(time));
+                        const codeToUse = code || this._captchaCode;
+                        if (codeToUse) {
+                            params.append('code', codeToUse.substring(0, 4));
+                            this._captchaCode = null;
+                        }
                         try {
                             const res = await fetch(`${location.origin}/user/node/study`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(body),
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json, text/javascript, */*; q=0.01'
+                                },
+                                body: params.toString(),
                                 credentials: 'include'
                             });
                             const data = await res.json().catch(() => ({}));
-                            if (res.ok) return { ok: true, data };
-                            return { ok: false, error: data.message || data.msg || res.status };
+                            if (data.status === false) return { ok: false, error: data.msg || '未知错误', needCode: data.need_code, data };
+                            return { ok: true, data };
                         } catch (e) {
                             return { ok: false, error: e.message };
                         }
@@ -949,7 +1229,15 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         const env = engine.detectEnvironment();
         if (env) {
             ui.updateStatus(env.nodeId, env.duration, 0, '待机');
-            console.log('🌟 优雅大师已就绪，点击"🚀 启动"开始');
+            const autoNextEnabled = configMgr.get('autoNext.enabled', false);
+            const autoStartFlag = sessionStorage.getItem('elegant_autostart');
+            if (autoNextEnabled && autoStartFlag === '1') {
+                sessionStorage.removeItem('elegant_autostart');
+                console.log('🔄 自动续刷模式，2秒后启动...');
+                setTimeout(() => engine.start(), 2000);
+            } else {
+                console.log('🌟 优雅大师已就绪，点击"🚀 启动"开始');
+            }
         } else {
             console.log('⚠️  未检测到学习节点，请先访问课程页面');
         }
