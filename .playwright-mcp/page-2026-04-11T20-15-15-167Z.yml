@@ -1,6 +1,0 @@
-- generic [ref=e2]:
-  - generic [ref=e4]: 该课程不支持您所在的班级报名选课!
-  - generic [ref=e5]:
-    - text: 页面将在5秒后自动返回，
-    - link "返回上一页" [ref=e6] [cursor=pointer]:
-      - /url: ""

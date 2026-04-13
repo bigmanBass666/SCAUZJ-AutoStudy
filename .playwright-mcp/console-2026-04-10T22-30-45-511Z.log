@@ -1,7 +1,0 @@
-[     726ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://www.googletagmanager.com/gtag/js?id=G-KHZNC1Q6K0:0
-[     874ms] [LOG] %c%s color: red; background: yellow; font-size: 24px; 警告！ @ https://www.gstatic.com/_/mss/boq-chrome-webstore/_/js/k=boq-chrome-webstore.ChromeWebStoreConsumerFeUi.zh_CN.X6FA-jLOOnc.2018.O/am=wMAAAADALg/d=1/excm=_b,_tp,categoryview/ed=1/dg=0/wt=2/ujg=1/rs=AEP720J4iVDRUr0SqzBTToWZgCW336iO1w/dti=1/m=_b,_tp:365
-[     874ms] [LOG] %c%s font-size: 18px; 使用此控制台可能会让攻击者趁机利用一种名为“Self-XSS”（自跨站脚本）的攻击方式来冒充您并窃取您的信息。
-请勿输入或粘贴任何来历不明的代码。 @ https://www.gstatic.com/_/mss/boq-chrome-webstore/_/js/k=boq-chrome-webstore.ChromeWebStoreConsumerFeUi.zh_CN.X6FA-jLOOnc.2018.O/am=wMAAAADALg/d=1/excm=_b,_tp,categoryview/ed=1/dg=0/wt=2/ujg=1/rs=AEP720J4iVDRUr0SqzBTToWZgCW336iO1w/dti=1/m=_b,_tp:365
-[   54823ms] [WARNING] Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Consider using the inert attribute instead, which will also prevent focus. For more details, see the aria-hidden section of the WAI-ARIA specification at https://w3c.github.io/aria/#aria-hidden.
-Element with focus: <a.q6LNgd>
-Ancestor with aria-hidden: <c-wiz.SSPGKf oCHqfe> @ https://chromewebstore.google.com/detail/%E7%AF%A1%E6%94%B9%E7%8C%B4/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=zh-CN&utm_source=ext_sidebar:0

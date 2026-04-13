@@ -138,7 +138,7 @@ console.log('警告：请不要以任何取巧方式进行作弊刷课...');
 | 并行播放检测 | localStorage记当前节点 | ❌ 无服务端验证 | ✅ 直接覆写localStorage |
 | 页面可见性 | 监听visibilityState | ❌ 无服务端校验 | ✅ Object.defineProperty覆写 |
 | 视频进度限制 | 禁止seek到未观看位置 | ❌ API无此验证 | ✅ 直接调用study API |
-| 验证码 | OCR识别难度 | ⚠️ OCR.space可解 | ✅ AI识别自动填充 |
+| 验证码 | OCR识别难度 | ⚠️ OCR降级链可解（详见 docs/ocr/ocrEngine.md） | ✅ AI识别自动填充 |
 | 签名验证 | HTML暴露sign/timestamp | ⚠️ 签名逻辑固定 | ✅ 提取参数复用 |
 
 ### 3.3 服务端盲点利用

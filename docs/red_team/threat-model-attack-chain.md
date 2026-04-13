@@ -109,7 +109,7 @@
 | **典型工具** | Python + Requests/Selenium、浏览器自动化(Puppeteer)、AI API |
 | **攻击方式** | 自行编写自动化脚本，针对特定漏洞开发绕过逻辑 |
 | **投入时间** | 4-8小时（分析+开发+调试） |
-| **资金成本** | 0-50元（AI API调用费用，Puter.js/Mistral免费，OCR降级链） |
+| **资金成本** | 0-50元（AI API调用费用，OCR降级链） |
 | **攻击特征** | 有基础的反检测意识，会添加随机延迟和简单行为模拟 |
 | **检测概率** | 中（需要服务端行为分析）→ 当前**实际检测概率：极低** |
 | **数量规模** | 较多 — 占攻击者总数的15% |
@@ -215,7 +215,7 @@
 情报5: 签名参数在HTML隐藏字段中暴露，/service/sign 返回500
 情报6: 页面可见性检测仅在客户端，无服务端验证
 情报7: 会话Cookie无CSRF保护，不轮换
-情报8: GLM-4V-Flash免费视觉模型可用于验证码识别
+情报8: OCR降级链可用于验证码识别（详见 docs/ocr/ocrEngine.md）
 ```
 
 #### 3.1.3 侦察阶段攻击树
@@ -257,7 +257,7 @@
    └── 缓存当前验证码会话
 
 2. AI识别层
-   ├── GLM-4V-Flash API调用
+   ├── OCR降级链调用
    ├── Prompt工程优化
    └── 结果清洗与验证
 
@@ -266,7 +266,7 @@
    ├── 触发表单提交
    └── 失败重试机制
 
-成本: 零 (Puter.js/Mistral免费，OCR降级链)
+成本: 零（OCR降级链，详见 docs/ocr/ocrEngine.md）
 成功率: >90% (文字验证码), >75% (点选验证码)
 延迟: 2-5秒/次
 ```
@@ -327,7 +327,7 @@
 
 | 成本项 | 金额 | 说明 |
 |--------|------|------|
-| AI模型调用费 | **0元** | GLM-4V-Flash免费 |
+| AI模型调用费 | **0元** | OCR降级链 |
 | 代理/VPN | 0-30元/月 | Level 3+需要，Level 1-2不需要 |
 | VPS | 0-50元/月 | 仅分布式攻击需要 |
 | 脚本开发 | 0元 | 攻击者自行开发或使用开源脚本 |
@@ -401,7 +401,7 @@ Step 5: 突破认证保护
 攻击流程:
 1. GET /login → 获取登录页面和验证码图片URL
 2. GET /service/code → 下载验证码图片
-3. POST GLM-4V-Flash API → 识别验证码文字
+3. POST OCR降级链 API → 识别验证码文字
 4. POST /user/login → 提交用户名+密码+验证码
 5. 验证: 检查响应中是否包含成功标识
 
@@ -589,7 +589,7 @@ Level 4 攻击者:
 
 1. **验证码获取**: 访问登录页，请求 `GET /service/code` 获取验证码图片
 2. **图片处理**: 将验证码图片转为base64编码
-3. **AI识别**: 调用GLM-4V-Flash API，发送图片和识别Prompt
+3. **AI识别**: 调用OCR降级链，发送图片和识别Prompt
 4. **结果清洗**: 移除AI返回中的空格、标点等干扰字符
 5. **自动登录**: 将识别结果填入登录表单并提交
 6. **失败重试**: 识别失败时刷新验证码重试（最多5次，成功率>95%）
@@ -668,7 +668,7 @@ Level 4 攻击者:
 **针对 need_code=1 (简单文字验证码)**:
 1. 检测到API响应中 `need_code=1`
 2. 从页面中提取验证码图片元素
-3. 转base64后调用GLM-4V-Flash识别
+3. 转base64后调用OCR降级链识别
 4. 将识别结果作为code参数重新提交
 
 **针对 need_code=2 (图片点选验证码)**:
@@ -845,7 +845,7 @@ document.addEventListener('visibilitychange', e => e.stopImmediatePropagation(),
 │                                                                    │
 │  Phase 1: 自动登录 (VULN-002)                                     │
 │  ├── 脚本自动访问登录页                                            │
-│  ├── 自动获取验证码图片 → GLM-4V-Flash视觉识别 + OCR降级方案（详见 docs/ocr/ocrEngine.md）           │
+│  ├── 自动获取验证码图片 → OCR降级链（详见 docs/ocr/ocrEngine.md）           │
 │  ├── 自动填写并提交登录表单                                        │
 │  └── 登录成功，获取有效会话                                        │
 │                                                                    │
@@ -861,8 +861,8 @@ document.addEventListener('visibilitychange', e => e.stopImmediatePropagation(),
 │  └── 自动处理验证码 (VULN-005)                                    │
 │                                                                    │
 │  Phase 4: 验证码处理 (VULN-005)                                   │
-│  ├── need_code=1 → GLM-4V-Flash视觉识别 + OCR降级方案                 │
-│  ├── need_code=2 → GLM-4V-Flash视觉分析 + OCR降级方案              │
+│  ├── need_code=1 → OCR降级链（详见 docs/ocr/ocrEngine.md）                 │
+│  ├── need_code=2 → OCR降级链（详见 docs/ocr/ocrEngine.md）              │
 │  ├── 识别失败 → 自动刷新重试(最多5次)                             │
 │  └── 全部失败 → 记录日志，跳过当前节点                             │
 │                                                                    │
@@ -878,7 +878,7 @@ document.addEventListener('visibilitychange', e => e.stopImmediatePropagation(),
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-**攻击成本**: 0元（GLM-4V-Flash免费）+ OCR降级方案 + 1小时初始配置
+**攻击成本**: 0元（OCR降级链）+ OCR降级方案 + 1小时初始配置
 
 **防御检测概率**: ≈0% — 当前系统无有效检测机制
 

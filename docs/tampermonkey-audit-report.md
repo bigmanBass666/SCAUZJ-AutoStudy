@@ -252,7 +252,7 @@
 
 | @grant | 用途 | 是否必须 | 检测风险 |
 |--------|------|---------|---------|
-| `GM_xmlhttpRequest` | 跨域请求（GLM-4V-Flash API验证码识别） | ✅ 必须 | 🟠中 - 可被页面检测到跨域请求 |
+| `GM_xmlhttpRequest` | 跨域请求（OCR降级链验证码识别） | ✅ 必须 | 🟠中 - 可被页面检测到跨域请求 |
 | `GM_setValue` | 存储脚本配置和状态 | ✅ 必须 | 🟢低 - 与页面存储隔离 |
 | `GM_getValue` | 读取脚本配置和状态 | ✅ 必须 | 🟢低 - 与页面存储隔离 |
 | `GM_notification` | 桌面通知（完成提醒） | ⚠️ 可选 | 🟢低 - 不在页面内产生痕迹 |
@@ -264,7 +264,7 @@
 | 域名 | 用途 | 安全性 |
 |------|------|--------|
 | `scauzj.leykeji.com` | 目标平台API请求 | ✅ 必须 |
-| `open.bigmodel.cn` | GLM-4V-Flash 验证码识别 | ✅ 必须 |
+| `open.bigmodel.cn` | OCR降级链（详见 docs/ocr/ocrEngine.md） | ✅ 必须 |
 | `*` (通配) | ❌ **禁止使用** | 🔴高危 - 允许向任意域名发请求，极大增加攻击面 |
 
 > **当前问题**: `leykeji-autostudy.user.js` 使用 `@connect *`，应改为精确域名白名单。
