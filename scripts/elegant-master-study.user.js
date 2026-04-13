@@ -1,7 +1,7 @@
 
 (function() {
 
-const ELEGANT_VERSION = 'v3.1-six-tier-ocr';
+const ELEGANT_VERSION = 'v3.3-autologin';
 
 // == GM API 兼容层 ==
 const _GM_getValue  = typeof GM_getValue !== 'undefined'  ? GM_getValue  : window.GM_getValue;
@@ -18,9 +18,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
     const DEFAULTS = {
         speed: { mode: 'normal', reportInterval: 2000, jumpSize: 30 },
-        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: '' },
+        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'REDACTED_OCRSPACE_KEY' },
         autoNext: { enabled: true, delay: 2000 },
-        completion: { targetPercent: 0.95 }
+        completion: { targetPercent: 0.95 },
+        antiCheat: { randomJitter: 300 }
     };
 
     class ConfigManager {
@@ -60,354 +61,15 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
     }
 
-    // ==================== OCR 六级全自动降级引擎 v3.1 ====================
-    // 红队原则: 全流程自主，无需人工干预
-    // 降级链: OCR.space → 百度OCR → 腾讯云OCR → Puter.js(无Key云) → Tesseract.js(本地) → GLM-4V-Flash(视觉模型)
-    class OCREngine {
-        constructor(configMgr) {
-            this.config = configMgr;
+    // ==================== OCR 基础设施层 ====================
+    
+    class ImagePreprocessor {
+        constructor() {
             this.THRESHOLDS = [80, 100, 120, 140, 160];
             this.SCALE_FACTOR = 4;
-            this.maxRetries = 8;
-            this._baiduTokenCache = null;
-            this._baiduTokenExpire = 0;
-
-            this.ocrConfig = {
-                ocrspace: {
-                    apiKey: configMgr.get('ai.ocrSpaceKey', ''),
-                    endpoint: 'https://api.ocr.space/parse/image'
-                },
-                baidu: {
-                    apiKey: configMgr.get('ocr.baidu.apiKey', ''),
-                    secretKey: configMgr.get('ocr.baidu.secretKey', ''),
-                    endpoint: 'https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic'
-                },
-                tencent: {
-                    secretId: configMgr.get('ocr.tencent.secretId', ''),
-                    secretKey: configMgr.get('ocr.tencent.secretKey', ''),
-                    endpoint: 'https://ocr.tencentcloudapi.com',
-                    region: 'ap-guangzhou'
-                },
-                puter: { enabled: configMgr.get('ocr.puter.enabled', true) },
-                glm4v: {
-                    apiKey: configMgr.get('ai.apiKey', ''),
-                    endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
-                }
-            };
         }
 
-        async solveWithRetry(getCaptchaImg, fillInput, submitLogin) {
-            for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-                console.log(`🔍 [v3.1] 验证码识别尝试 ${attempt}/${this.maxRetries}`);
-                const imgElement = getCaptchaImg();
-                if (!imgElement) { console.warn('⚠️ 未找到验证码图片'); continue; }
-
-                try {
-                    const code = await this.recognize(imgElement);
-                    if (code && code.length >= 3) {
-                        console.log(`✅ [v3.1] 识别成功: ${code} (第${attempt}次尝试)`);
-                        fillInput(code);
-                        const loginOk = await submitLogin();
-                        if (loginOk) return true;
-                        console.warn('⚠️ 验证码错误，换下一个重试');
-                    } else {
-                        console.warn(`⚠️ 第${attempt}次识别无有效结果，刷新验证码`);
-                    }
-                } catch (e) {
-                    console.warn(`⚠️ 第${attempt}次识别失败: ${e.message}`);
-                }
-
-                const captchaImg = document.getElementById('codeImg');
-                if (captchaImg) { captchaImg.click(); await new Promise(r => setTimeout(r, 1500)); }
-            }
-            console.error(`❌ [v3.1] ${this.maxRetries}次尝试均失败（六级降级链耗尽）`);
-            return false;
-        }
-
-        async recognize(imgElement) {
-            if (!imgElement) throw new Error("未找到图片元素");
-            console.log("[OCR v3.1] 🚀 启动六级全自动降级链...");
-
-            const scaled = this._extractScaled(imgElement);
-            const base64Raw = scaled.canvas.toDataURL('image/png').split(',')[1];
-            const base64Grayscale = this._preprocessGrayscale(scaled.canvas);
-            const base64Inverted = this._preprocessInvert(scaled.canvas);
-            const sixWayImages = this._sixWayPreprocess(scaled.canvas);
-            const dataUrl = scaled.canvas.toDataURL('image/png');
-            console.log(`[OCR v3.1] 预处理完成: ${scaled.origW}x${scaled.origH} → ${scaled.newW}x${scaled.newH}, ${sixWayImages.length + 2}张变体`);
-
-            const backends = [
-                { name: 'ocrspace', fn: () => this._tryOcrSpace(base64Raw), enabled: this._isOcrSpaceEnabled() },
-                { name: 'baidu', fn: () => this._tryBaidu(base64Raw, base64Grayscale, sixWayImages), enabled: this._isBaiduEnabled() },
-                { name: 'tencent', fn: () => this._tryTencentCloud(base64Raw), enabled: this._isTencentEnabled() },
-                { name: 'puter', fn: () => this._tryPuter(dataUrl), enabled: this.ocrConfig.puter.enabled },
-                { name: 'tesseract', fn: () => this._tryTesseract(imgElement, scaled), enabled: true },
-                { name: 'glm4v', fn: () => this._tryGLM4V(dataUrl, base64Raw), enabled: !!this.ocrConfig.glm4v.apiKey }
-            ];
-
-            for (const backend of backends) {
-                if (!backend.enabled) { console.log(`[OCR v3.1] ⏭️ ${backend.name}: 未配置，跳过`); continue; }
-                try {
-                    console.log(`[OCR v3.1] 🔄 尝试 [${backend.name}]...`);
-                    const text = await backend.fn();
-                    if (text && text.length >= 3 && text.length <= 6) {
-                        const cleaned = this._cleanText(text);
-                        console.log(`[OCR v3.1] ✅ [${backend.name}] 成功: "${cleaned}"`);
-                        return cleaned;
-                    }
-                    console.warn(`[OCR v3.1] ⚠️ [${backend.name}] 结果无效: "${text}"`);
-                } catch (e) {
-                    console.warn(`[OCR v3.1] ❌ [${backend.name}] 失败: ${e.message}`);
-                }
-            }
-
-            throw new Error("[OCR v3.1] 所有六级后端均失败");
-        }
-
-        _isBaiduEnabled() { return !!(this.ocrConfig.baidu.apiKey && this.ocrConfig.baidu.secretKey); }
-        _isTencentEnabled() { return !!(this.ocrConfig.tencent.secretId && this.ocrConfig.tencent.secretKey); }
-        _isOcrSpaceEnabled() { return !!this.ocrConfig.ocrspace.apiKey; }
-
-        // ==================== Tier 1: OCR.space (25,000次/月免费) ====================
-        async _tryOcrSpace(base64Raw) {
-            const apiKey = this.ocrConfig.ocrspace.apiKey;
-            console.log(`[OCR.space] 调用API (key: ${apiKey.substring(0, 6)}...)`);
-            
-            const res = await this._gmFetch(this.ocrConfig.endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `apikey=${encodeURIComponent(apiKey)}&language=eng&isOverlayRequired=false&base64Image=${encodeURIComponent(base64Raw)}`
-            });
-            
-            const obj = JSON.parse(res);
-            if (obj.IsErrored) throw new Error(`OCR.space错误: ${obj.ErrorMessage || '未知'}`);
-            if (!obj.ParsedResults || !obj.ParsedResults[0]) throw new Error('OCR.space无返回结果');
-            const text = obj.ParsedResults[0].ParsedText || '';
-            console.log(`[OCR.space] 原始: "${text}"`);
-            return text.replace(/[^a-zA-Z0-9]/g, '');
-        }
-
-        // ==================== Tier 2: 百度 OCR ====================
-        async _tryBaidu(base64Raw, base64Grayscale, sixWayImages) {
-            const token = await this._getBaiduAccessToken();
-            const candidates = [];
-
-            const tryImage = async (b64, label) => {
-                const result = await this._baiduRequest(token, b64);
-                if (result) {
-                    const cleaned = result.replace(/[^a-zA-Z0-9]/g, '');
-                    if (cleaned.length >= 3 && cleaned.length <= 6) {
-                        console.log(`[百度] ${label}: ${cleaned}`);
-                        candidates.push(cleaned);
-                    }
-                }
-                return result;
-            };
-
-            await tryImage(base64Raw, '原图');
-            if (base64Grayscale) await tryImage(base64Grayscale, '灰度');
-
-            for (const img of sixWayImages.slice(0, 3)) {
-                await tryImage(img.base64, `二值t=${img.threshold}`);
-            }
-
-            if (candidates.length === 0) return null;
-            if (candidates.length === 1) return candidates[0];
-            const freq = {};
-            for (const c of candidates) freq[c] = (freq[c] || 0) + 1;
-            let best = '', bestCount = 0;
-            for (const [text, count] of Object.entries(freq)) {
-                if (count > bestCount) { best = text; bestCount = count; }
-            }
-            console.log(`[百度] 多数投票: ${best} (${bestCount}/${candidates.length})`);
-            return bestCount >= 2 ? best : candidates[0];
-        }
-
-        async _getBaiduAccessToken() {
-            if (this._baiduTokenCache && Date.now() < this._baiduTokenExpire) return this._baiduTokenCache;
-            const cfg = this.ocrConfig.baidu;
-            const url = 'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=' +
-                encodeURIComponent(cfg.apiKey) + '&client_secret=' + encodeURIComponent(cfg.secretKey);
-
-            const res = await this._gmFetch(url, { method: 'GET' });
-            const obj = JSON.parse(res);
-            if (obj.error) throw new Error('百度token错误: ' + (obj.error_description || obj.error));
-            this._baiduTokenCache = obj.access_token;
-            this._baiduTokenExpire = Date.now() + (obj.expires_in - 300) * 1000;
-            console.log(`[百度] ✅ token获取成功, 有效期${Math.floor((obj.expires_in - 300) / 60)}分钟`);
-            return this._baiduTokenCache;
-        }
-
-        async _baiduRequest(token, base64) {
-            const params = new URLSearchParams();
-            params.set('image', base64);
-            const cfg = this.ocrConfig.baidu;
-            const res = await this._gmFetch(cfg.endpoint + '?access_token=' + encodeURIComponent(token), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString()
-            });
-            const obj = JSON.parse(res);
-            if (obj.error_code) throw new Error(`百度OCR错误${obj.error_code}: ${obj.error_msg || ''}`);
-            const words = obj.words_result || [];
-            return words.map(w => w.words).join('');
-        }
-
-        // ==================== Tier 3: 腾讯云 OCR (最小化TC3签名) ====================
-        async _tryTencentCloud(base64) {
-            const cfg = this.ocrConfig.tencent;
-            const action = 'GeneralBasicOCR';
-            const version = '2018-11-19';
-            const timestamp = Math.floor(Date.now() / 1000);
-            const payload = { ImageBase64: base64 };
-            const body = JSON.stringify({ Action: action, Version: version, Region: cfg.region, ...payload });
-
-            const authorization = this._tc3Sign(cfg.secretId, cfg.secretKey, 'ocr.tencentcloudapi.com', timestamp, body);
-            const res = await this._gmFetch(cfg.endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-TC-Action': action,
-                    'X-TC-Version': version,
-                    'X-TC-Timestamp': String(timestamp),
-                    'X-TC-Region': cfg.region,
-                    'Authorization': authorization
-                },
-                body: body
-            });
-
-            const obj = JSON.parse(res);
-            if (obj.Response?.Error) throw new Error(`腾讯云错误: ${obj.Response.Error.Message}`);
-            const list = obj.Response?.TextDetections || [];
-            return list.map(d => d.DetectedText).join('');
-        }
-
-        _tc3Sign(secretId, secretKey, service, timestamp, body) {
-            const algorithm = 'TC3-HMAC-SHA256';
-            const date = new Date(timestamp * 1000).toISOString().slice(0, 10).replace(/-/g, '');
-            const credentialScope = `${date}/${service}/tc3_request`;
-
-            const httpRequestMethod = 'POST';
-            const canonicalUri = '/';
-            const canonicalQuerystring = '';
-            const canonicalHeaders = 'content-type:application/json\nhost:' + service + '\nx-tc-action:GeneralBasicOCR\nx-tc-region:ap-guangzhou\nx-tc-timestamp:' + timestamp + '\nx-tc-version:2018-11-19\n';
-            const signedHeaders = 'content-type;host;x-tc-action;x-tc-region;x-tc-timestamp;x-tc-version';
-
-            const canonicalReq = httpRequestMethod + '\n' + canonicalUri + '\n' + canonicalQuerystring + '\n' +
-                canonicalHeaders + '\n' + signedHeaders + '\n' + this._sha256Hex(body);
-
-            const stringToSign = algorithm + '\n' + timestamp + '\n' + credentialScope + '\n' + this._sha256Hex(canonicalReq);
-
-            const secretDate = this._hmacSha256('TC3' + secretKey, date);
-            const secretService = this._hmacSha256(secretDate, service);
-            const secretSigning = this._hmacSha256(secretService, 'tc3_request');
-            const signature = this._hex(this._hmacSha256(secretSigning, stringToSign));
-
-            return algorithm + ' Credential=' + secretId + '/' + credentialScope +
-                ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
-        }
-
-        _sha256Hex(message) { return this._hex(new TextEncoder().encode(message)); }
-        _hex(buffer) { return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join(''); }
-
-        async _hmacSha256(key, message) {
-            const cryptoKey = await crypto.subtle.importKey(
-                'raw', typeof key === 'string' ? new TextEncoder().encode(key) : key,
-                { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-            );
-            return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
-        }
-
-        // ==================== Tier 4: Puter.js (无Key云兜底) ====================
-        async _tryPuter(dataUrl) {
-            if (typeof puter === 'undefined') {
-                console.log('[Puter] 加载 Puter.js...');
-                await this._loadScript('https://js.puter.com/v2/', 'Puter.js');
-            }
-            if (typeof puter === 'undefined' || !puter.ai || !puter.ai.img2txt) {
-                throw new Error('Puter.js 未加载或不可用');
-            }
-            const text = await puter.ai.img2txt(dataUrl);
-            if (!text || typeof text !== 'string') throw new Error('Puter 返回非字符串');
-            return text;
-        }
-
-        // ==================== Tier 5: Tesseract.js (本地离线增强版) ====================
-        async _tryTesseract(imgElement, scaled) {
-            if (typeof Tesseract === 'undefined') {
-                console.log('[Tesseract] 加载 Tesseract.js...');
-                await this._loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', 'Tesseract.js');
-            }
-            if (typeof Tesseract === 'undefined') throw new Error("Tesseract.js 加载失败");
-
-            const worker = await Tesseract.createWorker('eng');
-            const ret = await worker.recognize(scaled.canvas);
-            await worker.terminate();
-
-            const grayCanvas = document.createElement('canvas');
-            grayCanvas.width = scaled.canvas.width;
-            grayCanvas.height = scaled.canvas.height;
-            const gCtx = grayCanvas.getContext('2d');
-            gCtx.drawImage(scaled.canvas, 0, 0);
-            const gData = gCtx.getImageData(0, 0, grayCanvas.width, grayCanvas.height);
-            const gPixels = gData.data;
-            for (let i = 0; i < gPixels.length; i += 4) {
-                const gray = 0.299 * gPixels[i] + 0.587 * gPixels[i+1] + 0.114 * gPixels[i+2];
-                const v = gray > 128 ? 255 : 0;
-                gPixels[i] = gPixels[i+1] = gPixels[i+2] = v;
-            }
-            gCtx.putImageData(gData, 0, 0);
-
-            const worker2 = await Tesseract.createWorker('eng');
-            const ret2 = await worker2.recognize(grayCanvas);
-            await worker2.terminate();
-
-            const text1 = (ret.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
-            const text2 = (ret2.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
-            console.log(`[Tesseract] 原图: "${text1}", 二值化: "${text2}"`);
-
-            if (text1 === text2 && text1.length >= 3) return text1;
-            if (text2.length >= 3 && text2.length <= 6) return text2;
-            if (text1.length >= 3 && text1.length <= 6) return text1;
-            return text2 || text1 || null;
-        }
-
-        // ==================== Tier 6: GLM-4V-Flash (视觉模型终极兜底) ====================
-        async _tryGLM4V(dataUrl, base64) {
-            const apiKey = this.ocrConfig.glm4v.apiKey;
-            if (!apiKey) throw new Error('GLM-4V-Flash 未配置API Key');
-
-            console.log('[GLM-4V] 调用视觉模型识别验证码...');
-            const res = await fetch(this.ocrConfig.glm4v.endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + apiKey
-                },
-                body: JSON.stringify({
-                    model: 'glm-4v-flash',
-                    messages: [{
-                        role: 'user',
-                        content: [
-                            { type: 'text', text: '请只输出这张验证码图片中的字母和数字字符，不要包含任何其他文字、标点符号或解释。如果看不清就输出最可能的4个字符。' },
-                            { type: 'image_url', image_url: { url: dataUrl } }
-                        ]
-                    }],
-                    max_tokens: 20,
-                    temperature: 0.1
-                })
-            });
-
-            if (!res.ok) throw new Error(`GLM-4V HTTP ${res.status}`);
-
-            const data = await res.json();
-            const text = data.choices?.[0]?.message?.content?.trim() || '';
-            console.log(`[GLM-4V] 原始返回: "${text}"`);
-            return text.replace(/[^a-zA-Z0-9]/g, '');
-        }
-
-        // ==================== 预处理管线 (保留原有四路预处理) ====================
-        _extractScaled(imgElement) {
+        extractScaled(imgElement) {
             const origW = imgElement.naturalWidth || imgElement.width || 90;
             const origH = imgElement.naturalHeight || imgElement.height || 40;
             const newW = origW * this.SCALE_FACTOR;
@@ -420,7 +82,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return { canvas, origW, origH, newW, newH };
         }
 
-        _preprocessGrayscale(sourceCanvas) {
+        preprocessGrayscale(sourceCanvas) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = sourceCanvas.width; canvas.height = sourceCanvas.height;
@@ -435,7 +97,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return canvas.toDataURL('image/png').split(',')[1];
         }
 
-        _preprocessInvert(sourceCanvas) {
+        preprocessInvert(sourceCanvas) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = sourceCanvas.width; canvas.height = sourceCanvas.height;
@@ -450,7 +112,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return canvas.toDataURL('image/png').split(',')[1];
         }
 
-        _sixWayPreprocess(sourceCanvas) {
+        sixWayPreprocess(sourceCanvas) {
             const results = [];
             const ctx = sourceCanvas.getContext('2d');
             const origData = ctx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
@@ -502,12 +164,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return results;
         }
 
-        _cleanText(text) {
+        cleanText(text) {
             if (!text) return "";
             return text.replace(/[\s\n\r]/g, '').trim();
         }
+    }
 
-        _gmFetch(url, options = {}) {
+    class NetworkClient {
+        gmFetch(url, options = {}) {
             return new Promise((resolve, reject) => {
                 _GM_xmlhttpRequest({
                     method: options.method || 'GET',
@@ -522,22 +186,484 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             });
         }
 
-        _loadScript(url, name) {
-            return new Promise((resolve, reject) => {
-                if (url.includes('puter.com')) {
-                    const s = document.createElement('script');
-                    s.src = url;
-                    s.onload = () => { console.log(`[OCR] ${name} 加载成功`); resolve(); };
-                    s.onerror = () => reject(new Error(`${name} 加载失败`));
-                    document.head.appendChild(s);
-                } else {
-                    const s = document.createElement('script');
-                    s.src = url;
-                    s.onload = () => { console.log(`[OCR] ${name} 加载成功`); resolve(); };
-                    s.onerror = () => reject(new Error(`${name} 加载失败`));
-                    document.head.appendChild(s);
+        async fetch(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                return await response.json();
+            } catch (error) {
+                throw new Error(`Fetch请求失败: ${error.message}`);
+            }
+        }
+    }
+
+    class ScriptLoader {
+        constructor() {
+            this.loadedScripts = new Set();
+        }
+
+        async loadScript(url, name) {
+            if (this.loadedScripts.has(url)) {
+                console.log(`[ScriptLoader] ${name} 已加载，跳过`);
+                return;
+            }
+            
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.onload = () => {
+                    console.log(`[ScriptLoader] ${name} 加载成功`);
+                    this.loadedScripts.add(url);
+                    resolve();
+                };
+                script.onerror = () => reject(new Error(`${name} 加载失败`));
+                document.head.appendChild(script);
             });
+        }
+
+        isGlobalAvailable(globalName) {
+            return typeof window[globalName] !== 'undefined';
+        }
+    }
+
+    class OCREngineBackend {
+        async recognize(context) {
+            throw new Error('子类必须实现recognize方法');
+        }
+
+        isEnabled() {
+            throw new Error('子类必须实现isEnabled方法');
+        }
+
+        getName() {
+            throw new Error('子类必须实现getName方法');
+        }
+    }
+
+    class OcrSpaceBackend extends OCREngineBackend {
+        constructor(config, networkClient) {
+            super();
+            this.config = config;
+            this.networkClient = networkClient;
+        }
+
+        getName() { return 'ocrspace'; }
+
+        isEnabled() { return !!this.config.ocrspace.apiKey; }
+
+        async recognize(context) {
+            const apiKey = this.config.ocrspace.apiKey;
+            console.log(`[OCR.space] 调用API (key: ${apiKey.substring(0, 6)}...)`);
+            
+            const fullDataUrl = 'data:image/png;base64,' + context.base64Raw;
+            const res = await this.networkClient.gmFetch(this.config.ocrspace.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `apikey=${encodeURIComponent(apiKey)}&language=eng&isOverlayRequired=false&base64Image=${encodeURIComponent(fullDataUrl)}`
+            });
+            
+            const obj = JSON.parse(res);
+            if (obj.IsErrored) throw new Error(`OCR.space错误: ${obj.ErrorMessage || '未知'}`);
+            if (!obj.ParsedResults || !obj.ParsedResults[0]) throw new Error('OCR.space无返回结果');
+            const text = obj.ParsedResults[0].ParsedText || '';
+            console.log(`[OCR.space] 原始: "${text}"`);
+            return text.replace(/[^a-zA-Z0-9]/g, '');
+        }
+    }
+
+    class BaiduOcrBackend extends OCREngineBackend {
+        constructor(config, networkClient) {
+            super();
+            this.config = config;
+            this.networkClient = networkClient;
+            this.tokenCache = null;
+            this.tokenExpire = 0;
+        }
+
+        getName() { return 'baidu'; }
+
+        isEnabled() { return !!(this.config.baidu.apiKey && this.config.baidu.secretKey); }
+
+        async recognize(context) {
+            const token = await this.getAccessToken();
+            const candidates = [];
+
+            const tryImage = async (b64, label) => {
+                const result = await this.baiduRequest(token, b64);
+                if (result) {
+                    const cleaned = result.replace(/[^a-zA-Z0-9]/g, '');
+                    if (cleaned.length >= 3 && cleaned.length <= 6) {
+                        console.log(`[百度] ${label}: ${cleaned}`);
+                        candidates.push(cleaned);
+                    }
+                }
+                return result;
+            };
+
+            await tryImage(context.base64Raw, '原图');
+            if (context.base64Grayscale) await tryImage(context.base64Grayscale, '灰度');
+
+            for (const img of context.sixWayImages.slice(0, 3)) {
+                await tryImage(img.base64, `二值t=${img.threshold}`);
+            }
+
+            if (candidates.length === 0) return null;
+            if (candidates.length === 1) return candidates[0];
+            
+            const freq = {};
+            for (const c of candidates) freq[c] = (freq[c] || 0) + 1;
+            let best = '', bestCount = 0;
+            for (const [text, count] of Object.entries(freq)) {
+                if (count > bestCount) { best = text; bestCount = count; }
+            }
+            console.log(`[百度] 多数投票: ${best} (${bestCount}/${candidates.length})`);
+            return bestCount >= 2 ? best : candidates[0];
+        }
+
+        async getAccessToken() {
+            if (this.tokenCache && Date.now() < this.tokenExpire) return this.tokenCache;
+            const cfg = this.config.baidu;
+            const url = 'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=' +
+                encodeURIComponent(cfg.apiKey) + '&client_secret=' + encodeURIComponent(cfg.secretKey);
+
+            const res = await this.networkClient.gmFetch(url, { method: 'GET' });
+            const obj = JSON.parse(res);
+            if (obj.error) throw new Error('百度token错误: ' + (obj.error_description || obj.error));
+            this.tokenCache = obj.access_token;
+            this.tokenExpire = Date.now() + (obj.expires_in - 300) * 1000;
+            console.log(`[百度] ✅ token获取成功, 有效期${Math.floor((obj.expires_in - 300) / 60)}分钟`);
+            return this.tokenCache;
+        }
+
+        async baiduRequest(token, base64) {
+            const params = new URLSearchParams();
+            params.set('image', base64);
+            const cfg = this.config.baidu;
+            const res = await this.networkClient.gmFetch(cfg.endpoint + '?access_token=' + encodeURIComponent(token), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            });
+            const obj = JSON.parse(res);
+            if (obj.error_code) throw new Error(`百度OCR错误${obj.error_code}: ${obj.error_msg || ''}`);
+            const words = obj.words_result || [];
+            return words.map(w => w.words).join('');
+        }
+    }
+
+    class TencentOcrBackend extends OCREngineBackend {
+        constructor(config, networkClient) {
+            super();
+            this.config = config;
+            this.networkClient = networkClient;
+        }
+
+        getName() { return 'tencent'; }
+
+        isEnabled() { return !!(this.config.tencent.secretId && this.config.tencent.secretKey); }
+
+        async recognize(context) {
+            const cfg = this.config.tencent;
+            const action = 'GeneralBasicOCR';
+            const version = '2018-11-19';
+            const timestamp = Math.floor(Date.now() / 1000);
+            const payload = { ImageBase64: context.base64Raw };
+            const body = JSON.stringify({ Action: action, Version: version, Region: cfg.region, ...payload });
+
+            const authorization = this.tc3Sign(cfg.secretId, cfg.secretKey, 'ocr.tencentcloudapi.com', timestamp, body);
+            const res = await this.networkClient.gmFetch(cfg.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-TC-Action': action,
+                    'X-TC-Version': version,
+                    'X-TC-Timestamp': String(timestamp),
+                    'X-TC-Region': cfg.region,
+                    'Authorization': authorization
+                },
+                body: body
+            });
+
+            const obj = JSON.parse(res);
+            if (obj.Response?.Error) throw new Error(`腾讯云错误: ${obj.Response.Error.Message}`);
+            const list = obj.Response?.TextDetections || [];
+            return list.map(d => d.DetectedText).join('');
+        }
+
+        tc3Sign(secretId, secretKey, service, timestamp, body) {
+            const algorithm = 'TC3-HMAC-SHA256';
+            const date = new Date(timestamp * 1000).toISOString().slice(0, 10).replace(/-/g, '');
+            const credentialScope = `${date}/${service}/tc3_request`;
+
+            const httpRequestMethod = 'POST';
+            const canonicalUri = '/';
+            const canonicalQuerystring = '';
+            const canonicalHeaders = 'content-type:application/json\nhost:' + service + '\nx-tc-action:GeneralBasicOCR\nx-tc-region:ap-guangzhou\nx-tc-timestamp:' + timestamp + '\nx-tc-version:2018-11-19\n';
+            const signedHeaders = 'content-type;host;x-tc-action;x-tc-region;x-tc-timestamp;x-tc-version';
+
+            const canonicalReq = httpRequestMethod + '\n' + canonicalUri + '\n' + canonicalQuerystring + '\n' +
+                canonicalHeaders + '\n' + signedHeaders + '\n' + this.sha256Hex(body);
+
+            const stringToSign = algorithm + '\n' + timestamp + '\n' + credentialScope + '\n' + this.sha256Hex(canonicalReq);
+
+            const secretDate = this.hmacSha256('TC3' + secretKey, date);
+            const secretService = this.hmacSha256(secretDate, service);
+            const secretSigning = this.hmacSha256(secretService, 'tc3_request');
+            const signature = this.hex(this.hmacSha256(secretSigning, stringToSign));
+
+            return algorithm + ' Credential=' + secretId + '/' + credentialScope +
+                ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
+        }
+
+        sha256Hex(message) { return this.hex(new TextEncoder().encode(message)); }
+
+        hex(buffer) { return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join(''); }
+
+        async hmacSha256(key, message) {
+            const cryptoKey = await crypto.subtle.importKey(
+                'raw', typeof key === 'string' ? new TextEncoder().encode(key) : key,
+                { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+            );
+            return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
+        }
+    }
+
+    class PuterBackend extends OCREngineBackend {
+        constructor(config, scriptLoader) {
+            super();
+            this.config = config;
+            this.scriptLoader = scriptLoader;
+        }
+
+        getName() { return 'puter'; }
+
+        isEnabled() { return this.config.puter.enabled; }
+
+        async recognize(context) {
+            if (!this.scriptLoader.isGlobalAvailable('puter')) {
+                console.log('[Puter] 加载 Puter.js...');
+                await this.scriptLoader.loadScript('https://js.puter.com/v2/', 'Puter.js');
+            }
+            if (!this.scriptLoader.isGlobalAvailable('puter') || !puter.ai || !puter.ai.img2txt) {
+                throw new Error('Puter.js 未加载或不可用');
+            }
+            const text = await puter.ai.img2txt(context.dataUrl);
+            if (!text || typeof text !== 'string') throw new Error('Puter 返回非字符串');
+            return text;
+        }
+    }
+
+    class TesseractBackend extends OCREngineBackend {
+        constructor(config, scriptLoader) {
+            super();
+            this.config = config;
+            this.scriptLoader = scriptLoader;
+        }
+
+        getName() { return 'tesseract'; }
+
+        isEnabled() { return true; }
+
+        async recognize(context) {
+            if (!this.scriptLoader.isGlobalAvailable('Tesseract')) {
+                console.log('[Tesseract] 加载 Tesseract.js...');
+                await this.scriptLoader.loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', 'Tesseract.js');
+            }
+            if (!this.scriptLoader.isGlobalAvailable('Tesseract')) throw new Error("Tesseract.js 加载失败");
+
+            const worker = await Tesseract.createWorker('eng');
+            const ret = await worker.recognize(context.scaled.canvas);
+            await worker.terminate();
+
+            const grayCanvas = document.createElement('canvas');
+            grayCanvas.width = context.scaled.canvas.width;
+            grayCanvas.height = context.scaled.canvas.height;
+            const gCtx = grayCanvas.getContext('2d');
+            gCtx.drawImage(context.scaled.canvas, 0, 0);
+            const gData = gCtx.getImageData(0, 0, grayCanvas.width, grayCanvas.height);
+            const gPixels = gData.data;
+            for (let i = 0; i < gPixels.length; i += 4) {
+                const gray = 0.299 * gPixels[i] + 0.587 * gPixels[i+1] + 0.114 * gPixels[i+2];
+                const v = gray > 128 ? 255 : 0;
+                gPixels[i] = gPixels[i+1] = gPixels[i+2] = v;
+            }
+            gCtx.putImageData(gData, 0, 0);
+
+            const worker2 = await Tesseract.createWorker('eng');
+            const ret2 = await worker2.recognize(grayCanvas);
+            await worker2.terminate();
+
+            const text1 = (ret.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
+            const text2 = (ret2.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
+            console.log(`[Tesseract] 原图: "${text1}", 二值化: "${text2}"`);
+
+            if (text1 === text2 && text1.length >= 3) return text1;
+            if (text2.length >= 3 && text2.length <= 6) return text2;
+            if (text1.length >= 3 && text1.length <= 6) return text1;
+            return text2 || text1 || null;
+        }
+    }
+
+    class Glm4VBackend extends OCREngineBackend {
+        constructor(config, networkClient) {
+            super();
+            this.config = config;
+            this.networkClient = networkClient;
+        }
+
+        getName() { return 'glm4v'; }
+
+        isEnabled() { return !!this.config.glm4v.apiKey; }
+
+        async recognize(context) {
+            const apiKey = this.config.glm4v.apiKey;
+            if (!apiKey) throw new Error('GLM-4V-Flash 未配置API Key');
+
+            console.log('[GLM-4V] 调用视觉模型识别验证码...');
+            const data = await this.networkClient.fetch(this.config.glm4v.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + apiKey
+                },
+                body: JSON.stringify({
+                    model: 'glm-4v-flash',
+                    messages: [{
+                        role: 'user',
+                        content: [
+                            { type: 'text', text: '请只输出这张验证码图片中的字母和数字字符，不要包含任何其他文字、标点符号或解释。如果看不清就输出最可能的4个字符。' },
+                            { type: 'image_url', image_url: { url: context.dataUrl } }
+                        ]
+                    }],
+                    max_tokens: 20,
+                    temperature: 0.1
+                })
+            });
+
+            const text = data.choices?.[0]?.message?.content?.trim() || '';
+            console.log(`[GLM-4V] 原始返回: "${text}"`);
+            return text.replace(/[^a-zA-Z0-9]/g, '');
+        }
+    }
+
+    // ==================== OCR 六级全自动降级引擎 v3.2 (重构版) ====================
+    // 红队原则: 全流程自主，无需人工干预
+    // 降级链: OCR.space → 百度OCR → 腾讯云OCR → Puter.js(无Key云) → Tesseract.js(本地) → GLM-4V-Flash(视觉模型)
+    // 架构改进: 策略模式 + 单一职责原则
+    class OCREngine {
+        constructor(configMgr) {
+            this.config = configMgr;
+            this.maxRetries = 8;
+
+            this.imagePreprocessor = new ImagePreprocessor();
+            this.networkClient = new NetworkClient();
+            this.scriptLoader = new ScriptLoader();
+
+            this.ocrConfig = {
+                ocrspace: {
+                    apiKey: configMgr.get('ai.ocrSpaceKey', ''),
+                    endpoint: 'https://api.ocr.space/parse/image'
+                },
+                baidu: {
+                    apiKey: configMgr.get('ocr.baidu.apiKey', ''),
+                    secretKey: configMgr.get('ocr.baidu.secretKey', ''),
+                    endpoint: 'https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic'
+                },
+                tencent: {
+                    secretId: configMgr.get('ocr.tencent.secretId', ''),
+                    secretKey: configMgr.get('ocr.tencent.secretKey', ''),
+                    endpoint: 'https://ocr.tencentcloudapi.com',
+                    region: 'ap-guangzhou'
+                },
+                puter: { enabled: configMgr.get('ocr.puter.enabled', true) },
+                glm4v: {
+                    apiKey: configMgr.get('ai.apiKey', ''),
+                    endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+                }
+            };
+
+            this.backends = [
+                new OcrSpaceBackend(this.ocrConfig, this.networkClient),
+                new BaiduOcrBackend(this.ocrConfig, this.networkClient),
+                new TencentOcrBackend(this.ocrConfig, this.networkClient),
+                new PuterBackend(this.ocrConfig, this.scriptLoader),
+                new TesseractBackend(this.ocrConfig, this.scriptLoader),
+                new Glm4VBackend(this.ocrConfig, this.networkClient)
+            ];
+        }
+
+        async solveWithRetry(getCaptchaImg, fillInput, submitLogin) {
+            for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+                console.log(`🔍 [v3.2] 验证码识别尝试 ${attempt}/${this.maxRetries}`);
+                const imgElement = getCaptchaImg();
+                if (!imgElement) { console.warn('⚠️ 未找到验证码图片'); continue; }
+
+                try {
+                    const code = await this.recognize(imgElement);
+                    if (code && code.length >= 3) {
+                        console.log(`✅ [v3.2] 识别成功: ${code} (第${attempt}次尝试)`);
+                        fillInput(code);
+                        const loginOk = await submitLogin();
+                        if (loginOk) return true;
+                        console.warn('⚠️ 验证码错误，换下一个重试');
+                    } else {
+                        console.warn(`⚠️ 第${attempt}次识别无有效结果，刷新验证码`);
+                    }
+                } catch (e) {
+                    console.warn(`⚠️ 第${attempt}次识别失败: ${e.message}`);
+                }
+
+                const captchaImg = document.getElementById('codeImg');
+                if (captchaImg) { captchaImg.click(); await new Promise(r => setTimeout(r, 1500)); }
+            }
+            console.error(`❌ [v3.2] ${this.maxRetries}次尝试均失败（六级降级链耗尽）`);
+            return false;
+        }
+
+        async recognize(imgElement) {
+            if (!imgElement) throw new Error("未找到图片元素");
+            console.log("[OCR v3.2] 🚀 启动六级全自动降级链...");
+
+            const scaled = this.imagePreprocessor.extractScaled(imgElement);
+            const base64Raw = scaled.canvas.toDataURL('image/png').split(',')[1];
+            const base64Grayscale = this.imagePreprocessor.preprocessGrayscale(scaled.canvas);
+            const base64Inverted = this.imagePreprocessor.preprocessInvert(scaled.canvas);
+            const sixWayImages = this.imagePreprocessor.sixWayPreprocess(scaled.canvas);
+            const dataUrl = scaled.canvas.toDataURL('image/png');
+            console.log(`[OCR v3.2] 预处理完成: ${scaled.origW}x${scaled.origH} → ${scaled.newW}x${scaled.newH}, ${sixWayImages.length + 2}张变体`);
+
+            const context = {
+                imgElement,
+                scaled,
+                base64Raw,
+                base64Grayscale,
+                base64Inverted,
+                sixWayImages,
+                dataUrl
+            };
+
+            for (const backend of this.backends) {
+                if (!backend.isEnabled()) {
+                    console.log(`[OCR v3.2] ⏭️ ${backend.getName()}: 未配置，跳过`);
+                    continue;
+                }
+                try {
+                    console.log(`[OCR v3.2] 🔄 尝试 [${backend.getName()}]...`);
+                    const text = await backend.recognize(context);
+                    if (text && text.length >= 3 && text.length <= 6) {
+                        const cleaned = this.imagePreprocessor.cleanText(text);
+                        console.log(`[OCR v3.2] ✅ [${backend.getName()}] 成功: "${cleaned}"`);
+                        return cleaned;
+                    }
+                    console.warn(`[OCR v3.2] ⚠️ [${backend.getName()}] 结果无效: "${text}"`);
+                } catch (e) {
+                    console.warn(`[OCR v3.2] ❌ [${backend.getName()}] 失败: ${e.message}`);
+                }
+            }
+
+            throw new Error("[OCR v3.2] 所有六级后端均失败");
         }
     }
 
@@ -1155,12 +1281,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
 
             const jumpSize = this.config.get('speed.jumpSize', 30);
-            const interval = this.config.get('speed.reportInterval', 2000);
+            let interval = this.config.get('speed.reportInterval', 2000);
             const targetPercent = this.config.get('completion.targetPercent', 0.95);
             const target = Math.floor(this.env.duration * targetPercent);
             const loops = Math.ceil(target / jumpSize);
 
-            console.log(`⚡ 上报: ${loops}次, 间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%, 已成功${apiSuccessCount}次`);
+            const randomJitter = this.config.get('antiCheat.randomJitter', 300);
+
+            console.log(`⚡ 上报: ${loops}次, 基础间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%, 抖动±${randomJitter}ms`);
 
             let captchaFailCount = 0;
             const maxCaptchaFails = 5;
@@ -1223,7 +1351,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, pct, '运行中');
 
                 if (i < loops - 1 && this.running) {
-                    await this.sleep(interval);
+                    const jitter = (Math.random() - 0.5) * 2 * randomJitter;
+                    await this.sleep(Math.max(interval + jitter, 500));
                 }
             }
 
@@ -1239,7 +1368,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
 
             const elapsed = (Date.now() - this.startTime) / 1000;
-            
+
             if (apiSuccessCount > 0) {
                 console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 成功上报${apiSuccessCount}次, 最终studyId: ${lastStudyId}, 记录: ${this.env.duration}秒`);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
@@ -1294,12 +1423,48 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
         async autoNext() {
             const delay = this.config.get('autoNext.delay', 2000);
+            console.log(`⏳ [autoNext] 等待${delay}ms后跳转下一节...`);
             await this.sleep(delay);
-            const nextId = (parseInt(this.env.nodeId) + 1).toString();
-            const targetUrl = location.pathname + '?nodeId=' + nextId;
-            console.log(`➡️  自动下一节: ${targetUrl}`);
-            sessionStorage.setItem('elegant_autostart', '1');
-            window.location.assign(targetUrl);
+
+            try {
+                const nextId = (parseInt(this.env.nodeId) + 1).toString();
+                const targetUrl = location.pathname + '?nodeId=' + nextId;
+                console.log(`➡️  [autoNext] 目标URL: ${targetUrl}`);
+                
+                sessionStorage.setItem('elegant_autostart', '1');
+                console.log(`✅ [autoNext] 已设置自动启动标记`);
+
+                console.log(`🔄 [autoNext] 尝试方式1: location.assign()...`);
+                window.location.assign(targetUrl);
+
+                await this.sleep(500);
+                
+                if (window.location.href.includes(nextId)) {
+                    console.log(`✅ [autoNext] 跳转成功!`);
+                } else {
+                    console.warn(`⚠️ [autoNext] assign()未生效，尝试方式2: location.href...`);
+                    window.location.href = targetUrl;
+                    
+                    await this.sleep(500);
+                    
+                    if (!window.location.href.includes(nextId)) {
+                        console.error(`❌ [autoNext] 两种方式均失败，尝试点击DOM链接...`);
+                        const links = document.querySelectorAll('a[href*="node"]');
+                        for (const link of links) {
+                            if (link.href && link.href.includes(`nodeId=${nextId}`)) {
+                                console.log(`🔗 [autoNext] 找到下一节链接，点击...`);
+                                link.click();
+                                return;
+                            }
+                        }
+                        console.error(`❌ [autoNext] 所有跳转方式均失败，请手动切换下一节`);
+                        alert(`优雅大师: 自动跳转下一节失败(${nextId})，请手动点击下一节`);
+                    }
+                }
+            } catch (e) {
+                console.error(`❌ [autoNext] 异常:`, e.message);
+                alert(`自动下一节出错: ${e.message}`);
+            }
         }
 
         _extractStudyId(data) {
@@ -1382,6 +1547,57 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.bot = null;
             this.running = false;
             this.env = null;
+        }
+
+        async autoLogin() {
+            if (!location.pathname.includes('/login')) return false;
+            console.log('🔐 [AutoLogin] 检测到登录页，开始自动登录...');
+
+            const userEl = document.querySelector('input[name="username"], input[placeholder*="学号"], input[placeholder*="用户名"]');
+            const passEl = document.querySelector('input[name="password"], input[placeholder*="密码"], input[type="password"]');
+            const codeEl = document.querySelector('input[name="code"], input[placeholder*="验证码"]');
+            const codeImg = document.getElementById('codeImg');
+            const submitBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === '登录');
+
+            if (!userEl || !passEl || !codeEl) {
+                console.error('❌ [AutoLogin] 登录表单元素不完整', { user: !!userEl, pass: !!passEl, code: !!codeEl });
+                return false;
+            }
+
+            const credentials = this._getCredentials();
+            userEl.value = credentials.username;
+            passEl.value = credentials.password;
+            console.log(`🔐 [AutoLogin] 账号已填写: ${credentials.username}`);
+
+            if (!codeImg) {
+                submitBtn?.click();
+                return true;
+            }
+
+            const ocrEngine = new OCREngine(this.config);
+            const success = await ocrEngine.solveWithRetry(
+                () => document.getElementById('codeImg'),
+                (code) => { codeEl.value = code; },
+                async () => {
+                    submitBtn?.click();
+                    await new Promise(r => setTimeout(r, 3000));
+                    return !location.pathname.includes('/login');
+                }
+            );
+
+            if (success) {
+                console.log('✅ [AutoLogin] 登录成功！');
+                return true;
+            } else {
+                alert('优雅大师: 自动登录失败（验证码识别失败），请手动输入验证码');
+                return false;
+            }
+        }
+
+        _getCredentials() {
+            const saved = JSON.parse(localStorage.getItem('elegant_credentials') || '{}');
+            if (saved.username && saved.password) return saved;
+            return { username: '', password: '' };
         }
 
         async start() {
@@ -1484,6 +1700,27 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
         window.MasterEngine = engine;
         window.ElegantConfig = configMgr;
+
+        if (location.pathname.includes('/login')) {
+            console.log('🔐 [Init] 检测到登录页，启动自动登录...');
+            const userEl = document.querySelector('input[placeholder*="学号"], input[placeholder*="用户名"]');
+            const passEl = document.querySelector('input[placeholder*="密码"], input[type="password"]');
+            if (userEl && passEl && userEl.value && passEl.value) {
+                localStorage.setItem('elegant_credentials', JSON.stringify({ username: userEl.value, password: passEl.value }));
+            }
+            const loggedIn = await engine.autoLogin();
+            if (loggedIn) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                const newEnv = engine.detectEnvironment();
+                if (newEnv) {
+                    ui.updateStatus(newEnv.nodeId, newEnv.duration, 0, '待机');
+                    const autoNextEnabled = configMgr.get('autoNext.enabled', false);
+                    if (autoNextEnabled) { setTimeout(() => engine.start(), 2000); return; }
+                }
+            } else {
+                ui.updateStatus(null, null, null, '需手动登录');
+            }
+        }
 
         const env = engine.detectEnvironment();
         if (env) {

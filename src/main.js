@@ -1,7 +1,7 @@
 
 (function() {
 
-const ELEGANT_VERSION = 'v3.1-six-tier-ocr';
+const ELEGANT_VERSION = 'v3.3-autologin';
 
 // == GM API 兼容层 ==
 const _GM_getValue  = typeof GM_getValue !== 'undefined'  ? GM_getValue  : window.GM_getValue;
@@ -18,9 +18,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
     const DEFAULTS = {
         speed: { mode: 'normal', reportInterval: 2000, jumpSize: 30 },
-        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'K88766094088957' },
+        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'REDACTED_OCRSPACE_KEY' },
         autoNext: { enabled: true, delay: 2000 },
-        completion: { targetPercent: 0.95 }
+        completion: { targetPercent: 0.95 },
+        antiCheat: { randomJitter: 300 }
     };
 
     class ConfigManager {
@@ -173,14 +174,15 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const apiKey = this.ocrConfig.ocrspace.apiKey;
             console.log(`[OCR.space] 调用API (key: ${apiKey.substring(0, 6)}...)`);
             
-            const res = await this._gmFetch(this.ocrConfig.endpoint, {
+            const fullDataUrl = 'data:image/png;base64,' + base64Raw;
+            const res = await this._gmFetch(this.ocrConfig.ocrspace.endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `apikey=${encodeURIComponent(apiKey)}&language=eng&isOverlayRequired=false&base64Image=${encodeURIComponent(base64Raw)}`
+                body: `apikey=${encodeURIComponent(apiKey)}&language=eng&isOverlayRequired=false&base64Image=${encodeURIComponent(fullDataUrl)}`
             });
             
             const obj = JSON.parse(res);
-            if (obj.IsErrored) throw new Error(`OCR.space错误: ${obj.ErrorMessage || obj.ErrorMessage || '未知'}`);
+            if (obj.IsErrored) throw new Error(`OCR.space错误: ${obj.ErrorMessage || '未知'}`);
             if (!obj.ParsedResults || !obj.ParsedResults[0]) throw new Error('OCR.space无返回结果');
             const text = obj.ParsedResults[0].ParsedText || '';
             console.log(`[OCR.space] 原始: "${text}"`);
@@ -253,7 +255,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return words.map(w => w.words).join('');
         }
 
-        // ==================== Tier 2: 腾讯云 OCR (最小化TC3签名) ====================
+        // ==================== Tier 3: 腾讯云 OCR (最小化TC3签名) ====================
         async _tryTencentCloud(base64) {
             const cfg = this.ocrConfig.tencent;
             const action = 'GeneralBasicOCR';
@@ -318,7 +320,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
         }
 
-        // ==================== Tier 3: Puter.js (无Key云兜底) ====================
+        // ==================== Tier 4: Puter.js (无Key云兜底) ====================
         async _tryPuter(dataUrl) {
             if (typeof puter === 'undefined') {
                 console.log('[Puter] 加载 Puter.js...');
@@ -332,7 +334,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return text;
         }
 
-        // ==================== Tier 4: Tesseract.js (本地离线增强版) ====================
+        // ==================== Tier 5: Tesseract.js (本地离线增强版) ====================
         async _tryTesseract(imgElement, scaled) {
             if (typeof Tesseract === 'undefined') {
                 console.log('[Tesseract] 加载 Tesseract.js...');
@@ -372,7 +374,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return text2 || text1 || null;
         }
 
-        // ==================== Tier 5: GLM-4V-Flash (视觉模型终极兜底) ====================
+        // ==================== Tier 6: GLM-4V-Flash (视觉模型终极兜底) ====================
         async _tryGLM4V(dataUrl, base64) {
             const apiKey = this.ocrConfig.glm4v.apiKey;
             if (!apiKey) throw new Error('GLM-4V-Flash 未配置API Key');
@@ -775,7 +777,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 let expanded = true;
                 toggleBtn.onclick = () => {
                     expanded = !expanded;
-                    if (this.elements.contentWrapper) this.elements.contentWrapper.style.display = expanded ? 'block' : 'none';
+                    if (this.elements.contentWrapper) this.elements.contentWrapper.display = expanded ? 'block' : 'none';
                     if (this.elements.footer) this.elements.footer.style.display = expanded ? 'flex' : 'none';
                     toggleBtn.textContent = expanded ? '收起' : '展开';
                 };
@@ -1155,12 +1157,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
 
             const jumpSize = this.config.get('speed.jumpSize', 30);
-            const interval = this.config.get('speed.reportInterval', 2000);
+            let interval = this.config.get('speed.reportInterval', 2000);
             const targetPercent = this.config.get('completion.targetPercent', 0.95);
             const target = Math.floor(this.env.duration * targetPercent);
             const loops = Math.ceil(target / jumpSize);
 
-            console.log(`⚡ 上报: ${loops}次, 间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%, 已成功${apiSuccessCount}次`);
+            const randomJitter = this.config.get('antiCheat.randomJitter', 300);
+
+            console.log(`⚡ 上报: ${loops}次, 基础间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%, 抖动±${randomJitter}ms`);
 
             let captchaFailCount = 0;
             const maxCaptchaFails = 5;
@@ -1223,7 +1227,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, pct, '运行中');
 
                 if (i < loops - 1 && this.running) {
-                    await this.sleep(interval);
+                    const jitter = (Math.random() - 0.5) * 2 * randomJitter;
+                    await this.sleep(Math.max(interval + jitter, 500));
                 }
             }
 
@@ -1239,7 +1244,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
 
             const elapsed = (Date.now() - this.startTime) / 1000;
-            
+
             if (apiSuccessCount > 0) {
                 console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 成功上报${apiSuccessCount}次, 最终studyId: ${lastStudyId}, 记录: ${this.env.duration}秒`);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
@@ -1294,12 +1299,48 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
         async autoNext() {
             const delay = this.config.get('autoNext.delay', 2000);
+            console.log(`⏳ [autoNext] 等待${delay}ms后跳转下一节...`);
             await this.sleep(delay);
-            const nextId = (parseInt(this.env.nodeId) + 1).toString();
-            const targetUrl = location.pathname + '?nodeId=' + nextId;
-            console.log(`➡️  自动下一节: ${targetUrl}`);
-            sessionStorage.setItem('elegant_autostart', '1');
-            window.location.assign(targetUrl);
+
+            try {
+                const nextId = (parseInt(this.env.nodeId) + 1).toString();
+                const targetUrl = location.pathname + '?nodeId=' + nextId;
+                console.log(`➡️  [autoNext] 目标URL: ${targetUrl}`);
+                
+                sessionStorage.setItem('elegant_autostart', '1');
+                console.log(`✅ [autoNext] 已设置自动启动标记`);
+
+                console.log(`🔄 [autoNext] 尝试方式1: location.assign()...`);
+                window.location.assign(targetUrl);
+
+                await this.sleep(500);
+                
+                if (window.location.href.includes(nextId)) {
+                    console.log(`✅ [autoNext] 跳转成功!`);
+                } else {
+                    console.warn(`⚠️ [autoNext] assign()未生效，尝试方式2: location.href...`);
+                    window.location.href = targetUrl;
+                    
+                    await this.sleep(500);
+                    
+                    if (!window.location.href.includes(nextId)) {
+                        console.error(`❌ [autoNext] 两种方式均失败，尝试点击DOM链接...`);
+                        const links = document.querySelectorAll('a[href*="node"]');
+                        for (const link of links) {
+                            if (link.href && link.href.includes(`nodeId=${nextId}`)) {
+                                console.log(`🔗 [autoNext] 找到下一节链接，点击...`);
+                                link.click();
+                                return;
+                            }
+                        }
+                        console.error(`❌ [autoNext] 所有跳转方式均失败，请手动切换下一节`);
+                        alert(`优雅大师: 自动跳转下一节失败(${nextId})，请手动点击下一节`);
+                    }
+                }
+            } catch (e) {
+                console.error(`❌ [autoNext] 异常:`, e.message);
+                alert(`自动下一节出错: ${e.message}`);
+            }
         }
 
         _extractStudyId(data) {
@@ -1382,6 +1423,57 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.bot = null;
             this.running = false;
             this.env = null;
+        }
+
+        async autoLogin() {
+            if (!location.pathname.includes('/login')) return false;
+            console.log('🔐 [AutoLogin] 检测到登录页，开始自动登录...');
+
+            const userEl = document.querySelector('input[name="username"], input[placeholder*="学号"], input[placeholder*="用户名"]');
+            const passEl = document.querySelector('input[name="password"], input[placeholder*="密码"], input[type="password"]');
+            const codeEl = document.querySelector('input[name="code"], input[placeholder*="验证码"]');
+            const codeImg = document.getElementById('codeImg');
+            const submitBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === '登录');
+
+            if (!userEl || !passEl || !codeEl) {
+                console.error('❌ [AutoLogin] 登录表单元素不完整', { user: !!userEl, pass: !!passEl, code: !!codeEl });
+                return false;
+            }
+
+            const credentials = this._getCredentials();
+            userEl.value = credentials.username;
+            passEl.value = credentials.password;
+            console.log(`🔐 [AutoLogin] 账号已填写: ${credentials.username}`);
+
+            if (!codeImg) {
+                submitBtn?.click();
+                return true;
+            }
+
+            const ocrEngine = new OCREngine(this.config);
+            const success = await ocrEngine.solveWithRetry(
+                () => document.getElementById('codeImg'),
+                (code) => { codeEl.value = code; },
+                async () => {
+                    submitBtn?.click();
+                    await new Promise(r => setTimeout(r, 3000));
+                    return !location.pathname.includes('/login');
+                }
+            );
+
+            if (success) {
+                console.log('✅ [AutoLogin] 登录成功！');
+                return true;
+            } else {
+                alert('优雅大师: 自动登录失败（验证码识别失败），请手动输入验证码');
+                return false;
+            }
+        }
+
+        _getCredentials() {
+            const saved = JSON.parse(localStorage.getItem('elegant_credentials') || '{}');
+            if (saved.username && saved.password) return saved;
+            return { username: '', password: '' };
         }
 
         async start() {
@@ -1484,6 +1576,27 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
         window.MasterEngine = engine;
         window.ElegantConfig = configMgr;
+
+        if (location.pathname.includes('/login')) {
+            console.log('🔐 [Init] 检测到登录页，启动自动登录...');
+            const userEl = document.querySelector('input[placeholder*="学号"], input[placeholder*="用户名"]');
+            const passEl = document.querySelector('input[placeholder*="密码"], input[type="password"]');
+            if (userEl && passEl && userEl.value && passEl.value) {
+                localStorage.setItem('elegant_credentials', JSON.stringify({ username: userEl.value, password: passEl.value }));
+            }
+            const loggedIn = await engine.autoLogin();
+            if (loggedIn) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                const newEnv = engine.detectEnvironment();
+                if (newEnv) {
+                    ui.updateStatus(newEnv.nodeId, newEnv.duration, 0, '待机');
+                    const autoNextEnabled = configMgr.get('autoNext.enabled', false);
+                    if (autoNextEnabled) { setTimeout(() => engine.start(), 2000); return; }
+                }
+            } else {
+                ui.updateStatus(null, null, null, '需手动登录');
+            }
+        }
 
         const env = engine.detectEnvironment();
         if (env) {
