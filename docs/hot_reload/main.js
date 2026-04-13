@@ -1,6 +1,8 @@
 
 (function() {
 
+const ELEGANT_VERSION = 'v2.0-hotreload';
+
 // == GM API 兼容层 ==
 const _GM_getValue  = typeof GM_getValue !== 'undefined'  ? GM_getValue  : window.GM_getValue;
 const _GM_setValue  = typeof GM_setValue !== 'undefined'  ? GM_setValue  : window.GM_setValue;
@@ -1210,6 +1212,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
     // ==================== 初始化 ====================
     async function init() {
+        console.log(`🌟 优雅大师 ${ELEGANT_VERSION} 初始化中...`);
         await new Promise(resolve => {
             if (document.readyState === 'complete') resolve();
             else window.addEventListener('load', resolve);
