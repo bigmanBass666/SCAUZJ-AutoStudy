@@ -18,7 +18,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
     const DEFAULTS = {
         speed: { mode: 'normal', reportInterval: 2000, jumpSize: 30 },
-        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'K88766094088957' },
+        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: '' },
         autoNext: { enabled: true, delay: 2000 },
         completion: { targetPercent: 0.95 }
     };
@@ -180,7 +180,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             });
             
             const obj = JSON.parse(res);
-            if (obj.IsErrored) throw new Error(`OCR.space错误: ${obj.ErrorMessage || obj.ErrorMessage || '未知'}`);
+            if (obj.IsErrored) throw new Error(`OCR.space错误: ${obj.ErrorMessage || '未知'}`);
             if (!obj.ParsedResults || !obj.ParsedResults[0]) throw new Error('OCR.space无返回结果');
             const text = obj.ParsedResults[0].ParsedText || '';
             console.log(`[OCR.space] 原始: "${text}"`);
@@ -253,7 +253,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return words.map(w => w.words).join('');
         }
 
-        // ==================== Tier 2: 腾讯云 OCR (最小化TC3签名) ====================
+        // ==================== Tier 3: 腾讯云 OCR (最小化TC3签名) ====================
         async _tryTencentCloud(base64) {
             const cfg = this.ocrConfig.tencent;
             const action = 'GeneralBasicOCR';
@@ -318,7 +318,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
         }
 
-        // ==================== Tier 3: Puter.js (无Key云兜底) ====================
+        // ==================== Tier 4: Puter.js (无Key云兜底) ====================
         async _tryPuter(dataUrl) {
             if (typeof puter === 'undefined') {
                 console.log('[Puter] 加载 Puter.js...');
@@ -332,7 +332,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return text;
         }
 
-        // ==================== Tier 4: Tesseract.js (本地离线增强版) ====================
+        // ==================== Tier 5: Tesseract.js (本地离线增强版) ====================
         async _tryTesseract(imgElement, scaled) {
             if (typeof Tesseract === 'undefined') {
                 console.log('[Tesseract] 加载 Tesseract.js...');
@@ -372,7 +372,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return text2 || text1 || null;
         }
 
-        // ==================== Tier 5: GLM-4V-Flash (视觉模型终极兜底) ====================
+        // ==================== Tier 6: GLM-4V-Flash (视觉模型终极兜底) ====================
         async _tryGLM4V(dataUrl, base64) {
             const apiKey = this.ocrConfig.glm4v.apiKey;
             if (!apiKey) throw new Error('GLM-4V-Flash 未配置API Key');
@@ -775,7 +775,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 let expanded = true;
                 toggleBtn.onclick = () => {
                     expanded = !expanded;
-                    if (this.elements.contentWrapper) this.elements.contentWrapper.style.display = expanded ? 'block' : 'none';
+                    if (this.elements.contentWrapper) this.elements.contentWrapper.display = expanded ? 'block' : 'none';
                     if (this.elements.footer) this.elements.footer.style.display = expanded ? 'flex' : 'none';
                     toggleBtn.textContent = expanded ? '收起' : '展开';
                 };
