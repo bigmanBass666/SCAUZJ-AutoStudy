@@ -1215,19 +1215,29 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         updateStatus(nodeId, duration, progress, status) {
             if (nodeId) this._lastNodeId = nodeId;
             if (duration) this._lastDuration = duration;
-            if (this.elements.statNode && this._lastNodeId) this.elements.statNode.textContent = this._lastNodeId;
-            if (this.elements.statDuration && this._lastDuration) this.elements.statDuration.textContent = this._lastDuration + 's';
-            if (this.elements.statProgress && progress !== null && progress !== undefined) {
-                this.elements.statProgress.textContent = progress + '%';
+
+            const nodeEl = this.elements.statNode || document.getElementById('stat-node');
+            const durEl = this.elements.statDuration || document.getElementById('stat-duration');
+            const progEl = this.elements.statProgress || document.getElementById('stat-progress');
+            const statusEl = this.elements.statStatus || document.getElementById('stat-status');
+            const barEl = this.elements.progressBarFill || document.getElementById('progress-bar-fill');
+
+            if (nodeEl && this._lastNodeId) nodeEl.textContent = this._lastNodeId;
+            if (durEl && this._lastDuration) durEl.textContent = this._lastDuration + 's';
+            if (progEl && progress !== null && progress !== undefined) {
+                progEl.textContent = Math.round(progress) + '%';
             }
-            if (this.elements.progressBarFill && progress !== null && progress !== undefined) {
-                this.elements.progressBarFill.style.width = Math.min(progress, 100) + '%';
+            if (barEl && progress !== null && progress !== undefined) {
+                barEl.style.width = Math.min(progress, 100) + '%';
             }
-            if (this.elements.statStatus && status) {
-                this.elements.statStatus.textContent = status;
+            if (statusEl && status) {
+                statusEl.textContent = status;
                 const colors = { '运行中': '#4CAF50', '待机': '#2196F3', '错误': '#f44336', '完成': '#FF9800', '暂停': '#FF9800' };
-                this.elements.statStatus.style.color = colors[status] || '#333';
+                statusEl.style.color = colors[status] || '#333';
             }
+
+            if (!this.elements.statNode && nodeEl) this.elements.statNode = nodeEl;
+            if (!this.elements.statDuration && durEl) this.elements.statDuration = durEl;
         }
 
         showSettingsModal() {
@@ -1578,62 +1588,93 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             try {
                 const nextId = (parseInt(this.env.nodeId) + 1).toString();
                 const targetUrl = location.pathname + '?nodeId=' + nextId;
-                console.log(`➡️  [autoNext] 目标URL: ${targetUrl}`);
-                
+                console.log(`➡️  [autoNext] 目标URL: ${targetUrl}, 当前URL: ${location.href}`);
+
                 sessionStorage.setItem('elegant_autostart', '1');
                 console.log(`✅ [autoNext] 已设置自动启动标记`);
 
-                console.log(`🔄 [autoNext] 尝试方式1: location.assign()...`);
-                window.location.assign(targetUrl);
+                const links = document.querySelectorAll('a[href*="node"]');
+                let foundDomLink = false;
+                for (const link of links) {
+                    if (link.href && link.href.includes(`nodeId=${nextId}`)) {
+                        console.log(`🔗 [autoNext] 方式1: 找到DOM链接，点击跳转 -> ${link.href}`);
+                        link.click();
+                        foundDomLink = true;
+                        break;
+                    }
+                }
 
-                await this.sleep(500);
-                
-                if (window.location.href.includes(nextId)) {
-                    console.log(`✅ [autoNext] 跳转成功!`);
+                if (!foundDomLink) {
+                    console.log(`🔗 [autoNext] 未找到DOM链接，生成虚拟链接点击...`);
+                    const a = document.createElement('a');
+                    a.href = targetUrl;
+                    a.id = 'elegant-auto-next-link';
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    await this.sleep(200);
+                    if (a.parentNode) a.remove();
+                }
+
+                await this.sleep(800);
+
+                if (location.href.includes(nextId)) {
+                    console.log(`✅ [autoNext] 跳转成功! 新URL: ${location.href}`);
                 } else {
-                    console.warn(`⚠️ [autoNext] assign()未生效，尝试方式2: location.href...`);
-                    window.location.href = targetUrl;
-                    
-                    await this.sleep(500);
-                    
-                    if (!window.location.href.includes(nextId)) {
-                        console.error(`❌ [autoNext] 两种方式均失败，尝试点击DOM链接...`);
-                        const links = document.querySelectorAll('a[href*="node"]');
-                        for (const link of links) {
-                            if (link.href && link.href.includes(`nodeId=${nextId}`)) {
-                                console.log(`🔗 [autoNext] 找到下一节链接，点击...`);
-                                link.click();
-                                return;
-                            }
+                    console.warn(`⚠️ [autoNext] 链接点击未生效，尝试 location.assign()...`);
+                    try {
+                        if (typeof unsafeWindow !== 'undefined') {
+                            unsafeWindow.location.assign(targetUrl);
+                        } else {
+                            window.location.assign(targetUrl);
                         }
-                        console.error(`❌ [autoNext] 所有跳转方式均失败，请手动切换下一节`);
-                        alert(`优雅大师: 自动跳转下一节失败(${nextId})，请手动点击下一节`);
+                    } catch(e) {
+                        console.warn(`⚠️ [autoNext] assign()异常: ${e.message}, 尝试 location.href...`);
+                        window.location.href = targetUrl;
+                    }
+
+                    await this.sleep(800);
+
+                    if (!window.location.href.includes(nextId)) {
+                        console.error(`❌ [autoNext] 所有跳转方式均失败`);
+                        console.error(`❌ [autoNext] 期望包含: ${nextId}, 实际: ${location.href}`);
+                        alert(`优雅大师: 自动跳转下一节失败(${nextId})，请手动点击课程目录中的下一节`);
                     }
                 }
             } catch (e) {
-                console.error(`❌ [autoNext] 异常:`, e.message);
+                console.error(`❌ [autoNext] 异常:`, e.message, e.stack);
                 alert(`自动下一节出错: ${e.message}`);
             }
         }
 
         _extractStudyId(data) {
-            if (!data) return null;
-            if (typeof data === 'string') return data;
+            if (!data) {
+                console.warn('[ExtractStudyId] data为空:', typeof data, data);
+                return null;
+            }
+            if (typeof data === 'string') {
+                if (data.length > 0) return data;
+                return null;
+            }
             if (data.studyId) return data.studyId;
             if (data.data) {
-                if (typeof data.data === 'string') return data.data;
-                if (data.data.studyId) return data.data.studyId;
+                if (typeof data.data === 'string' && data.data.length > 0) return data.data;
+                if (data.data && data.data.studyId) return data.data.studyId;
             }
             if (data.result) {
-                if (typeof data.result === 'string') return data.result;
-                if (data.result.studyId) return data.result.studyId;
+                if (typeof data.result === 'string' && data.result.length > 0) return data.result;
+                if (data.result && data.result.studyId) return data.result.studyId;
             }
+            if (data.id) return String(data.id);
+            if (data.session_id) return data.session_id;
+            if (data.sessionId) return data.sessionId;
             for (const key of Object.keys(data)) {
                 const val = data[key];
-                if (typeof val === 'string' && val.length > 10 && val.length < 50) {
+                if (typeof val === 'string' && val.length > 5 && val.length < 100 && /^[a-zA-Z0-9_-]+$/.test(val)) {
                     return val;
                 }
             }
+            console.warn('[ExtractStudyId] 无法从数据中提取studyId, keys:', Object.keys(data));
             return null;
         }
 
@@ -1849,6 +1890,19 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
         window.MasterEngine = engine;
         window.ElegantConfig = configMgr;
+
+        try {
+            if (typeof unsafeWindow !== 'undefined') {
+                unsafeWindow.MasterEngine = engine;
+                unsafeWindow.ElegantConfig = configMgr;
+                console.log('[Init] ✅ 已通过unsafeWindow暴露到页面');
+            }
+        } catch(e) {
+            console.warn('[Init] ⚠️ unsafeWindow不可用:', e.message);
+        }
+
+        document.documentElement.setAttribute('data-elegant-master', 'loaded');
+        console.log('[Init] ✅ 优雅大师就绪, nodeId检测:', !!engine.env);
 
         if (location.pathname.includes('/login')) {
             console.log('🔐 [Init] 检测到登录页，启动自动登录...');
