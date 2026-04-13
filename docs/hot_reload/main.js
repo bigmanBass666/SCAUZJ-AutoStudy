@@ -1,7 +1,7 @@
 
 (function() {
 
-const ELEGANT_VERSION = 'v2.0-hotreload';
+const ELEGANT_VERSION = 'v2.2-manual-captcha-fallback';
 
 // == GM API 兼容层 ==
 const _GM_getValue  = typeof GM_getValue !== 'undefined'  ? GM_getValue  : window.GM_getValue;
@@ -894,7 +894,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             this.ui.updateStatus(this.env.nodeId, this.env.duration, 0, '运行中');
 
+            let apiSuccessCount = 0;
+            let lastStudyId = null;
+
             const init = await this.api.study(1);
+            console.log('[API] 初始调用原始响应:', JSON.stringify(init));
             if (!init.ok) {
                 if (init.needCode) {
                     console.warn('⚠️ 需要验证码，尝试自动识别...');
@@ -902,18 +906,25 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     if (code) {
                         this.api._captchaCode = code;
                         const retryRes = await this.api.study(1, null, code);
+                        console.log('[API] 验证码重试原始响应:', JSON.stringify(retryRes));
                         if (retryRes.ok) {
                             this.studyId = this._extractStudyId(retryRes.data);
+                            lastStudyId = this.studyId;
+                            apiSuccessCount++;
                             console.log('✅ 验证码通过！会话:', this.studyId);
                         } else {
                             console.warn('⚠️ 验证码验证失败:', retryRes.error);
                         }
+                    } else {
+                        console.warn('⚠️ 验证码识别失败，无法启动');
                     }
                 } else {
-                    console.warn('⚠️ 初始化上报失败，继续执行:', init.error);
+                    console.warn('⚠️ 初始化上报失败:', init.error);
                 }
             } else {
                 this.studyId = this._extractStudyId(init.data);
+                lastStudyId = this.studyId;
+                apiSuccessCount++;
                 console.log('✅ 会话:', this.studyId, '| 原始响应:', JSON.stringify(init.data).substring(0, 300));
             }
 
@@ -923,7 +934,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const target = Math.floor(this.env.duration * targetPercent);
             const loops = Math.ceil(target / jumpSize);
 
-            console.log(`⚡ 上报: ${loops}次, 间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%`);
+            console.log(`⚡ 上报: ${loops}次, 间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%, 已成功${apiSuccessCount}次`);
 
             let captchaFailCount = 0;
             const maxCaptchaFails = 5;
@@ -946,9 +957,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         if (code) {
                             this.api._captchaCode = code;
                             const retryRes = await this.api.study(time, this.studyId, code);
+                            console.log(`[API] 验证码重试(time=${time}):`, JSON.stringify(retryRes));
                             if (retryRes.ok) {
                                 this.studyId = this._extractStudyId(retryRes.data) || this.studyId;
-                                console.log('✅ 验证码通过，继续上报');
+                                if (this.studyId) lastStudyId = this.studyId;
+                                apiSuccessCount++;
+                                console.log('✅ 验证码通过，继续上报 (累计成功:', apiSuccessCount, ')');
                                 captchaFailCount = 0;
                             } else {
                                 console.warn('⚠️ 验证码验证失败:', retryRes.error);
@@ -964,15 +978,18 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         continue;
                     }
                     if (res.error && res.error.includes('学时')) {
-                        console.warn('上报失败，回退重试');
+                        console.warn('⚠️ 上报失败，回退重试');
                         i--;
                         await this.sleep(3000);
                         continue;
                     }
+                    console.warn(`⚠️ 上报异常(${time}s):`, res.error);
                 } else {
                     captchaFailCount = 0;
+                    apiSuccessCount++;
                     if (!this.studyId && res.data) {
                         this.studyId = this._extractStudyId(res.data) || this.studyId;
+                        if (this.studyId) lastStudyId = this.studyId;
                     }
                 }
 
@@ -984,56 +1001,164 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 }
             }
 
-            const finalRes = await this.api.study(this.env.duration, this.studyId);
-            if (finalRes.ok && !this.studyId) {
-                this.studyId = this._extractStudyId(finalRes.data) || this.studyId;
+            const finalTime = this.env.duration;
+            const finalRes = await this.api.study(finalTime, this.studyId);
+            console.log(`[API] 最终调用(${finalTime}s):`, JSON.stringify(finalRes));
+            if (finalRes.ok) {
+                apiSuccessCount++;
+                if (!this.studyId && finalRes.data) {
+                    this.studyId = this._extractStudyId(finalRes.data) || this.studyId;
+                    if (this.studyId) lastStudyId = this.studyId;
+                }
             }
 
             const elapsed = (Date.now() - this.startTime) / 1000;
-            console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 记录: ${this.env.duration}秒`);
-            this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
-
-            if (this.config.get('autoNext.enabled', true)) {
-                await this.autoNext();
+            
+            if (apiSuccessCount > 0) {
+                console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 成功上报${apiSuccessCount}次, 最终studyId: ${lastStudyId}, 记录: ${this.env.duration}秒`);
+                this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
+            } else {
+                console.error(`❌ 失败！所有${loops+1}次API调用均未成功, 耗时: ${elapsed.toFixed(1)}秒`);
+                this.ui.updateStatus(this._lastNodeId, this._lastDuration, 0, '失败');
             }
 
-            return true;
+            if (apiSuccessCount > 0 && this.config.get('autoNext.enabled', true)) {
+                await this.autoNext();
+            } else if (apiSuccessCount === 0) {
+                console.error('❌ 本节点全部失败，不自动跳转下一节');
+            }
+
+            return apiSuccessCount > 0;
         }
 
-        async checkCaptcha() {
+        async checkCaptcha(attempt = 1) {
             const captchaImg = document.querySelector('#codeImg, img[src*="/service/code"]');
             if (!captchaImg) return null;
 
-            console.log('🔍 发现验证码图片，4x缩放+六路预处理+反色识别中...');
+            console.log(`🔍 发现验证码图片 (第${attempt}次尝试)，开始识别...`);
             try {
                 const code = await this.ocrEngine.recognize(captchaImg);
                 if (code && code.length >= 3) {
-                    console.log('✅ 验证码识别结果:', code);
-
-                    const input = document.querySelector('input[placeholder*="验证码"], input[name*="code"], #yzm');
-                    if (input) {
-                        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                        nativeSetter.call(input, code);
-                        input.dispatchEvent(new Event('input', {bubbles: true}));
-                        input.dispatchEvent(new Event('change', {bubbles: true}));
-                        console.log('✅ 验证码已自动填入:', code);
-                    }
-
-                    const playBtn = document.querySelector('.layui-layer-btn0, [class*="layer-btn0"]');
-                    if (playBtn) playBtn.click();
-
-                    this._captchaCode = code;
+                    console.log('✅ 验证码OCR识别结果:', code);
+                    this._fillAndSubmitCaptcha(code);
                     return code;
-                } else {
-                    console.warn('⚠️ 验证码识别结果无效:', code);
-                    captchaImg.click();
-                    return null;
                 }
+                console.warn('⚠️ OCR识别结果无效:', code, '，尝试手动输入模式...');
             } catch (e) {
-                console.error('验证码识别失败:', e);
-                captchaImg.click();
-                return null;
+                console.warn('⚠️ OCR识别异常:', e.message, '，切换到手动输入模式...');
             }
+
+            return await this._manualCaptchaInput(captchaImg);
+        }
+
+        _fillAndSubmitCaptcha(code) {
+            const input = document.querySelector('input[placeholder*="验证码"], input[name*="code"], #yzm');
+            if (input) {
+                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                nativeSetter.call(input, code);
+                input.dispatchEvent(new Event('input', {bubbles: true}));
+                input.dispatchEvent(new Event('change', {bubbles: true}));
+                console.log('✅ 验证码已自动填入:', code);
+            }
+            const playBtn = document.querySelector('.layui-layer-btn0, [class*="layer-btn0"]');
+            if (playBtn) playBtn.click();
+            this._captchaCode = code;
+        }
+
+        async _manualCaptchaInput(captchaImg) {
+            return new Promise((resolve) => {
+                const existing = document.getElementById('elegant-captcha-manual');
+                if (existing) existing.remove();
+
+                const overlay = document.createElement('div');
+                overlay.id = 'elegant-captcha-manual';
+                overlay.style.cssText = `
+                    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.6); z-index: 2147483647;
+                    display: flex; align-items: center; justify-content: center;
+                `;
+
+                const box = document.createElement('div');
+                box.style.cssText = `
+                    background: white; border-radius: 16px; padding: 24px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center;
+                    max-width: 400px; width: 90%;
+                `;
+
+                const title = document.createElement('div');
+                title.textContent = '🔐 请输入验证码';
+                title.style.cssText = 'font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #333;';
+
+                const imgContainer = document.createElement('div');
+                imgContainer.style.cssText = 'margin-bottom: 12px; display: flex; justify-content: center;';
+                const bigImg = document.createElement('img');
+                bigImg.src = captchaImg.src;
+                bigImg.style.cssText = 'width: 180px; height: 80px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer;';
+                bigImg.onclick = () => { captchaImg.click(); setTimeout(() => { bigImg.src = captchaImg.src; }, 500); };
+                bigImg.title = '点击刷新验证码';
+                imgContainer.appendChild(bigImg);
+
+                const inputField = document.createElement('input');
+                inputField.type = 'text';
+                inputField.placeholder = '输入验证码...';
+                inputField.maxLength = 6;
+                inputField.style.cssText = `
+                    width: 100%; padding: 12px; font-size: 20px; text-align: center;
+                    border: 2px solid #667eea; border-radius: 8px; margin-bottom: 12px;
+                    letter-spacing: 4px; font-weight: bold; outline: none;
+                    box-sizing: border-box;
+                `;
+
+                const btnRow = document.createElement('div');
+                btnRow.style.cssText = 'display: flex; gap: 10px;';
+                
+                const submitBtn = document.createElement('button');
+                submitBtn.textContent = '✅ 确认';
+                submitBtn.style.cssText = 'flex: 1; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;';
+                
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = '❌ 取消';
+                cancelBtn.style.cssText = 'flex: 1; padding: 12px; background: #e0e0e0; color: #333; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;';
+
+                const hint = document.createElement('div');
+                hint.textContent = '💡 点击图片可刷新验证码';
+                hint.style.cssText = 'font-size: 12px; color: #888; margin-top: 8px;';
+
+                box.appendChild(title);
+                box.appendChild(imgContainer);
+                box.appendChild(inputField);
+                box.appendChild(btnRow);
+                box.appendChild(hint);
+                btnRow.appendChild(submitBtn);
+                btnRow.appendChild(cancelBtn);
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+
+                inputField.focus();
+
+                const cleanup = () => { overlay.remove(); };
+                
+                submitBtn.onclick = () => {
+                    const val = inputField.value.trim().toUpperCase();
+                    if (val.length >= 3) {
+                        cleanup();
+                        console.log('✅ 手动输入验证码:', val);
+                        this._fillAndSubmitCaptcha(val);
+                        resolve(val);
+                    }
+                };
+
+                cancelBtn.onclick = () => { cleanup(); resolve(null); };
+
+                inputField.onkeydown = (e) => {
+                    if (e.key === 'Enter') submitBtn.click();
+                    if (e.key === 'Escape') cancelBtn.click();
+                };
+
+                overlay.onclick = (e) => { if (e.target === overlay) cancelBtn.click(); };
+
+                console.log('⏳ 等待手动输入验证码...');
+            });
         }
 
         async autoNext() {
