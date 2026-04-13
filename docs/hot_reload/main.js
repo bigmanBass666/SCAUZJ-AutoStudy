@@ -1,7 +1,7 @@
 
 (function() {
 
-const ELEGANT_VERSION = 'v2.2-manual-captcha-fallback';
+const ELEGANT_VERSION = 'v3.0-full-auto-ocr';
 
 // == GM API 兼容层 ==
 const _GM_getValue  = typeof GM_getValue !== 'undefined'  ? GM_getValue  : window.GM_getValue;
@@ -60,26 +60,48 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
     }
 
-    // ==================== OCR 三重降级引擎 ====================
+    // ==================== OCR 五级全自动降级引擎 v3.0 ====================
+    // 红队原则: 全流程自主，无需人工干预
+    // 降级链: 百度OCR → 腾讯云OCR → Puter.js(无Key云) → Tesseract.js(本地) → GLM-4V-Flash(视觉模型)
     class OCREngine {
         constructor(configMgr) {
             this.config = configMgr;
-            this.apiKey = configMgr.get('ai.ocrSpaceKey', 'K88766094088957');
             this.THRESHOLDS = [80, 100, 120, 140, 160];
             this.SCALE_FACTOR = 4;
             this.maxRetries = 8;
+            this._baiduTokenCache = null;
+            this._baiduTokenExpire = 0;
+
+            this.ocrConfig = {
+                baidu: {
+                    apiKey: configMgr.get('ocr.baidu.apiKey', ''),
+                    secretKey: configMgr.get('ocr.baidu.secretKey', ''),
+                    endpoint: 'https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic'
+                },
+                tencent: {
+                    secretId: configMgr.get('ocr.tencent.secretId', ''),
+                    secretKey: configMgr.get('ocr.tencent.secretKey', ''),
+                    endpoint: 'https://ocr.tencentcloudapi.com',
+                    region: 'ap-guangzhou'
+                },
+                puter: { enabled: configMgr.get('ocr.puter.enabled', true) },
+                glm4v: {
+                    apiKey: configMgr.get('ai.apiKey', ''),
+                    endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+                }
+            };
         }
 
         async solveWithRetry(getCaptchaImg, fillInput, submitLogin) {
             for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-                console.log(`🔍 验证码识别尝试 ${attempt}/${this.maxRetries}`);
+                console.log(`🔍 [v3.0] 验证码识别尝试 ${attempt}/${this.maxRetries}`);
                 const imgElement = getCaptchaImg();
                 if (!imgElement) { console.warn('⚠️ 未找到验证码图片'); continue; }
 
                 try {
                     const code = await this.recognize(imgElement);
                     if (code && code.length >= 3) {
-                        console.log(`✅ 识别成功: ${code} (第${attempt}次尝试)`);
+                        console.log(`✅ [v3.0] 识别成功: ${code} (第${attempt}次尝试)`);
                         fillInput(code);
                         const loginOk = await submitLogin();
                         if (loginOk) return true;
@@ -94,259 +116,205 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 const captchaImg = document.getElementById('codeImg');
                 if (captchaImg) { captchaImg.click(); await new Promise(r => setTimeout(r, 1500)); }
             }
-            console.error(`❌ ${this.maxRetries}次尝试均失败，请手动输入`);
+            console.error(`❌ [v3.0] ${this.maxRetries}次尝试均失败（五级降级链耗尽）`);
             return false;
         }
 
         async recognize(imgElement) {
             if (!imgElement) throw new Error("未找到图片元素");
-            console.log("[OCR] 开始双重降级识别 (4x缩放+六路预处理+反色)...");
+            console.log("[OCR v3.0] 🚀 启动五级全自动降级链...");
 
             const scaled = this._extractScaled(imgElement);
             const base64Raw = scaled.canvas.toDataURL('image/png').split(',')[1];
             const base64Grayscale = this._preprocessGrayscale(scaled.canvas);
             const base64Inverted = this._preprocessInvert(scaled.canvas);
             const sixWayImages = this._sixWayPreprocess(scaled.canvas);
-            console.log(`[OCR] 原始${scaled.origW}x${scaled.origH} → 缩放${scaled.newW}x${scaled.newH}, 六路预处理+反色共${sixWayImages.length + 2}张图`);
+            const dataUrl = scaled.canvas.toDataURL('image/png');
+            console.log(`[OCR v3.0] 预处理完成: ${scaled.origW}x${scaled.origH} → ${scaled.newW}x${scaled.newH}, ${sixWayImages.length + 2}张变体`);
 
-            if (this.apiKey) {
+            const backends = [
+                { name: 'baidu', fn: () => this._tryBaidu(base64Raw, base64Grayscale, sixWayImages), enabled: this._isBaiduEnabled() },
+                { name: 'tencent', fn: () => this._tryTencentCloud(base64Raw), enabled: this._isTencentEnabled() },
+                { name: 'puter', fn: () => this._tryPuter(dataUrl), enabled: this.ocrConfig.puter.enabled },
+                { name: 'tesseract', fn: () => this._tryTesseract(imgElement, scaled), enabled: true },
+                { name: 'glm4v', fn: () => this._tryGLM4V(dataUrl, base64Raw), enabled: !!this.ocrConfig.glm4v.apiKey }
+            ];
+
+            for (const backend of backends) {
+                if (!backend.enabled) { console.log(`[OCR v3.0] ⏭️ ${backend.name}: 未配置，跳过`); continue; }
                 try {
-                    console.log("[OCR] 第一重: OCR.space (4x缩放+灰度+反色+六路预处理)...");
-                    const text = await this._tryOCRSpace(base64Raw, base64Grayscale, base64Inverted, sixWayImages);
-                    if (text) return this._cleanText(text);
-                } catch (e) {
-                    console.warn("[OCR] OCR.space 失败:", e.message);
-                }
-            } else {
-                console.log("[OCR] 未配置 OCR.space Key，跳过第一重");
-            }
-
-            try {
-                console.log("[OCR] 第二重: Tesseract.js (本地离线)...");
-                const text = await this._tryTesseract(imgElement);
-                if (text) return this._cleanText(text);
-            } catch (e) {
-                console.error("[OCR] Tesseract.js 失败:", e.message);
-            }
-
-            throw new Error("所有 OCR 通道均识别失败");
-        }
-
-        _extractScaled(imgElement) {
-            const origW = imgElement.naturalWidth || imgElement.width || 90;
-            const origH = imgElement.naturalHeight || imgElement.height || 40;
-            const newW = origW * this.SCALE_FACTOR;
-            const newH = origH * this.SCALE_FACTOR;
-            const canvas = document.createElement('canvas');
-            canvas.width = newW;
-            canvas.height = newH;
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(imgElement, 0, 0, newW, newH);
-            return { canvas, origW, origH, newW, newH };
-        }
-
-        _preprocessGrayscale(sourceCanvas) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = sourceCanvas.width;
-            canvas.height = sourceCanvas.height;
-            ctx.drawImage(sourceCanvas, 0, 0);
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-                data[i] = data[i+1] = data[i+2] = gray;
-            }
-            ctx.putImageData(imgData, 0, 0);
-            return canvas.toDataURL('image/png').split(',')[1];
-        }
-
-        _preprocessInvert(sourceCanvas) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = sourceCanvas.width;
-            canvas.height = sourceCanvas.height;
-            ctx.drawImage(sourceCanvas, 0, 0);
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-                data[i] = data[i+1] = data[i+2] = 255 - gray;
-            }
-            ctx.putImageData(imgData, 0, 0);
-            return canvas.toDataURL('image/png').split(',')[1];
-        }
-
-        _sixWayPreprocess(sourceCanvas) {
-            const results = [];
-            const ctx = sourceCanvas.getContext('2d');
-            const origData = ctx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-            const w = sourceCanvas.width, h = sourceCanvas.height;
-
-            for (const threshold of this.THRESHOLDS) {
-                const imageData = new ImageData(w, h);
-                const data = imageData.data;
-                for (let i = 0; i < origData.data.length; i += 4) {
-                    const brightness = 0.299 * origData.data[i] + 0.587 * origData.data[i+1] + 0.114 * origData.data[i+2];
-                    const v = brightness > threshold ? 255 : 0;
-                    data[i] = data[i+1] = data[i+2] = v;
-                    data[i+3] = 255;
-                }
-                for (let y = 1; y < h - 1; y++) {
-                    for (let x = 1; x < w - 1; x++) {
-                        const idx = (y * w + x) * 4;
-                        if (data[idx] === 0) {
-                            let neighbors = 0;
-                            for (let dy = -1; dy <= 1; dy++) {
-                                for (let dx = -1; dx <= 1; dx++) {
-                                    if (dx === 0 && dy === 0) continue;
-                                    if (data[((y+dy)*w+(x+dx))*4] === 0) neighbors++;
-                                }
-                            }
-                            if (neighbors < 2) { data[idx] = data[idx+1] = data[idx+2] = 255; }
-                        }
+                    console.log(`[OCR v3.0] 🔄 尝试 [${backend.name}]...`);
+                    const text = await backend.fn();
+                    if (text && text.length >= 3 && text.length <= 6) {
+                        const cleaned = this._cleanText(text);
+                        console.log(`[OCR v3.0] ✅ [${backend.name}] 成功: "${cleaned}"`);
+                        return cleaned;
                     }
+                    console.warn(`[OCR v3.0] ⚠️ [${backend.name}] 结果无效: "${text}"`);
+                } catch (e) {
+                    console.warn(`[OCR v3.0] ❌ [${backend.name}] 失败: ${e.message}`);
                 }
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = w;
-                tempCanvas.height = h;
-                tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
-                results.push({ threshold, base64: tempCanvas.toDataURL('image/png').split(',')[1] });
             }
 
-            const invertedBinCanvas = document.createElement('canvas');
-            invertedBinCanvas.width = w;
-            invertedBinCanvas.height = h;
-            const invCtx = invertedBinCanvas.getContext('2d');
-            invCtx.drawImage(sourceCanvas, 0, 0);
-            const invData = invCtx.getImageData(0, 0, w, h);
-            const invPixels = invData.data;
-            for (let i = 0; i < invPixels.length; i += 4) {
-                const gray = 0.299 * invPixels[i] + 0.587 * invPixels[i+1] + 0.114 * invPixels[i+2];
-                const v = gray < 120 ? 255 : 0;
-                invPixels[i] = invPixels[i+1] = invPixels[i+2] = v;
-                invPixels[i+3] = 255;
-            }
-            invCtx.putImageData(invData, 0, 0);
-            results.push({ threshold: 'inv', base64: invertedBinCanvas.toDataURL('image/png').split(',')[1] });
-
-            return results;
+            throw new Error("[OCR v3.0] 所有五级后端均失败");
         }
 
-        _cleanText(text) {
-            if (!text) return "";
-            return text.replace(/[\s\n\r]/g, '').trim();
-        }
+        _isBaiduEnabled() { return !!(this.ocrConfig.baidu.apiKey && this.ocrConfig.baidu.secretKey); }
+        _isTencentEnabled() { return !!(this.ocrConfig.tencent.secretId && this.ocrConfig.tencent.secretKey); }
 
-        async _tryOCRSpace(base64Raw, base64Grayscale, base64Inverted, sixWayImages) {
-            const allResults = [];
+        // ==================== Tier 1: 百度 OCR ====================
+        async _tryBaidu(base64Raw, base64Grayscale, sixWayImages) {
+            const token = await this._getBaiduAccessToken();
             const candidates = [];
 
-            if (base64Raw) {
-                const rawResult = await this._callOCRSpace({ base64: base64Raw });
-                if (rawResult) {
-                    const cleaned = rawResult.replace(/[^a-zA-Z0-9]/g, '');
-                    if (cleaned.length >= 3 && cleaned.length <= 6) candidates.push(cleaned);
-                    allResults.push(rawResult);
-                }
-            }
-            if (base64Grayscale) {
-                const grayResult = await this._callOCRSpace({ base64: base64Grayscale });
-                if (grayResult) {
-                    const cleaned = grayResult.replace(/[^a-zA-Z0-9]/g, '');
-                    if (cleaned.length >= 3 && cleaned.length <= 6) candidates.push(cleaned);
-                    allResults.push(grayResult);
-                }
-            }
-
-            if (candidates.length >= 2) {
-                const same = candidates.every(c => c === candidates[0]);
-                if (same) {
-                    console.log(`[OCR] 原图+灰度交叉验证一致: ${candidates[0]}`);
-                    return candidates[0];
-                }
-            }
-
-            if (base64Inverted) {
-                const invResult = await this._callOCRSpace({ base64: base64Inverted });
-                if (invResult) {
-                    const cleaned = invResult.replace(/[^a-zA-Z0-9]/g, '');
-                    if (cleaned.length >= 3 && cleaned.length <= 6) {
-                        if (candidates.includes(cleaned)) {
-                            console.log(`[OCR] 反色与之前结果交叉验证: ${cleaned}`);
-                            return cleaned;
-                        }
-                        candidates.push(cleaned);
-                    }
-                    allResults.push(invResult);
-                }
-            }
-
-            for (const img of sixWayImages) {
-                console.log(`[OCR] OCR.space 六路预处理 t=${img.threshold}...`);
-                const result = await this._callOCRSpace({ base64: img.base64 });
+            const tryImage = async (b64, label) => {
+                const result = await this._baiduRequest(token, b64);
                 if (result) {
                     const cleaned = result.replace(/[^a-zA-Z0-9]/g, '');
                     if (cleaned.length >= 3 && cleaned.length <= 6) {
-                        if (candidates.includes(cleaned)) {
-                            console.log(`[OCR] 六路t=${img.threshold}与之前结果交叉验证: ${cleaned}`);
-                            return cleaned;
-                        }
+                        console.log(`[百度] ${label}: ${cleaned}`);
                         candidates.push(cleaned);
                     }
-                    allResults.push(result);
                 }
+                return result;
+            };
+
+            await tryImage(base64Raw, '原图');
+            if (base64Grayscale) await tryImage(base64Grayscale, '灰度');
+
+            for (const img of sixWayImages.slice(0, 3)) {
+                await tryImage(img.base64, `二值t=${img.threshold}`);
             }
 
+            if (candidates.length === 0) return null;
+            if (candidates.length === 1) return candidates[0];
             const freq = {};
-            for (const c of candidates) { freq[c] = (freq[c] || 0) + 1; }
-            let best = null, bestCount = 0;
+            for (const c of candidates) freq[c] = (freq[c] || 0) + 1;
+            let best = '', bestCount = 0;
             for (const [text, count] of Object.entries(freq)) {
                 if (count > bestCount) { best = text; bestCount = count; }
             }
-            if (best && bestCount >= 2) {
-                console.log(`[OCR] 多数投票结果: ${best} (${bestCount}次)`);
-                return best;
-            }
-
-            if (candidates.length > 0) return candidates[0];
-            for (const r of allResults) {
-                const cleaned = r.replace(/[^a-zA-Z0-9]/g, '');
-                if (cleaned.length >= 3) return cleaned;
-            }
-            return null;
+            console.log(`[百度] 多数投票: ${best} (${bestCount}/${candidates.length})`);
+            return bestCount >= 2 ? best : candidates[0];
         }
 
-        async _callOCRSpace({ base64 }) {
-            try {
-                const params = {
-                    apikey: this.apiKey,
-                    language: 'eng',
-                    isOverlayRequired: false,
-                    scale: true,
-                    OCREngine: 2
-                };
-                if (base64) params.base64Image = `data:image/png;base64,${base64}`;
-                else return null;
-                const res = await fetch('https://api.ocr.space/parse/image', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams(params).toString()
-                });
-                const data = await res.json();
-                if (data.IsErroredOnProcessing) return null;
-                return data.ParsedResults?.[0]?.ParsedText?.replace(/[\s\n\r]/g, '') || null;
-            } catch (e) { return null; }
+        async _getBaiduAccessToken() {
+            if (this._baiduTokenCache && Date.now() < this._baiduTokenExpire) return this._baiduTokenCache;
+            const cfg = this.ocrConfig.baidu;
+            const url = 'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=' +
+                encodeURIComponent(cfg.apiKey) + '&client_secret=' + encodeURIComponent(cfg.secretKey);
+
+            const res = await this._gmFetch(url, { method: 'GET' });
+            const obj = JSON.parse(res);
+            if (obj.error) throw new Error('百度token错误: ' + (obj.error_description || obj.error));
+            this._baiduTokenCache = obj.access_token;
+            this._baiduTokenExpire = Date.now() + (obj.expires_in - 300) * 1000;
+            console.log(`[百度] ✅ token获取成功, 有效期${Math.floor((obj.expires_in - 300) / 60)}分钟`);
+            return this._baiduTokenCache;
         }
 
-        async _tryTesseract(imgElement) {
+        async _baiduRequest(token, base64) {
+            const params = new URLSearchParams();
+            params.set('image', base64);
+            const cfg = this.ocrConfig.baidu;
+            const res = await this._gmFetch(cfg.endpoint + '?access_token=' + encodeURIComponent(token), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            });
+            const obj = JSON.parse(res);
+            if (obj.error_code) throw new Error(`百度OCR错误${obj.error_code}: ${obj.error_msg || ''}`);
+            const words = obj.words_result || [];
+            return words.map(w => w.words).join('');
+        }
+
+        // ==================== Tier 2: 腾讯云 OCR (最小化TC3签名) ====================
+        async _tryTencentCloud(base64) {
+            const cfg = this.ocrConfig.tencent;
+            const action = 'GeneralBasicOCR';
+            const version = '2018-11-19';
+            const timestamp = Math.floor(Date.now() / 1000);
+            const payload = { ImageBase64: base64 };
+            const body = JSON.stringify({ Action: action, Version: version, Region: cfg.region, ...payload });
+
+            const authorization = this._tc3Sign(cfg.secretId, cfg.secretKey, 'ocr.tencentcloudapi.com', timestamp, body);
+            const res = await this._gmFetch(cfg.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-TC-Action': action,
+                    'X-TC-Version': version,
+                    'X-TC-Timestamp': String(timestamp),
+                    'X-TC-Region': cfg.region,
+                    'Authorization': authorization
+                },
+                body: body
+            });
+
+            const obj = JSON.parse(res);
+            if (obj.Response?.Error) throw new Error(`腾讯云错误: ${obj.Response.Error.Message}`);
+            const list = obj.Response?.TextDetections || [];
+            return list.map(d => d.DetectedText).join('');
+        }
+
+        _tc3Sign(secretId, secretKey, service, timestamp, body) {
+            const algorithm = 'TC3-HMAC-SHA256';
+            const date = new Date(timestamp * 1000).toISOString().slice(0, 10).replace(/-/g, '');
+            const credentialScope = `${date}/${service}/tc3_request`;
+
+            const httpRequestMethod = 'POST';
+            const canonicalUri = '/';
+            const canonicalQuerystring = '';
+            const canonicalHeaders = 'content-type:application/json\nhost:' + service + '\nx-tc-action:GeneralBasicOCR\nx-tc-region:ap-guangzhou\nx-tc-timestamp:' + timestamp + '\nx-tc-version:2018-11-19\n';
+            const signedHeaders = 'content-type;host;x-tc-action;x-tc-region;x-tc-timestamp;x-tc-version';
+
+            const canonicalReq = httpRequestMethod + '\n' + canonicalUri + '\n' + canonicalQuerystring + '\n' +
+                canonicalHeaders + '\n' + signedHeaders + '\n' + this._sha256Hex(body);
+
+            const stringToSign = algorithm + '\n' + timestamp + '\n' + credentialScope + '\n' + this._sha256Hex(canonicalReq);
+
+            const secretDate = this._hmacSha256('TC3' + secretKey, date);
+            const secretService = this._hmacSha256(secretDate, service);
+            const secretSigning = this._hmacSha256(secretService, 'tc3_request');
+            const signature = this._hex(this._hmacSha256(secretSigning, stringToSign));
+
+            return algorithm + ' Credential=' + secretId + '/' + credentialScope +
+                ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
+        }
+
+        _sha256Hex(message) { return this._hex(new TextEncoder().encode(message)); }
+        _hex(buffer) { return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join(''); }
+
+        async _hmacSha256(key, message) {
+            const cryptoKey = await crypto.subtle.importKey(
+                'raw', typeof key === 'string' ? new TextEncoder().encode(key) : key,
+                { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+            );
+            return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
+        }
+
+        // ==================== Tier 3: Puter.js (无Key云兜底) ====================
+        async _tryPuter(dataUrl) {
+            if (typeof puter === 'undefined') {
+                console.log('[Puter] 加载 Puter.js...');
+                await this._loadScript('https://js.puter.com/v2/', 'Puter.js');
+            }
+            if (typeof puter === 'undefined' || !puter.ai || !puter.ai.img2txt) {
+                throw new Error('Puter.js 未加载或不可用');
+            }
+            const text = await puter.ai.img2txt(dataUrl);
+            if (!text || typeof text !== 'string') throw new Error('Puter 返回非字符串');
+            return text;
+        }
+
+        // ==================== Tier 4: Tesseract.js (本地离线增强版) ====================
+        async _tryTesseract(imgElement, scaled) {
             if (typeof Tesseract === 'undefined') {
+                console.log('[Tesseract] 加载 Tesseract.js...');
                 await this._loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', 'Tesseract.js');
             }
             if (typeof Tesseract === 'undefined') throw new Error("Tesseract.js 加载失败");
 
-            const scaled = this._extractScaled(imgElement);
             const worker = await Tesseract.createWorker('eng');
             const ret = await worker.recognize(scaled.canvas);
             await worker.terminate();
@@ -371,7 +339,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             const text1 = (ret.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
             const text2 = (ret2.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
-            console.log(`[OCR] Tesseract 原图: ${text1}, 二值化: ${text2}`);
+            console.log(`[Tesseract] 原图: "${text1}", 二值化: "${text2}"`);
 
             if (text1 === text2 && text1.length >= 3) return text1;
             if (text2.length >= 3 && text2.length <= 6) return text2;
@@ -379,13 +347,171 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             return text2 || text1 || null;
         }
 
+        // ==================== Tier 5: GLM-4V-Flash (视觉模型终极兜底) ====================
+        async _tryGLM4V(dataUrl, base64) {
+            const apiKey = this.ocrConfig.glm4v.apiKey;
+            if (!apiKey) throw new Error('GLM-4V-Flash 未配置API Key');
+
+            console.log('[GLM-4V] 调用视觉模型识别验证码...');
+            const res = await fetch(this.ocrConfig.glm4v.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + apiKey
+                },
+                body: JSON.stringify({
+                    model: 'glm-4v-flash',
+                    messages: [{
+                        role: 'user',
+                        content: [
+                            { type: 'text', text: '请只输出这张验证码图片中的字母和数字字符，不要包含任何其他文字、标点符号或解释。如果看不清就输出最可能的4个字符。' },
+                            { type: 'image_url', image_url: { url: dataUrl } }
+                        ]
+                    }],
+                    max_tokens: 20,
+                    temperature: 0.1
+                })
+            });
+
+            if (!res.ok) throw new Error(`GLM-4V HTTP ${res.status}`);
+
+            const data = await res.json();
+            const text = data.choices?.[0]?.message?.content?.trim() || '';
+            console.log(`[GLM-4V] 原始返回: "${text}"`);
+            return text.replace(/[^a-zA-Z0-9]/g, '');
+        }
+
+        // ==================== 预处理管线 (保留原有四路预处理) ====================
+        _extractScaled(imgElement) {
+            const origW = imgElement.naturalWidth || imgElement.width || 90;
+            const origH = imgElement.naturalHeight || imgElement.height || 40;
+            const newW = origW * this.SCALE_FACTOR;
+            const newH = origH * this.SCALE_FACTOR;
+            const canvas = document.createElement('canvas');
+            canvas.width = newW; canvas.height = newH;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(imgElement, 0, 0, newW, newH);
+            return { canvas, origW, origH, newW, newH };
+        }
+
+        _preprocessGrayscale(sourceCanvas) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = sourceCanvas.width; canvas.height = sourceCanvas.height;
+            ctx.drawImage(sourceCanvas, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                data[i] = data[i+1] = data[i+2] = gray;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas.toDataURL('image/png').split(',')[1];
+        }
+
+        _preprocessInvert(sourceCanvas) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = sourceCanvas.width; canvas.height = sourceCanvas.height;
+            ctx.drawImage(sourceCanvas, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                data[i] = data[i+1] = data[i+2] = 255 - gray;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas.toDataURL('image/png').split(',')[1];
+        }
+
+        _sixWayPreprocess(sourceCanvas) {
+            const results = [];
+            const ctx = sourceCanvas.getContext('2d');
+            const origData = ctx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+            const w = sourceCanvas.width, h = sourceCanvas.height;
+
+            for (const threshold of this.THRESHOLDS) {
+                const imageData = new ImageData(w, h);
+                const data = imageData.data;
+                for (let i = 0; i < origData.data.length; i += 4) {
+                    const brightness = 0.299 * origData.data[i] + 0.587 * origData.data[i+1] + 0.114 * origData.data[i+2];
+                    const v = brightness > threshold ? 255 : 0;
+                    data[i] = data[i+1] = data[i+2] = v; data[i+3] = 255;
+                }
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const idx = (y * w + x) * 4;
+                        if (data[idx] === 0) {
+                            let neighbors = 0;
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dx = -1; dx <= 1; dx++) {
+                                    if (dx === 0 && dy === 0) continue;
+                                    if (data[((y+dy)*w+(x+dx))*4] === 0) neighbors++;
+                                }
+                            }
+                            if (neighbors < 2) { data[idx] = data[idx+1] = data[idx+2] = 255; }
+                        }
+                    }
+                }
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = w; tempCanvas.height = h;
+                tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+                results.push({ threshold, base64: tempCanvas.toDataURL('image/png').split(',')[1] });
+            }
+
+            const invertedBinCanvas = document.createElement('canvas');
+            invertedBinCanvas.width = w; invertedBinCanvas.height = h;
+            const invCtx = invertedBinCanvas.getContext('2d');
+            invCtx.drawImage(sourceCanvas, 0, 0);
+            const invData = invCtx.getImageData(0, 0, w, h);
+            const invPixels = invData.data;
+            for (let i = 0; i < invPixels.length; i += 4) {
+                const gray = 0.299 * invPixels[i] + 0.587 * invPixels[i+1] + 0.114 * invPixels[i+2];
+                const v = gray < 120 ? 255 : 0;
+                invPixels[i] = invPixels[i+1] = invPixels[i+2] = v; invPixels[i+3] = 255;
+            }
+            invCtx.putImageData(invData, 0, 0);
+            results.push({ threshold: 'inv', base64: invertedBinCanvas.toDataURL('image/png').split(',')[1] });
+
+            return results;
+        }
+
+        _cleanText(text) {
+            if (!text) return "";
+            return text.replace(/[\s\n\r]/g, '').trim();
+        }
+
+        _gmFetch(url, options = {}) {
+            return new Promise((resolve, reject) => {
+                _GM_xmlhttpRequest({
+                    method: options.method || 'GET',
+                    url: url,
+                    headers: options.headers || {},
+                    data: options.body || undefined,
+                    onload: (res) => resolve(res.responseText),
+                    onerror: (err) => reject(new Error('GM请求失败: ' + (err.error || err.message || '未知'))),
+                    ontimeout: () => reject(new Error('GM请求超时')),
+                    timeout: options.timeout || 15000
+                });
+            });
+        }
+
         _loadScript(url, name) {
             return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = url;
-                script.onload = () => { console.log(`[OCR] ${name} 加载成功`); resolve(); };
-                script.onerror = () => reject(new Error(`${name} 加载失败`));
-                document.head.appendChild(script);
+                if (url.includes('puter.com')) {
+                    const s = document.createElement('script');
+                    s.src = url;
+                    s.onload = () => { console.log(`[OCR] ${name} 加载成功`); resolve(); };
+                    s.onerror = () => reject(new Error(`${name} 加载失败`));
+                    document.head.appendChild(s);
+                } else {
+                    const s = document.createElement('script');
+                    s.src = url;
+                    s.onload = () => { console.log(`[OCR] ${name} 加载成功`); resolve(); };
+                    s.onerror = () => reject(new Error(`${name} 加载失败`));
+                    document.head.appendChild(s);
+                }
             });
         }
     }
@@ -809,36 +935,58 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center;';
 
             const content = document.createElement('div');
-            content.style.cssText = 'background: white; width: 400px; max-height: 80vh; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);';
+            content.style.cssText = 'background: white; width: 460px; max-height: 85vh; border-radius: 16px; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);';
             content.innerHTML = `
-                <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px;">
-                    <div style="font-size: 18px; font-weight: 600;">⚙️ AI验证码配置</div>
-                    <div style="font-size: 12px; opacity: 0.8;">OCR.space + Tesseract.js 双引擎</div>
+                <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; position: sticky; top: 0;">
+                    <div style="font-size: 18px; font-weight: 600;">⚙️ OCR 全自动配置 v3.0</div>
+                    <div style="font-size: 12px; opacity: 0.8;">五级降级链 · 红队全自动模式</div>
                 </div>
                 <div style="padding: 20px;">
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">OCR.space API Key</label>
-                        <input type="password" id="setting-ocr-key" placeholder="OCR.space API Key" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;" value="${this.config.get('ai.ocrSpaceKey', 'K88766094088957')}">
-                        <div style="font-size: 11px; color: #999; margin-top: 4px;">https://ocr.space/OCRAPI - 免费注册</div>
+
+                    <div style="background: #f8f9fa; border-radius: 10px; padding: 14px; margin-bottom: 16px; border-left: 4px solid #667eea;">
+                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">🥇 百度 OCR (推荐)</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <div>
+                                <label style="font-size: 11px; color: #666;">API Key</label>
+                                <input type="text" id="set-baidu-apikey" placeholder="百度云 API Key" value="${this.config.get('ocr.baidu.apiKey', '')}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;font-size:12px;box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #666;">Secret Key</label>
+                                <input type="password" id="set-baidu-secretkey" placeholder="Secret Key" value="${this.config.get('ocr.baidu.secretKey', '')}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;font-size:12px;box-sizing:border-box;">
+                            </div>
+                        </div>
+                        <div style="font-size: 10px; color: #999; margin-top: 4px;">https://cloud.baidu.com → 文字识别 → 免费额度1000次/月</div>
                     </div>
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">智谱AI API Key (可选)</label>
-                        <input type="password" id="setting-api-key" placeholder="输入API Key" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;" value="${this.config.get('ai.apiKey', '')}">
-                        <div style="font-size: 11px; color: #999; margin-top: 4px;">https://open.bigmodel.cn - GLM-4V-Flash</div>
+
+                    <div style="background: #f8f9fa; border-radius: 10px; padding: 14px; margin-bottom: 16px; border-left: 4px solid #00a4ff;">
+                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">🥈 腾讯云 OCR</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <div>
+                                <label style="font-size: 11px; color: #666;">SecretId</label>
+                                <input type="text" id="set-tencent-secretid" placeholder="腾讯云 SecretId" value="${this.config.get('ocr.tencent.secretId', '')}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;font-size:12px;box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #666;">SecretKey</label>
+                                <input type="password" id="set-tencent-secretkey" placeholder="SecretKey" value="${this.config.get('ocr.tencent.secretKey', '')}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;font-size:12px;box-sizing:border-box;">
+                            </div>
+                        </div>
+                        <div style="font-size: 10px; color: #999; margin-top: 4px;">https://cloud.tencent.com → 文字识别 → 免费额度1000次/月</div>
                     </div>
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="setting-ai-enabled" ${this.config.get('ai.enabled') ? 'checked' : ''} style="margin-right: 8px;">
-                            <span style="font-size: 13px;">启用AI识别验证码</span>
-                        </label>
+
+                    <div style="background: #f8f9fa; border-radius: 10px; padding: 14px; margin-bottom: 16px; border-left: 4px solid #4CAF50;">
+                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">⚡ GLM-4V-Flash (视觉模型兜底)</div>
+                        <input type="password" id="set-glm4v-key" placeholder="智谱AI API Key" value="${this.config.get('ai.apiKey', '')}" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;font-size:12px;margin-bottom:4px;box-sizing:border-box;">
+                        <div style="font-size: 10px; color: #999;">https://open.bigmodel.cn → 免费 → 验证码识别率 >95%</div>
                     </div>
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; font-size: 13px; color: #666; margin-bottom: 6px;">每小时上限</label>
-                        <input type="number" id="setting-max-per-hour" min="1" max="100" value="${this.config.get('ai.maxPerSession', 10)}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+
+                    <div style="background: #fff3cd; border-radius: 10px; padding: 14px; margin-bottom: 16px; border-left: 4px solid #ffc107;">
+                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">🔄 自动降级链状态</div>
+                        <div id="ocr-status-list" style="font-size: 11px; line-height: 1.8;"></div>
                     </div>
+
                     <div style="display: flex; gap: 10px;">
-                        <button id="setting-save" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">保存</button>
-                        <button id="setting-cancel" style="flex: 1; padding: 12px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">取消</button>
+                        <button id="setting-save" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">💾 保存配置</button>
+                        <button id="setting-cancel" style="flex: 1; padding: 12px; background: #e0e0e0; color: #333; border: none; border-radius: 8px; cursor: pointer;">取消</button>
                     </div>
                 </div>
             `;
@@ -846,21 +994,35 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             modal.appendChild(content);
             document.body.appendChild(modal);
 
-            const saveBtn = document.getElementById('setting-save');
-            const cancelBtn = document.getElementById('setting-cancel');
+            const statusList = document.getElementById('ocr-status-list');
+            if (statusList) {
+                const hasBaidu = !!(this.config.get('ocr.baidu.apiKey', '') && this.config.get('ocr.baidu.secretKey', ''));
+                const hasTencent = !!(this.config.get('ocr.tencent.secretId', '') && this.config.get('ocr.tencent.secretKey', ''));
+                const hasGLM = !!this.config.get('ai.apiKey', '');
+                const puterOn = this.config.get('ocr.puter.enabled', true);
+                statusList.innerHTML = `
+                    ${hasBaidu ? '<span style="color:#28a745">✅ 百度OCR</span>' : '<span style="color:#ccc">⬜ 百度OCR (未配置)</span>'} →
+                    ${hasTencent ? '<span style="color:#28a745">✅ 腾讯云</span>' : '<span style="color:#ccc">⬜ 腾讯云 (未配置)</span>'} →
+                    ${puterOn ? '<span style="color:#28a745">✅ Puter.js</span>' : '<span style="color:#dc3545">❌ Puter.js (关闭)</span>'} →
+                    <span style="color:#17a2b8">✅ Tesseract.js</span> →
+                    ${hasGLM ? '<span style="color:#28a745">✅ GLM-4V-Flash</span>' : '<span style="color:#ccc">⬜ GLM-4V (未配置)</span>'}
+                `;
+            }
 
+            const saveBtn = document.getElementById('setting-save');
             if (saveBtn) {
                 saveBtn.onclick = () => {
-                    this.config.set('ai.ocrSpaceKey', document.getElementById('setting-ocr-key').value.trim());
-                    this.config.set('ai.apiKey', document.getElementById('setting-api-key').value.trim());
-                    this.config.set('ai.enabled', document.getElementById('setting-ai-enabled').checked);
-                    this.config.set('ai.maxPerSession', parseInt(document.getElementById('setting-max-per-hour').value) || 10);
+                    this.config.set('ocr.baidu.apiKey', document.getElementById('set-baidu-apikey').value.trim());
+                    this.config.set('ocr.baidu.secretKey', document.getElementById('set-baidu-secretkey').value.trim());
+                    this.config.set('ocr.tencent.secretId', document.getElementById('set-tencent-secretid').value.trim());
+                    this.config.set('ocr.tencent.secretKey', document.getElementById('set-tencent-secretkey').value.trim());
+                    this.config.set('ai.apiKey', document.getElementById('set-glm4v-key').value.trim());
                     modal.remove();
+                    console.log('[v3.0] ✅ OCR配置已保存，五级降级链已更新');
                 };
             }
-            if (cancelBtn) {
-                cancelBtn.onclick = () => modal.remove();
-            }
+            const cancelBtn = document.getElementById('setting-cancel');
+            if (cancelBtn) cancelBtn.onclick = () => modal.remove();
             modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
         }
 
@@ -1035,20 +1197,21 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const captchaImg = document.querySelector('#codeImg, img[src*="/service/code"]');
             if (!captchaImg) return null;
 
-            console.log(`🔍 发现验证码图片 (第${attempt}次尝试)，开始识别...`);
+            console.log(`🔍 [v3.0] 发现验证码图片 (第${attempt}次尝试)，启动五级全自动降级链...`);
             try {
                 const code = await this.ocrEngine.recognize(captchaImg);
                 if (code && code.length >= 3) {
-                    console.log('✅ 验证码OCR识别结果:', code);
+                    console.log('✅ [v3.0] 验证码自动识别成功:', code);
                     this._fillAndSubmitCaptcha(code);
                     return code;
                 }
-                console.warn('⚠️ OCR识别结果无效:', code, '，尝试手动输入模式...');
+                console.warn('⚠️ [v3.0] OCR识别结果无效:', code);
             } catch (e) {
-                console.warn('⚠️ OCR识别异常:', e.message, '，切换到手动输入模式...');
+                console.error('❌ [v3.0] 五级降级链全部失败:', e.message);
             }
 
-            return await this._manualCaptchaInput(captchaImg);
+            console.warn('⚠️ [v3.0] 全自动OCR失败，刷新验证码后重试...');
+            return null;
         }
 
         _fillAndSubmitCaptcha(code) {
@@ -1063,102 +1226,6 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const playBtn = document.querySelector('.layui-layer-btn0, [class*="layer-btn0"]');
             if (playBtn) playBtn.click();
             this._captchaCode = code;
-        }
-
-        async _manualCaptchaInput(captchaImg) {
-            return new Promise((resolve) => {
-                const existing = document.getElementById('elegant-captcha-manual');
-                if (existing) existing.remove();
-
-                const overlay = document.createElement('div');
-                overlay.id = 'elegant-captcha-manual';
-                overlay.style.cssText = `
-                    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                    background: rgba(0,0,0,0.6); z-index: 2147483647;
-                    display: flex; align-items: center; justify-content: center;
-                `;
-
-                const box = document.createElement('div');
-                box.style.cssText = `
-                    background: white; border-radius: 16px; padding: 24px;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center;
-                    max-width: 400px; width: 90%;
-                `;
-
-                const title = document.createElement('div');
-                title.textContent = '🔐 请输入验证码';
-                title.style.cssText = 'font-size: 18px; font-weight: 600; margin-bottom: 12px; color: #333;';
-
-                const imgContainer = document.createElement('div');
-                imgContainer.style.cssText = 'margin-bottom: 12px; display: flex; justify-content: center;';
-                const bigImg = document.createElement('img');
-                bigImg.src = captchaImg.src;
-                bigImg.style.cssText = 'width: 180px; height: 80px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer;';
-                bigImg.onclick = () => { captchaImg.click(); setTimeout(() => { bigImg.src = captchaImg.src; }, 500); };
-                bigImg.title = '点击刷新验证码';
-                imgContainer.appendChild(bigImg);
-
-                const inputField = document.createElement('input');
-                inputField.type = 'text';
-                inputField.placeholder = '输入验证码...';
-                inputField.maxLength = 6;
-                inputField.style.cssText = `
-                    width: 100%; padding: 12px; font-size: 20px; text-align: center;
-                    border: 2px solid #667eea; border-radius: 8px; margin-bottom: 12px;
-                    letter-spacing: 4px; font-weight: bold; outline: none;
-                    box-sizing: border-box;
-                `;
-
-                const btnRow = document.createElement('div');
-                btnRow.style.cssText = 'display: flex; gap: 10px;';
-                
-                const submitBtn = document.createElement('button');
-                submitBtn.textContent = '✅ 确认';
-                submitBtn.style.cssText = 'flex: 1; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;';
-                
-                const cancelBtn = document.createElement('button');
-                cancelBtn.textContent = '❌ 取消';
-                cancelBtn.style.cssText = 'flex: 1; padding: 12px; background: #e0e0e0; color: #333; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;';
-
-                const hint = document.createElement('div');
-                hint.textContent = '💡 点击图片可刷新验证码';
-                hint.style.cssText = 'font-size: 12px; color: #888; margin-top: 8px;';
-
-                box.appendChild(title);
-                box.appendChild(imgContainer);
-                box.appendChild(inputField);
-                box.appendChild(btnRow);
-                box.appendChild(hint);
-                btnRow.appendChild(submitBtn);
-                btnRow.appendChild(cancelBtn);
-                overlay.appendChild(box);
-                document.body.appendChild(overlay);
-
-                inputField.focus();
-
-                const cleanup = () => { overlay.remove(); };
-                
-                submitBtn.onclick = () => {
-                    const val = inputField.value.trim().toUpperCase();
-                    if (val.length >= 3) {
-                        cleanup();
-                        console.log('✅ 手动输入验证码:', val);
-                        this._fillAndSubmitCaptcha(val);
-                        resolve(val);
-                    }
-                };
-
-                cancelBtn.onclick = () => { cleanup(); resolve(null); };
-
-                inputField.onkeydown = (e) => {
-                    if (e.key === 'Enter') submitBtn.click();
-                    if (e.key === 'Escape') cancelBtn.click();
-                };
-
-                overlay.onclick = (e) => { if (e.target === overlay) cancelBtn.click(); };
-
-                console.log('⏳ 等待手动输入验证码...');
-            });
         }
 
         async autoNext() {

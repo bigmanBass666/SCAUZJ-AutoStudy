@@ -109,7 +109,7 @@
 | **典型工具** | Python + Requests/Selenium、浏览器自动化(Puppeteer)、AI API |
 | **攻击方式** | 自行编写自动化脚本，针对特定漏洞开发绕过逻辑 |
 | **投入时间** | 4-8小时（分析+开发+调试） |
-| **资金成本** | 0-50元（AI API调用费用，GLM-4V-Flash免费） |
+| **资金成本** | 0-50元（AI API调用费用，Puter.js/Mistral免费，OCR降级链） |
 | **攻击特征** | 有基础的反检测意识，会添加随机延迟和简单行为模拟 |
 | **检测概率** | 中（需要服务端行为分析）→ 当前**实际检测概率：极低** |
 | **数量规模** | 较多 — 占攻击者总数的15% |
@@ -266,7 +266,7 @@
    ├── 触发表单提交
    └── 失败重试机制
 
-成本: 零 (GLM-4V-Flash免费)
+成本: 零 (Puter.js/Mistral免费，OCR降级链)
 成功率: >90% (文字验证码), >75% (点选验证码)
 延迟: 2-5秒/次
 ```
@@ -479,7 +479,7 @@ Level 4 攻击者:
                                ↑
                         ┌──────┴──────┐
                         │  AI识别服务  │
-                        │ GLM-4V-Flash│
+                        │ OCR降级链│
                         └─────────────┘
 ```
 
@@ -845,7 +845,7 @@ document.addEventListener('visibilitychange', e => e.stopImmediatePropagation(),
 │                                                                    │
 │  Phase 1: 自动登录 (VULN-002)                                     │
 │  ├── 脚本自动访问登录页                                            │
-│  ├── 自动获取验证码图片 → GLM-4V-Flash识别 (>95%成功率)           │
+│  ├── 自动获取验证码图片 → GLM-4V-Flash视觉识别 + OCR降级方案（详见 docs/ocr/ocrEngine.md）           │
 │  ├── 自动填写并提交登录表单                                        │
 │  └── 登录成功，获取有效会话                                        │
 │                                                                    │
@@ -861,8 +861,8 @@ document.addEventListener('visibilitychange', e => e.stopImmediatePropagation(),
 │  └── 自动处理验证码 (VULN-005)                                    │
 │                                                                    │
 │  Phase 4: 验证码处理 (VULN-005)                                   │
-│  ├── need_code=1 → GLM-4V-Flash OCR (>95%成功率)                 │
-│  ├── need_code=2 → GLM-4V-Flash图像分析 (>75%成功率)              │
+│  ├── need_code=1 → GLM-4V-Flash视觉识别 + OCR降级方案                 │
+│  ├── need_code=2 → GLM-4V-Flash视觉分析 + OCR降级方案              │
 │  ├── 识别失败 → 自动刷新重试(最多5次)                             │
 │  └── 全部失败 → 记录日志，跳过当前节点                             │
 │                                                                    │
@@ -878,7 +878,7 @@ document.addEventListener('visibilitychange', e => e.stopImmediatePropagation(),
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-**攻击成本**: 0元（GLM-4V-Flash免费）+ 1小时初始配置
+**攻击成本**: 0元（GLM-4V-Flash免费）+ OCR降级方案 + 1小时初始配置
 
 **防御检测概率**: ≈0% — 当前系统无有效检测机制
 
