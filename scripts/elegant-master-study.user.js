@@ -686,7 +686,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.panel = document.createElement('div');
             this.panel.id = 'elegant-master-panel';
             this.panel.style.cssText = `
-                position: fixed; top: 20px; right: 20px; width: 320px; max-height: 90vh;
+                position: fixed; top: 20px; left: 20px; width: 320px; max-height: 90vh;
                 background: #fff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
                 z-index: 2147483647; font-family: -apple-system, sans-serif; font-size: 14px;
                 overflow: hidden; display: flex; flex-direction: column;
