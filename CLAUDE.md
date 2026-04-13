@@ -32,6 +32,7 @@
 2. `git add <具体文件>` — 只 add 本次修改的文件（不要 git add -A）
 3. `git commit -m "描述本次完成的工作"` — 必须有意义的提交信息
 4. `git push` — 推送到远程
+5. `git clean -fdx screenshots/` — 清理测试产生的临时文件（如截图、测试输出）
 
 **为什么这是铁律？**
 - 重要教训：上次修改了 `worklog.md`、`CLAUDE.md`、`scripts/`，但忘记提交，下次会话的 AI 无法看到
