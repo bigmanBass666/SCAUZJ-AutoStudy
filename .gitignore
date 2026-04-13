@@ -25,7 +25,8 @@ Thumbs.db
 *.swo
 
 # Config with secrets (create example version)
-# config/secrets.json
+config/api_key.txt
+config/secrets.json
 
 # Build outputs
 dist/

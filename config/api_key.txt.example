@@ -1,0 +1,3 @@
+ocr.space = YOUR_OCR_SPACE_KEY_HERE
+baidu.apiKey = YOUR_BAIDU_API_KEY_HERE
+baidu.secretKey = YOUR_BAIDU_SECRET_KEY_HERE
