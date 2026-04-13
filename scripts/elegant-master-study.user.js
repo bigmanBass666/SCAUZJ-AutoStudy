@@ -593,8 +593,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             for (let i = 0; i < context.sixWayImages.length; i++) {
                 result = await tryRecognize(
-                    'data:image/png;base64,' + context.sixWayImages[i],
-                    `二值化${i+1}(T=${[80,100,120,140,160][i]})`
+                    'data:image/png;base64,' + context.sixWayImages[i].base64,
+                    `二值化${i+1}(T=${context.sixWayImages[i].threshold})`
                 );
                 if (result) candidates.push(result);
             }
@@ -739,37 +739,45 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.networkClient = new NetworkClient();
             this.scriptLoader = new ScriptLoader();
 
-            this.ocrConfig = {
+            const _emptyCfg = { ocrspace:{apiKey:'',endpoint:''}, baidu:{apiKey:'',secretKey:'',endpoint:''}, tencent:{secretId:'',secretKey:'',endpoint:'',region:''}, puter:{enabled:true}, glm4v:{apiKey:'',endpoint:''} };
+            this.backends = [
+                new OcrSpaceBackend(_emptyCfg, this.networkClient),
+                new BaiduOcrBackend(_emptyCfg, this.networkClient),
+                new TencentOcrBackend(_emptyCfg, this.networkClient),
+                new PuterBackend(_emptyCfg, this.scriptLoader),
+                new TesseractBackend(_emptyCfg, this.scriptLoader),
+                new Glm4VBackend(_emptyCfg, this.networkClient)
+            ];
+        }
+
+        _buildConfig() {
+            return {
                 ocrspace: {
-                    apiKey: configMgr.get('ai.ocrSpaceKey', ''),
+                    apiKey: this.config.get('ai.ocrSpaceKey', ''),
                     endpoint: 'https://api.ocr.space/parse/image'
                 },
                 baidu: {
-                    apiKey: configMgr.get('ocr.baidu.apiKey', ''),
-                    secretKey: configMgr.get('ocr.baidu.secretKey', ''),
+                    apiKey: this.config.get('ocr.baidu.apiKey', ''),
+                    secretKey: this.config.get('ocr.baidu.secretKey', ''),
                     endpoint: 'https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic'
                 },
                 tencent: {
-                    secretId: configMgr.get('ocr.tencent.secretId', ''),
-                    secretKey: configMgr.get('ocr.tencent.secretKey', ''),
+                    secretId: this.config.get('ocr.tencent.secretId', ''),
+                    secretKey: this.config.get('ocr.tencent.secretKey', ''),
                     endpoint: 'https://ocr.tencentcloudapi.com',
                     region: 'ap-guangzhou'
                 },
-                puter: { enabled: configMgr.get('ocr.puter.enabled', true) },
+                puter: { enabled: this.config.get('ocr.puter.enabled', true) },
                 glm4v: {
-                    apiKey: configMgr.get('ai.apiKey', ''),
+                    apiKey: this.config.get('ai.apiKey', ''),
                     endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
                 }
             };
+        }
 
-            this.backends = [
-                new OcrSpaceBackend(this.ocrConfig, this.networkClient),
-                new BaiduOcrBackend(this.ocrConfig, this.networkClient),
-                new TencentOcrBackend(this.ocrConfig, this.networkClient),
-                new PuterBackend(this.ocrConfig, this.scriptLoader),
-                new TesseractBackend(this.ocrConfig, this.scriptLoader),
-                new Glm4VBackend(this.ocrConfig, this.networkClient)
-            ];
+        _refreshBackends() {
+            const freshCfg = this._buildConfig();
+            for (const b of this.backends) b.config = freshCfg;
         }
 
         async solveWithRetry(getCaptchaImg, fillInput, submitLogin) {
@@ -821,6 +829,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 sixWayImages,
                 dataUrl
             };
+
+            this._refreshBackends();
 
             for (const backend of this.backends) {
                 if (!backend.isEnabled()) {
@@ -1783,6 +1793,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         async autoLogin() {
             if (!location.pathname.includes('/login')) return false;
             console.log('🔐 [AutoLogin] 检测到登录页，开始自动登录...');
+            this.ui.updateStatus('--', '--', 0, '🔐 尝试自动登录...');
 
             const userEl = document.querySelector('input[name="username"], input[placeholder*="学号"], input[placeholder*="用户名"]');
             const passEl = document.querySelector('input[name="password"], input[placeholder*="密码"], input[type="password"]');
@@ -1820,7 +1831,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 console.log('✅ [AutoLogin] 登录成功！');
                 return true;
             } else {
-                alert('优雅大师: 自动登录失败（验证码识别失败），请手动输入验证码');
+                const hasAnyKey = this.config.get('ocr.baidu.apiKey', '') || this.config.get('ai.ocrSpaceKey', '') || this.config.get('ocr.tencent.secretId', '');
+                console.warn('⚠️ [AutoLogin] 自动登录失败，请手动输入验证码');
+                this.ui.updateStatus('--', '--', 0, hasAnyKey ? '⚠️ 验证码识别失败，请手动输入' : '💡 首次使用？点AI配置可提升识别率');
                 return false;
             }
         }
