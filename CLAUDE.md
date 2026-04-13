@@ -368,6 +368,50 @@ window.ElegantMaster?.rebuild?.();
 | **vulnerability-report.md** | 10个漏洞详情（2严重/3高危/3中危/2低危），安全评分10/100 | 查看具体漏洞复现 |
 | **docs/ocr/ocrEngine.md** | OCR 降级链实现（百度/腾讯/Puter/Tesseract/GLM-4V） | **所有涉及验证码/OCR处统一引用此文** |
 
+
+## 🚀 发布可用性要求（面向普通红队成员）
+
+这个脚本要发布给普通红队成员使用，必须满足以下要求：
+
+### 1. 零门槛安装
+- ✅ 用户只需：① 安装 Tampermonkey ② 点击"安装脚本" ③ 打开目标网站
+- ❌ 不能要求用户：安装 Node.js、npm install、运行 build 命令、配置 Webpack/Vite
+- ❌ 不能要求用户：下载模型文件、安装 Python 依赖、配置环境变量
+
+### 2. 单文件交付原则
+- ✅ 所有代码在一个 `.user.js` 文件中（已使用 IIFE 隔离）
+- ✅ 不依赖外部 CDN（所有库内嵌或动态加载）
+- ✅ 现代浏览器的内置 API 优先：fetch、Blob、URL、localStorage
+
+### 3. 配置外置化
+- ✅ API keys 存储在 `config/api_key.txt` 或用户自行粘贴
+- ✅ 默认配置：开箱即用（无 API keys 时走 Puter.js/Tesseract.js）
+- ❌ 不在代码中硬编码任何可能失效的 keys
+
+### 4. 模型本地化优先
+- ✅ Puter.js、Tesseract.js 无需下载模型（动态加载）
+- ✅ 避免用户去各平台的开发者中心申请 API keys
+- ⚠️ 第三方 API（百度/腾讯/OCR.space）作为降级选项，非必需
+
+### 5. 用户友好提示
+- ✅ 所有错误有可操作的前端提示（不是只在 console）
+- ✅ API keys 缺失时明确告知"去官网申请 key 并粘贴到 config/api_key.txt"
+- ✅ 提供"一键测试"按钮验证 OCR 功能
+
+### 6. 测试沙盒化
+- ✅ Playwright 仅用于开发调试（红队成员自己用不到）
+- ✅ 脚本不依赖 Playwright API（独立运行）
+- ✅ 功能验证通过后再发布（不要发半成品给普通成员）
+
+### 可用性检查清单（发布前必须检查）
+- [ ] 一台全新电脑（无开发环境），只需浏览器 + Tampermonkey 能否运行？
+- [ ] 是否需要用户去 GitHub 下载额外文件？→ 应该内嵌或动态加载
+- [ ] 是否需要用户注册第三方账号获取 API keys？→ 应该提供无 key 方案
+- [ ] UI 浮窗是否遮挡页面？→ 应该可拖拽/最小化
+- [ ] 错误提示是否明确？→ 应该告诉用户"怎么办"而不是"出错了"
+
+---
+
 ---
 
 ## 📌 关键约定
