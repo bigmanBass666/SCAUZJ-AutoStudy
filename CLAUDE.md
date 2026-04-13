@@ -132,38 +132,277 @@
 
 ## 🔥 红队铁律：修改后必须热重载
 
-> **⚠️ 修改了 `scripts/elegant-master-study.user.js` 源码但忘记热重载 → 页面跑的还是旧版！**
+> **⚠️ 重大疏忽教训：修改了 `scripts/elegant-master-study.user.js` 源码但忘记热重载到浏览器，导致页面上跑的还是旧版脚本！**
 
-### 🚀 推荐方式：Bootstrap自动持久化（刷新不丢失）
+### 📐 热重载架构总览（两种模式）
 
-**一次性配置**：
-1. 在Tampermonkey中安装 `scripts/elegant-master-bootstrap.user.js`
-2. 启动本地服务器：`cd scripts && python -m http.server 18923`
+| 模式 | 适用场景 | 触发方式 | 持久性 | 推荐度 |
+|------|---------|---------|--------|--------|
+| **模式一：手动注入** | Playwright开发调试、首次测试 | `page.addScriptTag()` 或控制台 | ❌ 刷新后丢失 | ⚠️ 仅调试用 |
+| **模式二：Bootstrap自动持久化** | ✅ **推荐**：长程测试、真实使用 | 页面加载时自动检测dev server | ✅ 刷新后自动加载 | ✅ **生产级** |
 
-**之后每次改完代码**：直接刷新浏览器页面即可，Bootstrap会自动加载最新版
+**核心组件关系图**：
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    热重载系统架构                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────────┐    ┌──────────────────────────────┐  │
+│  │ Bootstrap引导器   │    │   main.js 内置 checkAndHotReload │  │
+│  │ (TM已安装)        │    │   (备用热重载)                  │  │
+│  ├──────────────────┤    ├──────────────────────────────┤  │
+│  │ 职责:            │    │ 职责:                          │  │
+│  │ • 页面加载时检测  │◄──►│ • 兼容手动注入场景             │  │
+│  │   localhost:18923│    │ • localhost在线+非dev版时触发  │  │
+│  │ • 自动加载main.js │    │ • 三重防循环保护               │  │
+│  └──────────────────┘    └──────────────────────────────┘  │
+│           │                          │                      │
+│           ▼                          ▼                      │
+│  ┌──────────────────────────────────────────────────┐      │
+│  │         本地HTTP服务器 (端口18923)                 │      │
+│  │    cd scripts && python -m http.server 18923      │      │
+│  └──────────────────────────────────────────────────┘      │
+│                                                             │
+│  ⚠️ 三重防循环保护:                                         │
+│  1. currentScript.src 检测 (是否已是dev版)                  │
+│  2. __ELEGANT_MASTER_HR_COUNT 计数器 (最多触发1次)          │
+│  3. __ELEGANT_MASTER_HOTRELOAD__ 全局标志                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### 🔄 备用方式：手动注入（仅调试用）
+---
+
+### 🔄 模式一：手动注入（Playwright开发调试用）
+
+**适用场景**: 首次测试、快速验证BUG修复、不需要刷新页面的场景
+
+#### 步骤1：启动本地HTTP服务器
 
 ```bash
-# 1. 启动HTTP服务器
+# 在 scripts 目录下启动HTTP服务器（端口18923）
 cd scripts && python -m http.server 18923
 ```
 
-```javascript
-// 2. 浏览器控制台注入（或用Playwright的page.addScriptTag）
-const s = document.createElement('script');
-s.src = 'http://localhost:18923/elegant-master-study.user.js?t=' + Date.now();
-document.head.appendChild(s);
+**验证服务器运行**:
+- 浏览器访问 `http://localhost:18923/elegant-master-study.user.js` 应该能看到脚本代码
+- 或者用curl测试：`curl -I http://localhost:18923/elegant-master-study.user.js`
 
-// 3. 验证成功
-window.MasterEngine !== undefined; // true = 成功
+#### 步骤2：通过Playwright注入脚本
+
+**方法A：使用 browser_evaluate 注入（推荐）**
+```javascript
+// 在浏览器控制台执行
+const script = document.createElement('script');
+script.src = 'http://localhost:18923/elegant-master-study.user.js?t=' + Date.now();
+script.onload = () => console.log('[Manual] ✅ 手动注入成功');
+document.head.appendChild(script);
 ```
 
-> ⚠️ 手动注入刷新后会丢失，长程测试请用Bootstrap方式
+**方法B：使用 page.addScriptTag（Playwright API）**
+```javascript
+await page.addScriptTag({ url: 'http://localhost:18923/elegant-master-study.user.js?t=' + Date.now() })
+```
 
-### ✅ 正确流程
+#### 步骤3：验证注入成功
 
-改源码 → **热重载/刷新页面** → 观察脚本自主运行 → 发现bug → 再改 → 再重载
+```javascript
+// 检查全局对象
+window.MasterEngine !== undefined                    // true = 成功
+document.getElementById('elegant-master-panel') !== null  // true = UI已加载
+
+// 检查版本号（确认是开发版）
+console.log('[Check] 版本:', window.ElegantMaster?.version);
+console.log('[Check] 脚本源:', document.currentScript?.src);
+
+// 预期输出：
+// [Check] 版本: v3.3-autologin
+// [Check] 脚本源: http://localhost:18923/elegant-master-study.user.js?...
+```
+
+#### ⚠️ 模式一的局限性
+
+- ❌ **页面刷新后丢失**: 刷新页面后注入的脚本会消失，需重新注入
+- ❌ **与Tampermonkey旧版冲突**: 如果TM已安装旧版脚本，会同时运行两个版本
+- ✅ **适合**: 快速迭代调试、不需要刷新的BUG验证
+
+---
+
+### 🚀 模式二：Bootstrap自动持久化（✅ 推荐）
+
+> **基于提交 `935b4a4` 实现（2026-04-14 03:19）**
+> 
+> **解决的核心问题**: 模式一手动注入在页面刷新后丢失，无法支持长程测试
+
+**适用场景**: 长程稳定性测试、真实用户环境模拟、需要刷新页面的场景
+
+#### 前置条件
+
+1. **安装Bootstrap引导器到Tampermonkey**:
+   - 文件位置: `scripts/elegant-master-bootstrap.user.js`
+   - 在Tampermonkey中安装此脚本（拖拽或复制粘贴）
+   - 安装后确认：Tampermonkey图标显示"🌟 优雅大师 - 热重载引导器"已启用
+
+2. **启动本地HTTP服务器**:
+   ```bash
+   cd scripts && python -m http.server 18923
+   ```
+
+#### 工作原理（自动化流程）
+
+```
+页面加载开始 (document-start)
+       │
+       ▼
+┌─────────────────────────────────┐
+│ Bootstrap引导器执行              │
+│ (已通过TM安装, @run-at document-start) │
+├─────────────────────────────────┤
+│ 1. 检测 localhost:18923 是否在线  │
+│    ├── fetch(URL, {method:'HEAD'})│
+│    ├── 超时2秒 → 使用已安装版本    │
+│    └── 在线 → 继续步骤2           │
+│                                 │
+│ 2. 动态创建 <script> 标签         │
+│    ├── src = localhost:18923/... │
+│    ├── onload → ✅ 开发版加载完成  │
+│    └── onerror → 重试(最多2次)    │
+│                                 │
+│ 3. 开发版main.js加载              │
+│    ├── 检测 currentScript.src     │
+│    ├── ✅ 是dev版 → 跳过热重载检测 │
+│    └── 正常初始化 MasterEngine    │
+└─────────────────────────────────┘
+```
+
+#### 关键特性
+
+| 特性 | 说明 | 实现位置 |
+|------|------|----------|
+| **自动检测** | 每次页面加载自动检查dev server | [elegant-master-bootstrap.user.js](scripts/elegant-master-bootstrap.user.js#L25-L58) |
+| **智能降级** | dev server离线时自动使用TM已安装版本 | 同上 L55-L57 |
+| **错误重试** | 加载失败最多重试2次，间隔1秒 | 同上 L48-L52 |
+| **防重复加载** | 全局标志 `__ELEGANT_BOOTSTRAP_LOADED` | 同上 L15-L16 |
+
+---
+
+### 🛡️ 三重防循环机制（⚠️ 核心安全机制）
+
+> **历史教训**: BUG#10 — 热重载无限循环导致3255+个脚本注入，浏览器卡死
+> 
+> **修复方案**: 提交 `935b4a4` 实现三重防护（SESSION-002-CONT验证通过）
+
+#### 防循环架构
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                    三重防循环保护                            │
+├────────────────────────────────────────────────────────────┘
+│                                                            │
+│  第一重: 脚本源检测 (currentScript.src)                     │
+│  ─────────────────────────────────────                      │
+│  检测当前脚本的src是否包含 'localhost:18923'                │
+│  ✅ 如果是dev版 → 直接返回false，不触发热重载                │
+│  代码位置: elegant-master-study.user.js L19-L23             │
+│                                                            │
+│  第二重: 触发计数器 (__ELEGANT_MASTER_HR_COUNT)             │
+│  ─────────────────────────────────────                      │
+│  全局计数器，记录已触发过几次热重载                           │
+│  ✅ 如果 >= 1 → 返回false，防止二次触发                     │
+│  代码位置: elegant-master-study.user.js L25-L28             │
+│                                                            │
+│  第三重: 全局标志 (__ELEGANT_MASTER_HOTRELOAD__)            │
+│  ─────────────────────────────────────                      │
+│  布尔标志，标记热重载是否已触发                              │
+│  ✅ 如果为true → 直接返回false                              │
+│  触发时设置为true，并重置 __ELEGANT_MASTER_LOADED__ = false  │
+│  代码位置: elegant-master-study.user.js L17, L39-L40        │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+#### 验证防循环有效性
+
+**控制台日志链（正常情况）**:
+```
+[Bootstrap]🔄检测到开发服务器(端口18923)，加载最新版...
+[HotReload] ✅ 已是开发版本，跳过热重载检测    ← 第一重生效
+[Init]✅v3.3-autologin                         ← 正常初始化
+[Bootstrap]✅开发版加载完成                      ← 加载成功
+```
+
+**关键指标**:
+- `hrCount = 0`: 说明没有触发过热重载（因为第一重就拦截了）
+- 日志条数: 应该只有7条左右（对比之前3255条的灾难）
+
+---
+
+### ✅ 热重载验证清单
+
+每次修改脚本并热重载后，**必须**执行以下验证：
+
+#### 基础验证（30秒内完成）
+
+- [ ] **控制台无报错**: 打开F12 Console，确认没有红色错误
+- [ ] **UI浮窗正常**: 右上角显示"优雅大师"面板，节点ID和时长正确
+- [ ] **版本号正确**: 控制台显示 `[Init]✅v3.3-autologin`
+- [ ] **单一实例**: 只有一个面板（不应该出现两个浮窗）
+
+#### 功能验证（启动脚本后）
+
+- [ ] **点击启动按钮**: 状态变为"运行中..."（绿色）
+- [ ] **进度条递增**: 从0%向100%增长
+- [ ] **上报日志**: 控制台每2秒出现 `上报:` 日志
+- [ ] **自动下一节**: 完成后出现 `➡️ 自动点击下一节` 日志
+
+#### 长程验证（可选但推荐）
+
+- [ ] **页面刷新后**: 自动重新加载开发版（仅模式二）
+- [ ] **连续3个节点**: 无内存泄漏、无DOM堆积
+- [ ] **控制台日志量**: 正常情况下<50条（不是3255条！）
+
+---
+
+### 🔧 故障排除指南
+
+| 问题现象 | 可能原因 | 解决方案 |
+|---------|---------|---------|
+| **注入后无反应** | HTTP服务器未启动 | 执行 `cd scripts && python -m http.server 18923` |
+| **两个UI浮窗** | 旧版TM脚本+新版dev版共存 | 禁用TM中的旧版脚本，或使用Bootstrap模式 |
+| **控制台3255+条日志** | 热重载无限循环 | 检查三重防护是否生效（见上文） |
+| **版本显示v3.2而非v3.3** | 加载的是TM缓存旧版 | 清除TM缓存：扩展管理→清除浏览器缓存 |
+| **页面刷新后脚本消失** | 使用的是模式一手动注入 | 改用模式二Bootstrap自动持久化 |
+| **Bootstrap未生效** | 未安装引导器脚本 | 在TM中安装 `elegant-master-bootstrap.user.js` |
+| **dev server离线提示** | 本地服务器未启动或端口被占用 | 启动服务器或检查端口18923是否被占用 |
+
+---
+
+### 📊 实战数据参考（来自SESSION-002-CONT验证）
+
+**测试时间**: 2026-04-14 03:24 GMT+8  
+**提交记录**: `935b4a4` (热重载持久化), `fd27fd7` (Bootstrap引导器)
+
+**验证结果**:
+- ✅ **控制台日志链完整**: `[Bootstrap]🔄...` → `[HotReload]✅...` → `[Init]✅v3.3...` → `[Bootstrap]✅...`
+- ✅ **UI正常显示**: 节点=1429488, 时长=374s, 进度=16%, 状态=运行中
+- ✅ **防循环验证通过**: hrCount=0, 仅7条新日志（vs 之前3255条灾难）
+- ✅ **页面刷新持久化**: 刷新后自动加载开发版，无需手动注入
+
+**性能指标**:
+- Bootstrap检测耗时: <2秒（含超时容错）
+- 开发版加载耗时: <1秒（局域网）
+- 内存占用: 无明显增长（vs 手动注入模式的DOM堆积）
+
+---
+
+### ⛔ 禁止行为
+
+- ❌ 修改源码后不热重载就测试 → **测的是旧版本，浪费时间**
+- ❌ 用Playwright手动操作弥补脚本缺陷 → **治标不治本**
+- ❌ 忽略三重防循环保护 → **可能导致浏览器卡死（3255+脚本）**
+- ❌ 在生产环境开启dev server → **安全风险**
+- ✅ **正确流程**: 改源码 → 热重载 → 观察脚本自主运行 → 发现bug → 再改 → 再重载
+- ✅ **推荐工作流**: 启动dev server → 安装Bootstrap → 刷新页面 → 自动加载开发版 → 修改代码 → 刷新页面即可看到最新版
 
 ---
 
@@ -313,18 +552,60 @@ window.MasterEngine !== undefined; // true = 成功
 
 ## 🛠️ 你的工具箱
 
-### 核心注入函数（已就绪）
+### 🔥 热重载操作流程（必会）
 
-```javascript
-// 首次注入 GM Mock（已执行）
-loadScript(gmMockCode);
+每次修改 `scripts/elegant-master-study.user.js` 后，按此流程热重载：
 
-// 热更新主脚本
-const code = await readFile('docs/hot_reload/main.js');
-loadScript(code);
+**步骤 1**: 确保本地 HTTP 服务器在运行（端口 18923）
+```bash
+# 在新终端执行（如果服务器没启动）
+cd D:/Working/programming_projects/leykeji-autostudy/scripts
+python -m http.server 18923
+
+# 验证：浏览器访问 http://localhost:18923/elegant-master-study.user.js 应显示代码
 ```
 
-### 调试辅助命令
+**步骤 2**: 在 Playwright 浏览器控制台（Console）中执行注入
+```javascript
+// 完整热重载命令（一次性执行）
+page.addScriptTag({ url: 'http://localhost:18923/elegant-master-study.user.js' })
+  .then(() => console.log('✅ 热重载成功'))
+  .catch(err => console.error('❌ 热重载失败:', err));
+```
+
+**步骤 3**: 验证注入生效
+```javascript
+// 在 Console 中执行以下任一检查
+console.log('MasterEngine:', window.MasterEngine !== undefined);  // true = 成功
+console.log('UI面板:', document.getElementById('elegant-master-panel') !== null);  // true = UI已加载
+console.log('playBot状态:', window.MasterEngine?.playBot?.isRunning);  // 查看运行状态
+```
+
+**⚠️ 重要提醒**:
+- ❌ 不要刷新页面（热重载的目的就是避免刷新）
+- ❌ 不要重复注入（每次修改后只需执行一次）
+- ✅ 如果注入失败，先检查 HTTP 服务器是否在运行
+- ✅ 注入后观察 Console 是否有新的脚本日志（说明新版本起作用）
+
+---
+
+### 📦 常用 Playwright 命令
+
+```javascript
+// 获取当前页面快照（观察UI状态）
+await browser_snapshot();
+
+// 读取控制台日志（检查脚本输出）
+const logs = await browser_console_messages('info');
+console.log(logs);
+
+// 点击按钮（仅用于启动，之后脚本自主运行）
+await browser_click({ ref: 'e101' });  // 🚀 启动按钮
+```
+
+---
+
+### 🔧 调试辅助命令（在浏览器 Console 执行）
 
 ```javascript
 // 检查环境
@@ -332,12 +613,101 @@ console.log('hasGM:', typeof GM !== 'undefined');
 console.log('localStorage:', window.__GM_STORAGE__);
 console.log('config:', window.ElegantMaster?.config);
 
-// 重建 UI
+// 重建 UI（如果浮窗异常）
 window.ElegantMaster?.rebuild?.();
+
+// 强制重启脚本（如 SPA 导航后未自动重启）
+window.MasterEngine?.restartBot?.();
+
+// 查看当前学习状态
+console.log('当前节点:', window.MasterEngine?.currentNodeId);
+console.log('剩余时长:', window.MasterEngine?.remainingDuration);
+console.log('上报次数:', window.MasterEngine?.reportCount);
 ```
 
 ---
 
+### 📚 文件路径速查
+
+| 文件 | 用途 | 修改后操作 |
+|------|-----|-----------|
+| `scripts/elegant-master-study.user.js` | 主脚本（直接注入） | 热重载（loadScript） |
+| `docs/hot_reload/main.js` | 热重加载体 | 热重载（loadScript） |
+| `config/api_key.txt` | OCR API keys | 重启脚本（重新加载配置） |
+| `worklog.md` | 工作日志 | 每次阶段完成后手动追加记录 |
+
+---
+
+## 🚨 应对异常（自主处理）
+
+| 问题 | 表现 | 你的应对 |
+|------|------|----------|
+| **热重载失败** | `page.addScriptTag` 报错 / 404 | 1. 检查 HTTP 服务器是否运行<br>2.  curl http://localhost:18923/elegant-master-study.user.js 验证<br>3. 重新执行注入 |
+| **分段注入失败** | `ReferenceError: X is not defined` | **必须**改用单次完整注入 or `loadScript(code)` |
+| **UI 显示异常** | 浮窗残缺/错位 | 刷新页面 → 重新注入完整代码 |
+| **节点卡在 `--`** | 环境检测超时 | 检查 `document.title` 或 `.node` 元素 |
+| **API 全部 403** | 会话过期 | 刷新页面重新登录 |
+| **验证码不识别** | OCR 失败 | **先完善脚本 OCR，再热重载测试（禁止用 Playwright 读图）** |
+
+**黄金法则**: 如果连续 3 次失败，停止并分析原因（读代码、看日志），不要盲目重试。
+
+---
+
+## 📋 交付物（完成时）
+
+1. ✅ 所有阶段测试通过（阶段1-4）
+2. ✅ 至少 1 次热重载验证成功
+3. ✅ GitHub 提交：
+   - `main.js` 的所有修复
+   - 本测试记录的更新（新增你的测试日志）
+   - 提交信息格式: `git add -A && git commit -m "红队实测: 描述"`
+4. ✅ 文档更新:
+   - 更新 `worklog.md` 追加你的测试记录（时间戳+现象+结论）
+   - 如有新发现，添加到 `docs/red_team/vulnerability-report.md`
+
+---
+
+## 📚 红队文档速览（按需阅读）
+
+| 文档 | 核心内容 | 何时看 |
+|------|---------|--------|
+| **REDTEAM-TESTING-GUIDE.md** | 蓝队真实能力评估 + 18个检测盲区矩阵（95%置信度） | 需要战术决策时 |
+| **threat-model-attack-chain.md** | 攻击链分析：MITRE ATT&CK框架，10个漏洞串联路径 | 理解系统全貌时 |
+| **vulnerability-report.md** | 10个漏洞详情（2严重/3高危/3中危/2低危），安全评分10/100 | 查看具体漏洞复现 |
+| **docs/ocr/ocrEngine.md** | OCR 降级链实现（百度/腾讯/Puter/Tesseract/GLM-4V） | **所有涉及验证码/OCR处统一引用此文** |
+
+---
+
+## 📌 关键约定
+
+### OCR降级链统一引用
+
+> 所有红队文档中涉及验证码/OCR处，统一表述为"**OCR降级链（详见 docs/ocr/ocrEngine.md）**"  
+> 具体实现细节维护在 `docs/ocr/ocrEngine.md`，禁止硬编码到其他文档
+
+### Playwright MCP边界
+
+- ✅ 用途：模拟人类操作 + 代码调试
+- ❌ 用途：**不能**用于实现刷课逻辑（脚本必须独立运行）
+
+### 工作流正确顺序
+
+```
+改源码 → 热重载 → 观察脚本自主运行 → 发现bug → 再改 → 再重载
+```
+
+---
+
+## 🚀 现在开始
+
+**第一步**:
+1. 查看浏览器当前页面，确认在登录页
+2. 输入验证码（**手动输入，这是唯一合法的人工介入点**）
+3. 登录并跳转到目标视频节点
+
+**记住**: 你是红队，大胆测试，自主决策，记录一切发现。每次阶段完成后立即更新 `worklog.md`。
+
+**祝实战顺利！**
 ## 🚨 应对异常（自主处理）
 
 | 问题 | 表现 | 你的应对 |
