@@ -1,6 +1,13 @@
 
 (function() {
 
+if (window.__ELEGANT_MASTER_LOADED__ && !window.__ELEGANT_MASTER_HOTRELOAD__) {
+    console.warn('[优雅大师] 检测到已运行的实例，跳过重复初始化');
+    return;
+}
+window.__ELEGANT_MASTER_LOADED__ = true;
+window.__ELEGANT_MASTER_HOTRELOAD__ = false;
+
 const ELEGANT_VERSION = 'v3.3-autologin';
 
 // == GM API 兼容层 ==
@@ -173,16 +180,32 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
     class NetworkClient {
         gmFetch(url, options = {}) {
             return new Promise((resolve, reject) => {
-                _GM_xmlhttpRequest({
-                    method: options.method || 'GET',
-                    url: url,
-                    headers: options.headers || {},
-                    data: options.body || undefined,
-                    onload: (res) => resolve(res.responseText),
-                    onerror: (err) => reject(new Error('GM请求失败: ' + (err.error || err.message || '未知'))),
-                    ontimeout: () => reject(new Error('GM请求超时')),
-                    timeout: options.timeout || 15000
-                });
+                if (typeof _GM_xmlhttpRequest === 'function') {
+                    console.log('[NetworkClient] 使用 GM_xmlhttpRequest');
+                    _GM_xmlhttpRequest({
+                        method: options.method || 'GET',
+                        url: url,
+                        headers: options.headers || {},
+                        data: options.body || undefined,
+                        onload: (res) => resolve(res.responseText),
+                        onerror: (err) => reject(new Error('GM请求失败: ' + (err.error || err.message || '未知'))),
+                        ontimeout: () => reject(new Error('GM请求超时')),
+                        timeout: options.timeout || 15000
+                    });
+                } else {
+                    console.log('[NetworkClient] GM_xmlhttpRequest不可用，降级使用fetch');
+                    fetch(url, {
+                        method: options.method || 'GET',
+                        headers: options.headers || {},
+                        body: options.body || undefined,
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        return response.text();
+                    })
+                    .then(text => resolve(text))
+                    .catch(err => reject(new Error(`Fetch降级失败: ${err.message}`)));
+                }
             });
         }
 
@@ -255,21 +278,59 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
         async recognize(context) {
             const apiKey = this.config.ocrspace.apiKey;
-            console.log(`[OCR.space] 调用API (key: ${apiKey.substring(0, 6)}...)`);
+            console.log(`[OCR.space] 🚀 启动多变体识别 (key: ${apiKey.substring(0, 6)}...)`);
             
-            const fullDataUrl = 'data:image/png;base64,' + context.base64Raw;
-            const res = await this.networkClient.gmFetch(this.config.ocrspace.endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `apikey=${encodeURIComponent(apiKey)}&language=eng&isOverlayRequired=false&base64Image=${encodeURIComponent(fullDataUrl)}`
+            const candidates = [];
+            const variants = [
+                { b64: context.base64Raw, label: '原图' },
+                { b64: context.base64Grayscale, label: '灰度' },
+                { b64: context.base64Inverted, label: '反色' },
+            ];
+            
+            context.sixWayImages.forEach((b64, idx) => {
+                variants.push({ b64, label: `二值化${idx+1}(T=${[80,100,120,140,160][idx]})` });
+            });
+
+            for (const variant of variants) {
+                try {
+                    const fullDataUrl = 'data:image/png;base64,' + variant.b64;
+                    const res = await this.networkClient.gmFetch(this.config.ocrspace.endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `apikey=${encodeURIComponent(apiKey)}&language=eng&isOverlayRequired=false&base64Image=${encodeURIComponent(fullDataUrl)}`
+                    });
+                    
+                    const obj = JSON.parse(res);
+                    if (obj.IsErrored || !obj.ParsedResults?.[0]) continue;
+                    
+                    const text = (obj.ParsedResults[0].ParsedText || '').replace(/[^a-zA-Z0-9]/g, '');
+                    if (text && text.length >= 3 && text.length <= 6) {
+                        console.log(`[OCR.space] ✅ ${variant.label}: "${text}"`);
+                        candidates.push({ text, label: variant.label });
+                    }
+                } catch (e) {
+                    console.warn(`[OCR.space] ⚠️ ${variant.label} 失败: ${e.message}`);
+                }
+            }
+
+            if (candidates.length === 0) throw new Error('所有变体均无效');
+
+            const voteMap = {};
+            candidates.forEach(c => {
+                voteMap[c.text] = (voteMap[c.text] || 0) + 1;
             });
             
-            const obj = JSON.parse(res);
-            if (obj.IsErrored) throw new Error(`OCR.space错误: ${obj.ErrorMessage || '未知'}`);
-            if (!obj.ParsedResults || !obj.ParsedResults[0]) throw new Error('OCR.space无返回结果');
-            const text = obj.ParsedResults[0].ParsedText || '';
-            console.log(`[OCR.space] 原始: "${text}"`);
-            return text.replace(/[^a-zA-Z0-9]/g, '');
+            let bestText = candidates[0].text;
+            let maxVotes = 1;
+            for (const [text, votes] of Object.entries(voteMap)) {
+                if (votes > maxVotes) {
+                    bestText = text;
+                    maxVotes = votes;
+                }
+            }
+
+            console.log(`[OCR.space] 🏆 投票结果: "${bestText}" (${maxVotes}/${candidates.length}票, 共${candidates.length}个候选)`);
+            return bestText;
         }
     }
 
@@ -449,9 +510,72 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             if (!this.scriptLoader.isGlobalAvailable('puter') || !puter.ai || !puter.ai.img2txt) {
                 throw new Error('Puter.js 未加载或不可用');
             }
-            const text = await puter.ai.img2txt(context.dataUrl);
-            if (!text || typeof text !== 'string') throw new Error('Puter 返回非字符串');
-            return text;
+
+            console.log('[Puter] 🚀 启动多变体识别...');
+            
+            const candidates = [];
+            
+            const tryRecognize = async (dataUrl, label) => {
+                try {
+                    const text = await puter.ai.img2txt(dataUrl);
+                    if (!text || typeof text !== 'string') return null;
+                    
+                    let cleaned = text
+                        .replace(/[\r\n]+/g, '')
+                        .replace(/\s+/g, '')
+                        .replace(/[^a-zA-Z0-9]/g, '');
+                    
+                    if (cleaned.length > 4 && cleaned.substring(0, cleaned.length/2) === cleaned.substring(cleaned.length/2)) {
+                        cleaned = cleaned.substring(0, cleaned.length/2);
+                    }
+                    
+                    if (cleaned && cleaned.length >= 3 && cleaned.length <= 6) {
+                        console.log(`[Puter] ✅ ${label}: "${cleaned}"`);
+                        return { text: cleaned, label };
+                    }
+                    console.log(`[Puter] ⚠️ ${label}: "${cleaned}" (长度无效)`);
+                    return null;
+                } catch (e) {
+                    console.warn(`[Puter] ⚠️ ${label} 失败: ${e.message}`);
+                    return null;
+                }
+            };
+
+            let result = await tryRecognize(context.dataUrl, '原图');
+            if (result) candidates.push(result);
+
+            result = await tryRecognize('data:image/png;base64,' + context.base64Grayscale, '灰度');
+            if (result) candidates.push(result);
+
+            result = await tryRecognize('data:image/png;base64,' + context.base64Inverted, '反色');
+            if (result) candidates.push(result);
+
+            for (let i = 0; i < context.sixWayImages.length; i++) {
+                result = await tryRecognize(
+                    'data:image/png;base64,' + context.sixWayImages[i],
+                    `二值化${i+1}(T=${[80,100,120,140,160][i]})`
+                );
+                if (result) candidates.push(result);
+            }
+
+            if (candidates.length === 0) throw new Error('所有变体均无效');
+
+            const voteMap = {};
+            candidates.forEach(c => {
+                voteMap[c.text] = (voteMap[c.text] || 0) + 1;
+            });
+            
+            let bestText = candidates[0].text;
+            let maxVotes = 1;
+            for (const [text, votes] of Object.entries(voteMap)) {
+                if (votes > maxVotes) {
+                    bestText = text;
+                    maxVotes = votes;
+                }
+            }
+
+            console.log(`[Puter] 🏆 投票结果: "${bestText}" (${maxVotes}/${candidates.length}票, 共${candidates.length}个候选)`);
+            return bestText;
         }
     }
 
@@ -467,42 +591,55 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         isEnabled() { return true; }
 
         async recognize(context) {
-            if (!this.scriptLoader.isGlobalAvailable('Tesseract')) {
-                console.log('[Tesseract] 加载 Tesseract.js...');
-                await this.scriptLoader.loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', 'Tesseract.js');
+            try {
+                if (!this.scriptLoader.isGlobalAvailable('Tesseract')) {
+                    console.log('[Tesseract] 加载 Tesseract.js...');
+                    await this.scriptLoader.loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js', 'Tesseract.js');
+                }
+                if (!this.scriptLoader.isGlobalAvailable('Tesseract')) throw new Error("Tesseract.js 加载失败");
+
+                console.log('[Tesseract] 创建 Worker...');
+                const worker = await Tesseract.createWorker('eng');
+                console.log('[Tesseract] Worker 已创建，开始识别原图...');
+                const ret = await worker.recognize(context.scaled.canvas);
+                await worker.terminate();
+
+                const grayCanvas = document.createElement('canvas');
+                grayCanvas.width = context.scaled.canvas.width;
+                grayCanvas.height = context.scaled.canvas.height;
+                const gCtx = grayCanvas.getContext('2d');
+                gCtx.drawImage(context.scaled.canvas, 0, 0);
+                const gData = gCtx.getImageData(0, 0, grayCanvas.width, grayCanvas.height);
+                const gPixels = gData.data;
+                for (let i = 0; i < gPixels.length; i += 4) {
+                    const gray = 0.299 * gPixels[i] + 0.587 * gPixels[i+1] + 0.114 * gPixels[i+2];
+                    const v = gray > 128 ? 255 : 0;
+                    gPixels[i] = gPixels[i+1] = gPixels[i+2] = v;
+                }
+                gCtx.putImageData(gData, 0, 0);
+
+                console.log('[Tesseract] 创建第二个 Worker（二值化图像）...');
+                const worker2 = await Tesseract.createWorker('eng');
+                const ret2 = await worker2.recognize(grayCanvas);
+                await worker2.terminate();
+
+                const text1 = (ret.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
+                const text2 = (ret2.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
+                console.log(`[Tesseract] 原图: "${text1}", 二值化: "${text2}"`);
+
+                if (text1 === text2 && text1.length >= 3) return text1;
+                if (text2.length >= 3 && text2.length <= 6) return text2;
+                if (text1.length >= 3 && text1.length <= 6) return text1;
+
+                const result = text2 || text1;
+                if (result && result.length >= 2) return result;
+                
+                console.warn('[Tesseract] 识别结果过短或为空');
+                throw new Error('Tesseract识别结果无效');
+            } catch (error) {
+                console.error('[Tesseract] 识别失败:', error.message);
+                throw error;
             }
-            if (!this.scriptLoader.isGlobalAvailable('Tesseract')) throw new Error("Tesseract.js 加载失败");
-
-            const worker = await Tesseract.createWorker('eng');
-            const ret = await worker.recognize(context.scaled.canvas);
-            await worker.terminate();
-
-            const grayCanvas = document.createElement('canvas');
-            grayCanvas.width = context.scaled.canvas.width;
-            grayCanvas.height = context.scaled.canvas.height;
-            const gCtx = grayCanvas.getContext('2d');
-            gCtx.drawImage(context.scaled.canvas, 0, 0);
-            const gData = gCtx.getImageData(0, 0, grayCanvas.width, grayCanvas.height);
-            const gPixels = gData.data;
-            for (let i = 0; i < gPixels.length; i += 4) {
-                const gray = 0.299 * gPixels[i] + 0.587 * gPixels[i+1] + 0.114 * gPixels[i+2];
-                const v = gray > 128 ? 255 : 0;
-                gPixels[i] = gPixels[i+1] = gPixels[i+2] = v;
-            }
-            gCtx.putImageData(gData, 0, 0);
-
-            const worker2 = await Tesseract.createWorker('eng');
-            const ret2 = await worker2.recognize(grayCanvas);
-            await worker2.terminate();
-
-            const text1 = (ret.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
-            const text2 = (ret2.data.text || '').replace(/[^a-zA-Z0-9]/g, '');
-            console.log(`[Tesseract] 原图: "${text1}", 二值化: "${text2}"`);
-
-            if (text1 === text2 && text1.length >= 3) return text1;
-            if (text2.length >= 3 && text2.length <= 6) return text2;
-            if (text1.length >= 3 && text1.length <= 6) return text1;
-            return text2 || text1 || null;
         }
     }
 
@@ -683,6 +820,18 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         create() {
+            const allPanels = document.querySelectorAll('#elegant-master-panel');
+            if (allPanels.length > 0) {
+                console.log(`[UI] 检测到 ${allPanels.length} 个旧UI实例，全部销毁...`);
+                allPanels.forEach(p => p.remove());
+            }
+
+            const otherElements = document.querySelectorAll('[id^="elegant-master"]:not(#elegant-master-panel)');
+            otherElements.forEach(p => {
+                console.log(`[UI] 销毁残留: ${p.id}`);
+                p.remove();
+            });
+
             this.panel = document.createElement('div');
             this.panel.id = 'elegant-master-panel';
             this.panel.style.cssText = `
