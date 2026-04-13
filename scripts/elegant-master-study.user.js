@@ -10,6 +10,47 @@ window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
 const ELEGANT_VERSION = 'v3.3-autologin';
 
+const _HOTRELOAD_PORT = 18923;
+const _HOTRELOAD_URL = `http://localhost:${_HOTRELOAD_PORT}/elegant-master-study.user.js`;
+
+async function checkAndHotReload() {
+    if (window.__ELEGANT_MASTER_HOTRELOAD__) return false;
+    
+    const _IS_DEV_VERSION = (document.currentScript && document.currentScript.src && document.currentScript.src.includes('localhost:' + _HOTRELOAD_PORT));
+    if (_IS_DEV_VERSION) {
+        console.log('[HotReload] ✅ 已是开发版本，跳过热重载检测');
+        return false;
+    }
+    
+    if ((window.__ELEGANT_MASTER_HR_COUNT || 0) >= 1) {
+        console.log('[HotReload] ⚠️ 已触发过热重载，防止循环');
+        return false;
+    }
+    
+    try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 2000);
+        const res = await fetch(_HOTRELOAD_URL + '?t=' + Date.now(), { 
+            method: 'HEAD', mode: 'no-cors', signal: ctrl.signal 
+        });
+        clearTimeout(timer);
+        console.log(`[HotReload] 🔄 检测到开发服务器(端口${_HOTRELOAD_PORT})，自动加载最新版本...`);
+        window.__ELEGANT_MASTER_HR_COUNT = (window.__ELEGANT_MASTER_HR_COUNT || 0) + 1;
+        window.__ELEGANT_MASTER_HOTRELOAD__ = true;
+        window.__ELEGANT_MASTER_LOADED__ = false;
+        const s = document.createElement('script');
+        s.src = _HOTRELOAD_URL + '?t=' + Date.now();
+        s.onload = () => console.log('[HotReload] ✅ 开发版加载完成');
+        s.onerror = () => console.error('[HotReload] ❌ 开发版加载失败，使用当前版本');
+        document.head.appendChild(s);
+        return true;
+    } catch(e) {
+        return false;
+    }
+}
+
+let _hotreloadPending = checkAndHotReload();
+
 // == GM API 兼容层 ==
 const _GM_getValue  = typeof GM_getValue !== 'undefined'  ? GM_getValue  : window.GM_getValue;
 const _GM_setValue  = typeof GM_setValue !== 'undefined'  ? GM_setValue  : window.GM_setValue;
@@ -1970,6 +2011,16 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }, 500);
     }
 
-    init();
+    _hotreloadPending.then((shouldHotReload) => {
+        if (shouldHotReload) {
+            console.log('[Init] ⏸️ 热重载已触发，当前版本暂停初始化（开发版将接管）');
+            return;
+        }
+        console.log(`[Init] ✅ 无开发服务器，使用当前版本(${ELEGANT_VERSION})`);
+        init();
+    }).catch(() => {
+        console.log('[Init] ⚠️ 热重载检测异常，使用当前版本');
+        init();
+    });
 
 })();
