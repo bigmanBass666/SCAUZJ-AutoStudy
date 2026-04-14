@@ -8,7 +8,7 @@ if (window.__ELEGANT_MASTER_LOADED__ && !window.__ELEGANT_MASTER_HOTRELOAD__) {
 window.__ELEGANT_MASTER_LOADED__ = true;
 window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
-const ELEGANT_VERSION = 'v3.3-autologin';
+const ELEGANT_VERSION = 'v3.4-planH-v2';
 
 const _HOTRELOAD_PORT = 18923;
 const _HOTRELOAD_URL = `http://localhost:${_HOTRELOAD_PORT}/elegant-master-study.user.js`;
@@ -993,9 +993,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 <div>
                     <label style="display: block; font-size: 12px; color: #666; margin-bottom: 6px;">加速模式</label>
                     <div style="display: flex; gap: 8px;">
-                        <button class="speed-btn" data-mode="slow" style="flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">1x 慢速</button>
-                        <button class="speed-btn" data-mode="normal" style="flex: 1; padding: 8px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">10x 标准</button>
-                        <button class="speed-btn" data-mode="fast" style="flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">15x 极速</button>
+                        <button class="speed-btn" data-mode="slow" style="flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🐢 稳健</button>
+                        <button class="speed-btn" data-mode="normal" style="flex: 1; padding: 8px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">⚡ Plan H</button>
+                        <button class="speed-btn" data-mode="fast" style="flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🚀 激进</button>
                     </div>
                 </div>
             `;
@@ -1432,6 +1432,234 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
     }
 
+    // ==================== 蓝队反制系统 ====================
+    class BlueTeamDefense {
+        constructor(config) {
+            this.config = config;
+            this._hooksInstalled = false;
+            this._offlineCount = 0;
+            this._lastOfflineTime = 0;
+        }
+
+        install() {
+            if (this._hooksInstalled) return;
+            this._hooksInstalled = true;
+            this._hookFetch();
+            this._hookXHR();
+            console.log('🛡️ [BlueDefense] ✅ 蓝队反制系统已部署 (online.js防护 + 上报增强)');
+        }
+
+        _hookFetch() {
+            const origFetch = window.fetch;
+            window.fetch = async (...args) => {
+                const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
+                const response = await origFetch.apply(window, args);
+                if (url.includes('/user/online')) {
+                    return this._interceptOnlineResponse(response, 'fetch');
+                }
+                if (url.includes('/node/study')) {
+                    return this._interceptStudyResponse(response);
+                }
+                return response;
+            };
+        }
+
+        _hookXHR() {
+            const origOpen = XMLHttpRequest.prototype.open;
+            const origSend = XMLHttpRequest.prototype.send;
+            const self = this;
+            XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+                this.__elegant_url = url;
+                this.__elegant_method = method;
+                return origOpen.apply(this, [method, url, ...rest]);
+            };
+            XMLHttpRequest.prototype.send = function(...args) {
+                const xhr = this;
+                const url = xhr.__elegant_url || '';
+                if (url.includes('/user/online')) {
+                    xhr.addEventListener('load', function() {
+                        try { self._handleOnlineResponse(JSON.parse(xhr.responseText), 'xhr'); } catch(e) {}
+                    });
+                }
+                return origSend.apply(this, args);
+            };
+        }
+
+        async _interceptOnlineResponse(origResponse, source) {
+            const clone = origResponse.clone();
+            try {
+                const data = await clone.json();
+                if (data && data.offline === true) {
+                    return this._handleOffline(data, source, origResponse);
+                }
+            } catch(e) {}
+            return origResponse;
+        }
+
+        _handleOnlineResponse(data, source) {
+            if (data && data.offline === true) {
+                this._handleOffline(data, source, null);
+            }
+        }
+
+        _handleOffline(data, source, origResponse) {
+            const now = Date.now();
+            if (now - this._lastOfflineTime < 30000) return;
+            this._lastOfflineTime = now;
+            this._offlineCount++;
+            console.warn(`🛡️ [BlueDefense] 🔴 检测到蓝队强制下线信号! (来源: ${source}, 第${this._offlineCount}次)`);
+            console.warn(`🛡️ [BlueDefense] 原始响应:`, JSON.stringify(data).substring(0, 200));
+            const throttleKey = 'elegant_online_time';
+            const lastOnline = parseInt(localStorage.getItem(throttleKey) || '0');
+            localStorage.setItem(throttleKey, String(Math.floor(now / 1000)));
+            if (origResponse) {
+                const modifiedBody = new Response(JSON.stringify({ ...data, offline: false, msg: 'kept_alive' }), {
+                    status: 200,
+                    headers: origResponse.headers
+                });
+                console.log(`🛡️ [BlueDefense] ✅ 已拦截offline信号, 返回fake响应(offline=false)`);
+                return modifiedBody;
+            }
+            console.log(`🛡️ [BlueDefense] ✅ XHR offline信号已记录(无法修改响应, 但阻止了localStorage节流重置)`);
+        }
+
+        async _interceptStudyResponse(origResponse) {
+            const clone = origResponse.clone();
+            try {
+                const data = await clone.json();
+                if (data && data.status === false && data.msg) {
+                    const msg = data.msg;
+                    if (msg.includes('提交学时失败')) {
+                        console.warn(`🛡️ [BlueDefense] ⚠️ 学时提交失败: ${msg}`);
+                        if (msg.includes('【1】')) {
+                            console.warn(`🛡️ [BlueDefense] 📋 失败类型【1】: 服务端拒绝(可能totalTime不足或重复提交)`);
+                        } else if (msg.includes('【2】')) {
+                            console.warn(`🛡️ [BlueDefense] 📋 失败类型【2】: 验证码/签名错误`);
+                        }
+                    }
+                }
+            } catch(e) {}
+            return origResponse;
+        }
+    }
+
+    // ==================== L7 点选验证码解决器 ====================
+    class ClickCaptchaSolver {
+        constructor(networkClient) {
+            this.networkClient = networkClient;
+            this.ak = '38570387e765646dff8372d4ec9e3c38';
+            this.enabled = true;
+        }
+
+        async solve(captchaContainer) {
+            if (!this.enabled) return false;
+            console.log('🎯 [L7-ClickCaptcha] 检测到点选验证码(need_code=2), 启动L7解决器...');
+            const imgEl = captchaContainer.querySelector('img, canvas, [class*="img"], [class*="pic"], [class*="bg"]');
+            if (!imgEl) {
+                console.warn('🎯 [L7-ClickCaptcha] ⚠️ 未找到验证码图片元素');
+                return false;
+            }
+            const rect = imgEl.getBoundingClientRect();
+            console.log(`🎯 [L7-ClickCaptcha] 图片尺寸: ${rect.width}x${rect.height}`);
+            try {
+                const imgBase64 = this._extractImage(imgEl);
+                const result = await this._callDunclickApi(imgBase64, Math.floor(rect.width), Math.floor(rect.height));
+                if (result && result.data && result.data.length > 0) {
+                    console.log(`🎯 [L7-ClickCaptcha] ✅ dunclick API返回 ${result.data.length} 个点击坐标`);
+                    await this._simulateClicks(result.data, captchaContainer, rect);
+                    return true;
+                }
+                console.warn('🎯 [L7-ClickCaptcha] ⚠️ dunclick API未返回有效坐标');
+                return false;
+            } catch (e) {
+                console.error('🎯 [L7-ClickCaptcha] ❌ 解决失败:', e.message);
+                return false;
+            }
+        }
+
+        _extractImage(imgEl) {
+            try {
+                if (imgEl.tagName === 'CANVAS') {
+                    return imgEl.toDataURL('image/png').split(',')[1];
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = imgEl.naturalWidth || imgEl.width || 300;
+                canvas.height = imgEl.naturalHeight || imgEl.height || 150;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(imgEl, 0, 0);
+                return canvas.toDataURL('image/png').split(',')[1];
+            } catch (e) {
+                console.warn('🎯 [L7-ClickCaptcha] 图片提取失败:', e.message);
+                return '';
+            }
+        }
+
+        async _callDunclickApi(base64Img, width, height) {
+            const url = 'https://www.dunclick.com/api/captcha';
+            const body = JSON.stringify({
+                ak: this.ak,
+                image: base64Img,
+                width: width,
+                height: height,
+                type: 'click'
+            });
+            console.log(`🎯 [L7-ClickCaptcha] 调用dunclick API (ak=${this.ak.substring(0,8)}..., 尺寸:${width}x${height})`);
+            try {
+                const res = await this.networkClient.gmFetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: body,
+                    timeout: 15000
+                });
+                const data = JSON.parse(res);
+                console.log(`🎯 [L7-ClickCaptcha] API响应:`, JSON.stringify(data).substring(0, 300));
+                return data;
+            } catch (e) {
+                throw new Error(`dunclick API调用失败: ${e.message}`);
+            }
+        }
+
+        async _simulateClicks(clickData, container, imgRect) {
+            for (let i = 0; i < clickData.length; i++) {
+                const point = clickData[i];
+                const x = imgRect.left + (point.x / 100) * imgRect.width;
+                const y = imgRect.top + (point.y / 100) * imgRect.height;
+                console.log(`🎯 [L7-ClickCaptcha] 模拟点击#${i+1}: (${Math.floor(x)},${Math.floor(y)})`);
+                this._dispatchMouseEvent(container, 'mousedown', x, y);
+                await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
+                this._dispatchMouseEvent(container, 'mouseup', x, y);
+                this._dispatchMouseEvent(container, 'click', x, y);
+                await new Promise(r => setTimeout(r, 300 + Math.random() * 500));
+            }
+            const submitBtn = container.querySelector('button, [class*="submit"], [class*="confirm"], [class*="ok"]');
+            if (submitBtn) {
+                console.log('🎯 [L7-ClickCaptcha] 点击提交按钮');
+                submitBtn.click();
+            }
+            console.log('🎯 [L7-ClickCaptcha] ✅ 所有点击已完成');
+        }
+
+        _dispatchMouseEvent(target, type, x, y) {
+            const event = new MouseEvent(type, {
+                clientX: x, clientY: y,
+                bubbles: true, cancelable: true
+            });
+            target.dispatchEvent(event);
+        }
+
+        detectNeedCode2() {
+            const layers = document.querySelectorAll('.layui-layer, [class*="layer"], [class*="modal"], [class*="dialog"]');
+            for (const layer of layers) {
+                const text = layer.textContent || '';
+                if ((text.includes('请点击') || text.includes('请选择') || text.includes('click')) && layer.offsetHeight > 50) {
+                    console.log('🎯 [L7-ClickCaptcha] 🔍 检测到点选验证码弹窗!');
+                    return layer;
+                }
+            }
+            return null;
+        }
+    }
+
     // ==================== 机器人引擎 ====================
     class ElegantBot {
         constructor(env, configMgr, ui) {
@@ -1444,6 +1672,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._api = null;
             this._timer = null;
             this.ocrEngine = new OCREngine(configMgr);
+            this.clickCaptchaSolver = new ClickCaptchaSolver(new NetworkClient());
             this._lastNodeId = env.nodeId;
             this._lastDuration = env.duration;
         }
@@ -1511,6 +1740,33 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         if (captchaFailCount >= maxCaptchaFails) {
                             console.error(`❌ 验证码连续失败${maxCaptchaFails}次，停止重试`);
                             break;
+                        }
+                        const l7Container = this.clickCaptchaSolver.detectNeedCode2();
+                        if (l7Container) {
+                            console.warn(`⚠️ 检测到L7点选验证码(need_code=2)，启动ClickCaptchaSolver...`);
+                            const l7Solved = await this.clickCaptchaSolver.solve(l7Container);
+                            if (l7Solved) {
+                                await this.sleep(2000);
+                                const retryRes = await this.api.study(time, this.studyId);
+                                if (retryRes.ok) {
+                                    this.studyId = this._extractStudyId(retryRes.data) || this.studyId;
+                                    if (this.studyId) lastStudyId = this.studyId;
+                                    apiSuccessCount++;
+                                    console.log('✅ L7点选验证码通过! (累计成功:', apiSuccessCount, ')');
+                                    captchaFailCount = 0;
+                                } else {
+                                    console.warn('⚠️ L7点选后重试失败:', retryRes.error);
+                                    captchaFailCount++;
+                                    i--;
+                                    await this.sleep(3000);
+                                }
+                            } else {
+                                console.warn('⚠️ L7点选解决失败，降级为文本验证码处理');
+                                captchaFailCount++;
+                                i--;
+                                await this.sleep(3000);
+                            }
+                            continue;
                         }
                         console.warn(`⚠️ 上报需要验证码 (${captchaFailCount + 1}/${maxCaptchaFails})，尝试自动识别...`);
                         const captchaImg = document.querySelector('#codeImg, img[src*="/service/code"]');
@@ -1622,18 +1878,32 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 this._simulateMouseTrail(video);
                 this._hijackTotalTime(video);
                 const targetPercent = this.config.get('completion.realPlayPercent', 0.7);
-                const maxWaitSeconds = this.config.get('completion.maxRealPlayWait', 600);
-                const targetTime = video.duration * targetPercent;
-                console.log(`📺 [RealPlay] 开始等待: 目标${Math.floor(targetPercent*100)}% (${Math.floor(targetTime)}秒), 最大等待${maxWaitSeconds}秒`);
+                const duration = video.duration || this.env.duration || 1728;
+                const targetTime = duration * targetPercent;
+                const dynamicMaxWait = Math.max(Math.ceil(targetTime * 1.5), 600);
+                console.log(`📺 [RealPlay] 开始等待: 目标${Math.floor(targetPercent*100)}% (${Math.floor(targetTime)}秒), 动态最大等待${dynamicMaxWait}秒(视频总长${Math.floor(duration)}s)`);
                 const startTime = Date.now();
-                while (Date.now() - startTime < maxWaitSeconds * 1000) {
-                    if (video.currentTime >= targetTime || window.totalTime >= targetTime) {
-                        console.log(`✅ [RealPlay] 达到目标: video=${Math.floor(video.currentTime)}s, totalTime=${Math.floor(window.totalTime||0)}s`);
+                let lastLogTime = 0;
+                while (Date.now() - startTime < dynamicMaxWait * 1000) {
+                    const currentVideoTime = video.currentTime || 0;
+                    const currentTotalTime = window.totalTime || 0;
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    if (currentVideoTime >= targetTime || currentTotalTime >= targetTime) {
+                        console.log(`✅ [RealPlay] 达到目标! video=${Math.floor(currentVideoTime)}s, totalTime=${Math.floor(currentTotalTime)}s, 耗时${Math.floor(elapsed)}s`);
                         return;
+                    }
+                    if (elapsed - lastLogTime >= 15) {
+                        console.log(`📺 [RealPlay] 进度: video=${Math.floor(currentVideoTime)}/${Math.floor(duration)}s(${Math.floor(currentVideoTime/duration*100)}%), totalTime=${Math.floor(currentTotalTime)}s, 已等${Math.floor(elapsed)}s/${dynamicMaxWait}s`);
+                        lastLogTime = elapsed;
                     }
                     await this.sleep(2000);
                 }
-                console.warn(`⚠️ [RealPlay] 等待超时(${maxWaitSeconds}s), totalTime=${window.totalTime||0}`);
+                const finalVideoTime = video.currentTime || 0;
+                const finalTotalTime = window.totalTime || 0;
+                console.warn(`⚠️ [RealPlay] 等待超时(${dynamicMaxWait}s), 最终状态: video=${Math.floor(finalVideoTime)}s(${Math.floor(finalVideoTime/duration*100)}%), totalTime=${Math.floor(finalTotalTime)}s`);
+                if (finalTotalTime < duration * 0.5) {
+                    console.warn(`⚠️ [RealPlay] totalTime过低(${finalTotalTime}/${duration}), 章节可能无法解锁! 建议增加realPlayPercent或检查劫持状态`);
+                }
             } catch (e) {
                 console.warn('⚠️ [RealPlay] 播放失败:', e.message);
             }
@@ -1686,26 +1956,43 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             window.__elegant_totaltime_hijacked = true;
             const speedMultiplier = this.config.get('hijack.speedMultiplier', 2);
             const boostInterval = this.config.get('hijack.boostIntervalMs', 1000);
-            const duration = video.duration || 1728;
-            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动! (Plan H-全栈穿透)`);
+            const duration = video.duration || this.env.duration || 1728;
+            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动! (Plan H-全栈穿透 v2)`);
             console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x(含±1随机抖动), 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
             const originalTotalTime = window.totalTime || 0;
             let lastBoosted = originalTotalTime;
+            let stagnantCount = 0;
+            const STAGNANT_THRESHOLD = 3;
             let boostTimer = setInterval(() => {
                 try {
                     if (typeof window.totalTime === 'undefined') {
                         window.totalTime = lastBoosted;
                     }
+                    const prevTotalTime = window.totalTime;
                     const jitter = Math.floor(Math.random() * 3) - 1;
                     const boostAmount = speedMultiplier + jitter;
                     window.totalTime += boostAmount;
+                    if (window.totalTime <= prevTotalTime) {
+                        stagnantCount++;
+                        console.warn(`🔓 [Hijack] ⚠️ totalTime未增长(${prevTotalTime}→${window.totalTime}), 可能被蓝队重置! 次数:${stagnantCount}/${STAGNANT_THRESHOLD}`);
+                        if (stagnantCount >= STAGNANT_THRESHOLD) {
+                            console.warn(`🔓 [Hijack] 🔴 连续${STAGNANT_THRESHOLD}次停滞，强制重设totalTime!`);
+                            window.totalTime = lastBoosted + boostAmount * (stagnantCount + 1);
+                            stagnantCount = 0;
+                        }
+                    } else {
+                        stagnantCount = 0;
+                    }
                     lastBoosted = window.totalTime;
                     if (window.totalTime % 60 === 0 || window.totalTime >= duration) {
                         console.log(`🔓 [Hijack] ⚡ totalTime已劫持: ${window.totalTime}s (视频${Math.floor(video.currentTime||0)}/${Math.floor(duration)}s, ${Math.floor((video.currentTime||0)/duration*100)}%) [+${boostAmount}]`);
                     }
                     if (window.totalTime >= duration) {
                         clearInterval(boostTimer);
-                        console.log(`🔓 [Hijack] ✅ totalTime已达目标(${window.totalTime}s >= ${duration}s), 劫持完成`);
+                        console.log(`🔓 [Hijack] ✅ totalTime已达目标(${window.totalTime}s >= ${duration}s), 基础劫持完成，转入维持模式`);
+                        window.__elegant_hijack_maintenance = setInterval(() => {
+                            try { if (typeof window.totalTime !== 'undefined') window.totalTime += 1; } catch(e) {}
+                        }, 5000);
                     }
                 } catch (e) {
                     console.warn('🔓 [Hijack] 劫持异常:', e.message);
@@ -1727,12 +2014,24 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 };
                 console.log('🔓 [Hijack] ✅ sendTime() 已挂钩 - 上报时强制使用劫持后的totalTime');
             }
+            const self = this;
+            window.__elegant_hijack_watchdog = setInterval(() => {
+                try {
+                    if (!window.__elegant_hijack_timer && !window.__elegant_hijack_maintenance) {
+                        console.warn('🔓 [WatchDog] 🔴 检测到劫持timer丢失! 尝试重新安装...');
+                        self._hijackTotalTime(video);
+                    }
+                    if (window.__elegant_hijack_timer && window.totalTime < lastBoosted - 10) {
+                        console.warn(`🔓 [WatchDog] ⚠️ totalTime异常回退(${lastBoosted}→${window.totalTime}), 蓝队可能重置了计数器`);
+                    }
+                } catch(e) {}
+            }, 10000);
             window.addEventListener('beforeunload', () => {
-                if (window.__elegant_hijack_timer) {
-                    clearInterval(window.__elegant_hijack_timer);
-                }
+                if (window.__elegant_hijack_timer) clearInterval(window.__elegant_hijack_timer);
+                if (window.__elegant_hijack_maintenance) clearInterval(window.__elegant_hijack_maintenance);
+                if (window.__elegant_hijack_watchdog) clearInterval(window.__elegant_hijack_watchdog);
             });
-            console.log(`🔓 [Hijack] 🎯 劫持系统完全部署! 蓝队的totalTime现在由红队控制!`);
+            console.log(`🔓 [Hijack] 🎯 劫持系统v2完全部署! 含: 加速引擎+sendTime挂钩+看门狗+停滞检测+维持模式`);
         }
 
         async checkCaptcha(attempt = 1) {
@@ -2200,6 +2499,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         const configMgr = new ConfigManager();
         const ui = new UIBuilder(configMgr);
         const engine = new MasterController(configMgr, ui);
+        const defense = new BlueTeamDefense(configMgr);
+        defense.install();
 
         ui.setEngine(engine);
         ui.create();
