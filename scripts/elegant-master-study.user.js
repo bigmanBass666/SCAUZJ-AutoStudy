@@ -1943,33 +1943,26 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             console.log(`⏳ [autoNext] 等待${delay}ms后跳转下一节...`);
             await this._sleep(delay);
 
-            const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
             const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
 
             let nextId = (parseInt(env.nodeId) + 1).toString();
-            let attempts = 0;
-            const maxAttempts = 5;
+            let skipCount = 0;
+            const maxSkip = 10;
 
-            while (attempts < maxAttempts) {
+            while (skipCount < maxSkip) {
                 if (completedNodes.includes(nextId)) {
                     console.log(`⏭️ [autoNext] 节点${nextId}已完成，跳过...`);
                     nextId = (parseInt(nextId) + 1).toString();
-                    attempts++;
-                    continue;
-                }
-                if (failedNodes.includes(nextId)) {
-                    console.log(`⏭️ [autoNext] 节点${nextId}之前失败过，跳过...`);
-                    nextId = (parseInt(nextId) + 1).toString();
-                    attempts++;
+                    skipCount++;
                     continue;
                 }
                 break;
             }
 
-            if (attempts >= maxAttempts) {
-                console.error('❌ [autoNext] 连续跳过5个节点，停止自动跳转');
+            if (skipCount >= maxSkip) {
+                console.log('🎉 [autoNext] 连续跳过10个已完成节点，可能课程已完成');
                 localStorage.removeItem('elegant_was_running');
-                alert('优雅大师: 已跳过5个节点，可能课程已完成或遇到问题');
+                alert('优雅大师: 课程可能已完成！');
                 return;
             }
 
@@ -2132,20 +2125,26 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             
             const lastAttempt = localStorage.getItem('elegant_last_attempt_node');
             if (lastAttempt && env.nodeId !== lastAttempt) {
-                console.warn(`⚠️ [Init] 尝试跳转到${lastAttempt}但被重定向到${env.nodeId}，标记为失败`);
-                const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
-                if (!failedNodes.includes(lastAttempt)) {
-                    failedNodes.push(lastAttempt);
-                    localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
-                }
+                console.warn(`⚠️ [Init] 尝试跳转到${lastAttempt}但被重定向到${env.nodeId}`);
+                console.log('📌 [Init] 这是章节锁定机制，下一节尚未解锁');
                 localStorage.removeItem('elegant_last_attempt_node');
-                
-                const autoNextEnabled = configMgr.get('autoNext.enabled');
-                if (autoNextEnabled) {
-                    console.log('🔄 [Init] 2秒后尝试下一个节点...');
-                    setTimeout(() => engine.autoNext(), 2000);
-                    return;
+                const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                if (!completedNodes.includes(env.nodeId)) {
+                    completedNodes.push(env.nodeId);
+                    localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes));
+                    console.log(`✅ [Init] 节点${env.nodeId}已完成，保留完成标记`);
                 }
+                const lockCount = parseInt(localStorage.getItem('elegant_chapter_lock_count') || '0') + 1;
+                localStorage.setItem('elegant_chapter_lock_count', lockCount.toString());
+                if (lockCount >= 3) {
+                    console.log(`⏸️ [Init] 章节锁定${lockCount}次，等待30秒后重试...`);
+                    localStorage.setItem('elegant_chapter_lock_count', '0');
+                    setTimeout(() => engine.autoNext(), 30000);
+                } else {
+                    console.log(`⏸️ [Init] 章节锁定${lockCount}次，等待10秒后重试...`);
+                    setTimeout(() => engine.autoNext(), 10000);
+                }
+                return;
             }
             
             ui.updateStatus(env.nodeId, env.duration, 0, '待机');
@@ -2181,20 +2180,26 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 if (lastAttempt) {
                     const currentId = new URLSearchParams(location.search).get('nodeId');
                     if (currentId && currentId !== lastAttempt) {
-                        console.warn(`⚠️ [URL变化] 尝试跳转到${lastAttempt}但被重定向到${currentId}，标记为失败`);
-                        const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
-                        if (!failedNodes.includes(lastAttempt)) {
-                            failedNodes.push(lastAttempt);
-                            localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
-                        }
+                        console.warn(`⚠️ [URL变化] 尝试跳转到${lastAttempt}但被重定向到${currentId}`);
+                        console.log('📌 [URL变化] 这是章节锁定机制，下一节尚未解锁');
                         localStorage.removeItem('elegant_last_attempt_node');
-                        
-                        const autoNextEnabled = configMgr.get('autoNext.enabled');
-                        if (autoNextEnabled) {
-                            console.log('🔄 [URL变化] 2秒后尝试下一个节点...');
-                            setTimeout(() => engine.autoNext(), 2000);
-                            return;
+                        const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                        if (!completedNodes.includes(currentId)) {
+                            completedNodes.push(currentId);
+                            localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes));
+                            console.log(`✅ [URL变化] 节点${currentId}已完成，保留完成标记`);
                         }
+                        const lockCount = parseInt(localStorage.getItem('elegant_chapter_lock_count') || '0') + 1;
+                        localStorage.setItem('elegant_chapter_lock_count', lockCount.toString());
+                        if (lockCount >= 3) {
+                            console.log(`⏸️ [URL变化] 章节锁定${lockCount}次，等待30秒后重试...`);
+                            localStorage.setItem('elegant_chapter_lock_count', '0');
+                            setTimeout(() => engine.autoNext(), 30000);
+                        } else {
+                            console.log(`⏸️ [URL变化] 章节锁定${lockCount}次，等待10秒后重试...`);
+                            setTimeout(() => engine.autoNext(), 10000);
+                        }
+                        return;
                     }
                 }
                 
