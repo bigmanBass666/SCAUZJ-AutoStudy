@@ -134,204 +134,170 @@
 
 > **⚠️ 重大疏忽教训：修改了 `scripts/elegant-master-study.user.js` 源码但忘记热重载到浏览器，导致页面上跑的还是旧版脚本！**
 
-### 📐 热重载架构总览（两种模式）
+### 📐 热重载架构总览（✅ 统一方案）
 
-| 模式 | 适用场景 | 触发方式 | 持久性 | 推荐度 |
-|------|---------|---------|--------|--------|
-| **模式一：手动注入** | Playwright开发调试、首次测试 | `page.addScriptTag()` 或控制台 | ❌ 刷新后丢失 | ⚠️ 仅调试用 |
-| **模式二：Bootstrap自动持久化** | ✅ **推荐**：长程测试、真实使用 | 页面加载时自动检测dev server | ✅ 刷新后自动加载 | ✅ **生产级** |
+> **⚠️ 2026-04-14 重大架构升级**: 旧版Bootstrap方案（`<script>`标签注入）因CORS问题已废弃。
+> 新方案使用 `dev.user.js`（GM_xmlhttpRequest + eval），在GM沙箱中执行，完整支持GM API，无CORS限制。
 
-**核心组件关系图**：
+| 方案 | 状态 | 原因 |
+|------|------|------|
+| ~~模式一：手动注入~~ | ❌ 废弃 | `<script>`标签→页面上下文→无GM_xmlhttpRequest→CORS阻止OCR API |
+| ~~模式二：Bootstrap~~ | ❌ 废弃 | 同上，`<script>`标签根本无法访问GM API |
+| **✅ 新方案：dev.user.js** | ✅ **当前使用** | GM_xmlhttpRequest+eval→GM沙箱→完整GM API→无CORS |
+
+**核心架构图**：
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    热重载系统架构                              │
+│              热重载系统架构 (dev.user.js 方案)                 │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  ┌──────────────────┐    ┌──────────────────────────────┐  │
-│  │ Bootstrap引导器   │    │   main.js 内置 checkAndHotReload │  │
-│  │ (TM已安装)        │    │   (备用热重载)                  │  │
-│  ├──────────────────┤    ├──────────────────────────────┤  │
-│  │ 职责:            │    │ 职责:                          │  │
-│  │ • 页面加载时检测  │◄──►│ • 兼容手动注入场景             │  │
-│  │   localhost:18923│    │ • localhost在线+非dev版时触发  │  │
-│  │ • 自动加载main.js │    │ • 三重防循环保护               │  │
-│  └──────────────────┘    └──────────────────────────────┘  │
-│           │                          │                      │
-│           ▼                          ▼                      │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  dev.user.js (TM已安装, @run-at document-end)        │  │
+│  │  文件: scripts/dev.user.js                            │  │
+│  ├──────────────────────────────────────────────────────┤  │
+│  │  工作流程:                                            │  │
+│  │  1. GM_xmlhttpRequest 获取 localhost:18923 上的脚本   │  │
+│  │  2. 桥接 GM API 到 unsafeWindow (关键!)               │  │
+│  │     unsafeWindow.GM_xmlhttpRequest = GM_xmlhttpRequest│  │
+│  │     unsafeWindow.GM_getValue = GM_getValue           │  │
+│  │     ... (共9个GM API)                                 │  │
+│  │  3. eval(code) 在GM沙箱中执行主脚本                   │  │
+│  │  4. 主脚本通过 window.GM_xmlhttpRequest 访问桥接API   │  │
+│  └──────────────────────────────────────────────────────┘  │
+│           │                                                 │
+│           ▼                                                 │
 │  ┌──────────────────────────────────────────────────┐      │
 │  │         本地HTTP服务器 (端口18923)                 │      │
-│  │    cd scripts && python -m http.server 18923      │      │
+│  │    cd scripts; python -m http.server 18923        │      │
 │  └──────────────────────────────────────────────────┘      │
 │                                                             │
-│  ⚠️ 三重防循环保护:                                         │
-│  1. currentScript.src 检测 (是否已是dev版)                  │
-│  2. __ELEGANT_MASTER_HR_COUNT 计数器 (最多触发1次)          │
-│  3. __ELEGANT_MASTER_HOTRELOAD__ 全局标志                   │
+│  ⚠️ 关键: @connect 白名单                                   │
+│  须在 dev.user.js 头部声明所有跨域目标:                      │
+│  @connect localhost api.ocr.space aip.baidubce.com          │
+│  @connect cloud.tencent.com api.puter.com                   │
+│  @connect scauzj.leykeji.com                                │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### 🔄 模式一：手动注入（Playwright开发调试用）
+### 🚀 dev.user.js 热重载方案（✅ 当前唯一方案）
 
-**适用场景**: 首次测试、快速验证BUG修复、不需要刷新页面的场景
-
-#### 步骤1：启动本地HTTP服务器
-
-```bash
-# 在 scripts 目录下启动HTTP服务器（端口18923）
-cd scripts && python -m http.server 18923
-```
-
-**验证服务器运行**:
-- 浏览器访问 `http://localhost:18923/elegant-master-study.user.js` 应该能看到脚本代码
-- 或者用curl测试：`curl -I http://localhost:18923/elegant-master-study.user.js`
-
-#### 步骤2：通过Playwright注入脚本
-
-**方法A：使用 browser_evaluate 注入（推荐）**
-```javascript
-// 在浏览器控制台执行
-const script = document.createElement('script');
-script.src = 'http://localhost:18923/elegant-master-study.user.js?t=' + Date.now();
-script.onload = () => console.log('[Manual] ✅ 手动注入成功');
-document.head.appendChild(script);
-```
-
-**方法B：使用 page.addScriptTag（Playwright API）**
-```javascript
-await page.addScriptTag({ url: 'http://localhost:18923/elegant-master-study.user.js?t=' + Date.now() })
-```
-
-#### 步骤3：验证注入成功
-
-```javascript
-// 检查全局对象
-window.MasterEngine !== undefined                    // true = 成功
-document.getElementById('elegant-master-panel') !== null  // true = UI已加载
-
-// 检查版本号（确认是开发版）
-console.log('[Check] 版本:', window.ElegantMaster?.version);
-console.log('[Check] 脚本源:', document.currentScript?.src);
-
-// 预期输出：
-// [Check] 版本: v3.3-autologin
-// [Check] 脚本源: http://localhost:18923/elegant-master-study.user.js?...
-```
-
-#### ⚠️ 模式一的局限性
-
-- ❌ **页面刷新后丢失**: 刷新页面后注入的脚本会消失，需重新注入
-- ❌ **与Tampermonkey旧版冲突**: 如果TM已安装旧版脚本，会同时运行两个版本
-- ✅ **适合**: 快速迭代调试、不需要刷新的BUG验证
-
----
-
-### 🚀 模式二：Bootstrap自动持久化（✅ 推荐）
-
-> **基于提交 `935b4a4` 实现（2026-04-14 03:19）**
-> 
-> **解决的核心问题**: 模式一手动注入在页面刷新后丢失，无法支持长程测试
-
-**适用场景**: 长程稳定性测试、真实用户环境模拟、需要刷新页面的场景
+**文件位置**: `scripts/dev.user.js`
+**版本**: v13.0.0-hotreload
 
 #### 前置条件
 
-1. **安装Bootstrap引导器到Tampermonkey**:
-   - 文件位置: `scripts/elegant-master-bootstrap.user.js`
-   - 在Tampermonkey中安装此脚本（拖拽或复制粘贴）
-   - 安装后确认：Tampermonkey图标显示"🌟 优雅大师 - 热重载引导器"已启用
+1. **安装dev.user.js到Tampermonkey**:
+   - 启动dev server: `cd scripts; python -m http.server 18923`
+   - 浏览器访问 `http://localhost:18923/dev.user.js`
+   - TM会弹出安装对话框 → 点击"安装"
+   - 如需更新: 重新访问URL → 点击"更新"（注意@connect变更需确认）
 
 2. **启动本地HTTP服务器**:
    ```bash
-   cd scripts && python -m http.server 18923
+   cd scripts; python -m http.server 18923
    ```
+   > ⚠️ PowerShell不支持 `&&`，必须用 `;`
 
-#### 工作原理（自动化流程）
+#### 工作原理
 
 ```
-页面加载开始 (document-start)
+页面加载 (document-end)
        │
        ▼
 ┌─────────────────────────────────┐
-│ Bootstrap引导器执行              │
-│ (已通过TM安装, @run-at document-start) │
+│ dev.user.js 执行 (GM沙箱)       │
 ├─────────────────────────────────┤
-│ 1. 检测 localhost:18923 是否在线  │
-│    ├── fetch(URL, {method:'HEAD'})│
-│    ├── 超时2秒 → 使用已安装版本    │
-│    └── 在线 → 继续步骤2           │
+│ 1. GM_xmlhttpRequest 获取脚本    │
+│    URL: localhost:18923/...      │
+│    超时: 5秒                     │
 │                                 │
-│ 2. 动态创建 <script> 标签         │
-│    ├── src = localhost:18923/... │
-│    ├── onload → ✅ 开发版加载完成  │
-│    └── onerror → 重试(最多2次)    │
+│ 2. 桥接GM API到unsafeWindow     │
+│    (让eval'd代码能访问GM API)    │
 │                                 │
-│ 3. 开发版main.js加载              │
-│    ├── 检测 currentScript.src     │
-│    ├── ✅ 是dev版 → 跳过热重载检测 │
-│    └── 正常初始化 MasterEngine    │
+│ 3. eval(code) 执行主脚本         │
+│    主脚本通过window.GM_*访问     │
+│                                 │
+│ 4. 失败时使用localStorage缓存    │
 └─────────────────────────────────┘
 ```
 
-#### 关键特性
+#### GM API桥接（⚠️ 核心机制）
 
-| 特性 | 说明 | 实现位置 |
-|------|------|----------|
-| **自动检测** | 每次页面加载自动检查dev server | [elegant-master-bootstrap.user.js](scripts/elegant-master-bootstrap.user.js#L25-L58) |
-| **智能降级** | dev server离线时自动使用TM已安装版本 | 同上 L55-L57 |
-| **错误重试** | 加载失败最多重试2次，间隔1秒 | 同上 L48-L52 |
-| **防重复加载** | 全局标志 `__ELEGANT_BOOTSTRAP_LOADED` | 同上 L15-L16 |
+**为什么需要桥接？**
+- `eval()` 执行的代码在GM沙箱的IIFE作用域中
+- `typeof GM_xmlhttpRequest` 在eval中返回 `'undefined'`
+- 主脚本的兼容层: `window.GM_xmlhttpRequest || fallback`
+- 桥接: `unsafeWindow.GM_xmlhttpRequest = GM_xmlhttpRequest`
+- 这样eval'd代码通过 `window.GM_xmlhttpRequest` 就能访问GM API
 
----
-
-### 🛡️ 三重防循环机制（⚠️ 核心安全机制）
-
-> **历史教训**: BUG#10 — 热重载无限循环导致3255+个脚本注入，浏览器卡死
-> 
-> **修复方案**: 提交 `935b4a4` 实现三重防护（SESSION-002-CONT验证通过）
-
-#### 防循环架构
-
-```
-┌────────────────────────────────────────────────────────────┐
-│                    三重防循环保护                            │
-├────────────────────────────────────────────────────────────┘
-│                                                            │
-│  第一重: 脚本源检测 (currentScript.src)                     │
-│  ─────────────────────────────────────                      │
-│  检测当前脚本的src是否包含 'localhost:18923'                │
-│  ✅ 如果是dev版 → 直接返回false，不触发热重载                │
-│  代码位置: elegant-master-study.user.js L19-L23             │
-│                                                            │
-│  第二重: 触发计数器 (__ELEGANT_MASTER_HR_COUNT)             │
-│  ─────────────────────────────────────                      │
-│  全局计数器，记录已触发过几次热重载                           │
-│  ✅ 如果 >= 1 → 返回false，防止二次触发                     │
-│  代码位置: elegant-master-study.user.js L25-L28             │
-│                                                            │
-│  第三重: 全局标志 (__ELEGANT_MASTER_HOTRELOAD__)            │
-│  ─────────────────────────────────────                      │
-│  布尔标志，标记热重载是否已触发                              │
-│  ✅ 如果为true → 直接返回false                              │
-│  触发时设置为true，并重置 __ELEGANT_MASTER_LOADED__ = false  │
-│  代码位置: elegant-master-study.user.js L17, L39-L40        │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
+**桥接的API列表**:
+```javascript
+unsafeWindow.GM_xmlhttpRequest = GM_xmlhttpRequest;
+unsafeWindow.GM_getValue = GM_getValue;
+unsafeWindow.GM_setValue = GM_setValue;
+unsafeWindow.GM_deleteValue = GM_deleteValue;
+unsafeWindow.GM_addStyle = GM_addStyle;
+unsafeWindow.GM_notification = GM_notification;
+unsafeWindow.GM_setClipboard = GM_setClipboard;
+unsafeWindow.GM_registerMenuCommand = GM_registerMenuCommand;
+unsafeWindow.unsafeWindow = unsafeWindow;
 ```
 
-#### 验证防循环有效性
+#### @connect白名单（⚠️ 必须维护）
+
+TM的GM_xmlhttpRequest需要 `@connect` 声明才能访问跨域URL。
+每次新增OCR后端或API端点，都必须更新dev.user.js的@connect列表并重新安装。
+
+当前白名单:
+```
+@connect localhost
+@connect api.ocr.space
+@connect aip.baidubce.com
+@connect cloud.tencent.com
+@connect api.puter.com
+@connect scauzj.leykeji.com
+```
+
+#### 验证热重载成功
 
 **控制台日志链（正常情况）**:
 ```
-[Bootstrap]🔄检测到开发服务器(端口18923)，加载最新版...
-[HotReload] ✅ 已是开发版本，跳过热重载检测    ← 第一重生效
-[Init]✅v3.3-autologin                         ← 正常初始化
-[Bootstrap]✅开发版加载完成                      ← 加载成功
+[DevHotReload] 🔄 正在从 http://localhost:18923/... 获取最新脚本...
+[DevHotReload] ✅ 脚本获取成功! 大小: 95.6KB
+[DevHotReload] ✅ 脚本执行完成! 版本: unknown
+[DevHotReload] ✅ GM_xmlhttpRequest: 已桥接          ← 关键！
+[HotReload] ✅ 已是开发版本，跳过热重载检测
+[Init] ✅ 优雅大师就绪, nodeId检测: true
 ```
 
 **关键指标**:
+- `[DevHotReload] ✅ GM_xmlhttpRequest: 已桥接` — 桥接成功
+- `[NetworkClient] 使用 GM_xmlhttpRequest` — OCR API走GM通道（无CORS）
+- ❌ 如果看到 `[NetworkClient] GM_xmlhttpRequest不可用，降级使用fetch` — 桥接失败！
+
+#### 更新dev.user.js到TM
+
+**方法**: 浏览器导航到 `http://localhost:18923/dev.user.js`
+- TM会弹出"更新用户脚本"对话框
+- 如果有新的@connect，会提示"至少添加一个新的 @connect 语句"
+- 点击"更新"即可
+
+**⚠️ BUG#13 已知问题**: TM编辑器的CodeMirror `setValue()` + Ctrl+S 不会持久化代码。
+  → 永远不要用TM编辑器修改dev.user.js！用URL安装方式代替。
+
+---
+
+### 🛡️ 三重防循环机制（保留）
+
+> **历史教训**: BUG#10 — 热重载无限循环导致3255+个脚本注入
+
+防循环机制仍在主脚本中生效:
+1. `currentScript.src` 检测 (是否已是dev版)
+2. `__ELEGANT_MASTER_HR_COUNT` 计数器 (最多触发1次)
+3. `__ELEGANT_MASTER_HOTRELOAD__` 全局标志
 - `hrCount = 0`: 说明没有触发过热重载（因为第一重就拦截了）
 - 日志条数: 应该只有7条左右（对比之前3255条的灾难）
 

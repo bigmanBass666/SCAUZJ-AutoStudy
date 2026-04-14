@@ -231,7 +231,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         onload: (res) => resolve(res.responseText),
                         onerror: (err) => reject(new Error('GM请求失败: ' + (err.error || err.message || '未知'))),
                         ontimeout: () => reject(new Error('GM请求超时')),
-                        timeout: options.timeout || 15000
+                        timeout: options.timeout || 30000
                     });
                 } else {
                     console.log('[NetworkClient] GM_xmlhttpRequest不可用，降级使用fetch');
@@ -327,18 +327,16 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 { b64: context.base64Grayscale, label: '灰度' },
                 { b64: context.base64Inverted, label: '反色' },
             ];
-            
-            context.sixWayImages.forEach((b64, idx) => {
-                variants.push({ b64, label: `二值化${idx+1}(T=${[80,100,120,140,160][idx]})` });
-            });
 
             for (const variant of variants) {
+                if (!variant.b64) continue;
                 try {
                     const fullDataUrl = 'data:image/png;base64,' + variant.b64;
                     const res = await this.networkClient.gmFetch(this.config.ocrspace.endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `apikey=${encodeURIComponent(apiKey)}&language=eng&isOverlayRequired=false&base64Image=${encodeURIComponent(fullDataUrl)}`
+                        body: `apikey=${encodeURIComponent(apiKey)}&language=eng&isOverlayRequired=false&base64Image=${encodeURIComponent(fullDataUrl)}`,
+                        timeout: 30000
                     });
                     
                     const obj = JSON.parse(res);
@@ -348,6 +346,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     if (text && text.length >= 3 && text.length <= 6) {
                         console.log(`[OCR.space] ✅ ${variant.label}: "${text}"`);
                         candidates.push({ text, label: variant.label });
+                        if (candidates.length >= 2) break;
                     }
                 } catch (e) {
                     console.warn(`[OCR.space] ⚠️ ${variant.label} 失败: ${e.message}`);
@@ -405,10 +404,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             };
 
             await tryImage(context.base64Raw, '原图');
-            if (context.base64Grayscale) await tryImage(context.base64Grayscale, '灰度');
-
-            for (const img of context.sixWayImages.slice(0, 3)) {
-                await tryImage(img.base64, `二值t=${img.threshold}`);
+            if (candidates.length === 0 && context.base64Grayscale) {
+                await new Promise(r => setTimeout(r, 500));
+                await tryImage(context.base64Grayscale, '灰度');
             }
 
             if (candidates.length === 0) return null;
@@ -449,6 +447,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 body: params.toString()
             });
             const obj = JSON.parse(res);
+            console.log(`[百度] API响应: error_code=${obj.error_code || 'none'}, words_count=${(obj.words_result||[]).length}, raw=${res.substring(0, 200)}`);
             if (obj.error_code) throw new Error(`百度OCR错误${obj.error_code}: ${obj.error_msg || ''}`);
             const words = obj.words_result || [];
             return words.map(w => w.words).join('');
@@ -759,7 +758,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 baidu: {
                     apiKey: this.config.get('ocr.baidu.apiKey', ''),
                     secretKey: this.config.get('ocr.baidu.secretKey', ''),
-                    endpoint: 'https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic'
+                    endpoint: 'https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic'
                 },
                 tencent: {
                     secretId: this.config.get('ocr.tencent.secretId', ''),
@@ -1582,9 +1581,21 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             if (apiSuccessCount > 0) {
                 console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 成功上报${apiSuccessCount}次, 最终studyId: ${lastStudyId}, 记录: ${this.env.duration}秒`);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
+                const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                if (!completedNodes.includes(this.env.nodeId)) {
+                    completedNodes.push(this.env.nodeId);
+                    localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes));
+                    console.log(`📝 [完成记录] 节点${this.env.nodeId}已标记为完成`);
+                }
             } else {
                 console.error(`❌ 失败！所有${loops+1}次API调用均未成功, 耗时: ${elapsed.toFixed(1)}秒`);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 0, '失败');
+                const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
+                if (!failedNodes.includes(this.env.nodeId)) {
+                    failedNodes.push(this.env.nodeId);
+                    localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
+                    console.log(`📝 [失败记录] 节点${this.env.nodeId}已标记为失败`);
+                }
             }
 
             if (apiSuccessCount > 0 && this.config.get('autoNext.enabled', true)) {
@@ -1632,16 +1643,46 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         async autoNext() {
-            const delay = this.config.get('autoNext.delay', 2000);
+            const delay = this.config.get('autoNext.delay', 3000);
             console.log(`⏳ [autoNext] 等待${delay}ms后跳转下一节...`);
             await this.sleep(delay);
 
+            const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
+            const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+
             try {
-                const nextId = (parseInt(this.env.nodeId) + 1).toString();
+                let nextId = (parseInt(this.env.nodeId) + 1).toString();
+                let attempts = 0;
+                const maxAttempts = 5;
+
+                while (attempts < maxAttempts) {
+                    if (completedNodes.includes(nextId)) {
+                        console.log(`⏭️ [autoNext] 节点${nextId}已完成，跳过...`);
+                        nextId = (parseInt(nextId) + 1).toString();
+                        attempts++;
+                        continue;
+                    }
+                    if (failedNodes.includes(nextId)) {
+                        console.log(`⏭️ [autoNext] 节点${nextId}之前失败过，跳过...`);
+                        nextId = (parseInt(nextId) + 1).toString();
+                        attempts++;
+                        continue;
+                    }
+                    break;
+                }
+
+                if (attempts >= maxAttempts) {
+                    console.error('❌ [autoNext] 连续跳过5个节点，停止自动跳转');
+                    localStorage.removeItem('elegant_was_running');
+                    alert('优雅大师: 已跳过5个节点，可能课程已完成或遇到问题');
+                    return;
+                }
+
                 const targetUrl = location.pathname + '?nodeId=' + nextId;
                 console.log(`➡️  [autoNext] 目标URL: ${targetUrl}, 当前URL: ${location.href}`);
 
                 sessionStorage.setItem('elegant_autostart', '1');
+                localStorage.setItem('elegant_last_attempt_node', nextId);
                 console.log(`✅ [autoNext] 已设置自动启动标记`);
 
                 const links = document.querySelectorAll('a[href*="node"]');
@@ -1663,14 +1704,23 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     a.style.display = 'none';
                     document.body.appendChild(a);
                     a.click();
-                    await this.sleep(200);
+                    await this.sleep(500);
                     if (a.parentNode) a.remove();
                 }
 
-                await this.sleep(800);
+                await this.sleep(1500);
 
                 if (location.href.includes(nextId)) {
                     console.log(`✅ [autoNext] 跳转成功! 新URL: ${location.href}`);
+                    const errorEl = document.querySelector('.error-content, h4');
+                    if (errorEl && errorEl.textContent.includes('当前章节尚未解锁')) {
+                        console.warn(`⚠️ [autoNext] 目标节点${nextId}未解锁，标记为失败并跳过...`);
+                        failedNodes.push(nextId);
+                        localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
+                        await this.sleep(2000);
+                        console.log(`🔄 [autoNext] 2秒后重新尝试下一个节点...`);
+                        return this.autoNext();
+                    }
                 } else {
                     console.warn(`⚠️ [autoNext] 链接点击未生效，尝试 location.assign()...`);
                     try {
@@ -1684,11 +1734,13 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         window.location.href = targetUrl;
                     }
 
-                    await this.sleep(800);
+                    await this.sleep(1500);
 
                     if (!window.location.href.includes(nextId)) {
                         console.error(`❌ [autoNext] 所有跳转方式均失败`);
                         console.error(`❌ [autoNext] 期望包含: ${nextId}, 实际: ${location.href}`);
+                        failedNodes.push(nextId);
+                        localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
                         alert(`优雅大师: 自动跳转下一节失败(${nextId})，请手动点击课程目录中的下一节`);
                     }
                 }
@@ -1850,6 +1902,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 return false;
             }
             this.running = true;
+            localStorage.setItem('elegant_was_running', '1');
             try {
                 this.env = this.detectEnvironment();
                 if (!this.env) {
@@ -1876,6 +1929,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         stop() {
             if (this.bot) { this.bot.stop(); this.bot = null; }
             this.running = false;
+            localStorage.removeItem('elegant_was_running');
         }
 
         detectEnvironment() {
@@ -1984,7 +2038,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             ui.updateStatus(env.nodeId, env.duration, 0, '待机');
             const autoNextEnabled = configMgr.get('autoNext.enabled', false);
             const autoStartFlag = sessionStorage.getItem('elegant_autostart');
-            if (autoNextEnabled && autoStartFlag === '1') {
+            const wasRunning = localStorage.getItem('elegant_was_running');
+            if (autoNextEnabled && (autoStartFlag === '1' || wasRunning === '1')) {
                 sessionStorage.removeItem('elegant_autostart');
                 console.log('🔄 自动续刷模式，2秒后启动...');
                 setTimeout(() => engine.start(), 2000);
