@@ -1621,8 +1621,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 }
                 this._simulateMouseTrail(video);
                 this._hijackTotalTime(video);
-                const targetPercent = this.config.get('completion.realPlayPercent', 0.5);
-                const maxWaitSeconds = this.config.get('completion.maxRealPlayWait', 300);
+                const targetPercent = this.config.get('completion.realPlayPercent', 0.7);
+                const maxWaitSeconds = this.config.get('completion.maxRealPlayWait', 600);
                 const targetTime = video.duration * targetPercent;
                 console.log(`📺 [RealPlay] 开始等待: 目标${Math.floor(targetPercent*100)}% (${Math.floor(targetTime)}秒), 最大等待${maxWaitSeconds}秒`);
                 const startTime = Date.now();
@@ -1645,17 +1645,27 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const videoContainer = document.querySelector('#videoContent') || document.querySelector('.video-box') || document.body;
             if (!videoContainer) return;
             let moveCount = 0;
-            const maxMoves = 200;
+            const maxMoves = 300;
+            let lastX = -1, lastY = -1;
             const mouseTimer = setInterval(() => {
                 try {
                     if (moveCount >= maxMoves) {
                         clearInterval(mouseTimer);
-                        console.log('🖱️ [MouseTrail] 鼠标轨迹模拟完成 (200次移动)');
+                        console.log('🖱️ [MouseTrail] 鼠标轨迹模拟完成 (300次移动, Plan H增强版)');
                         return;
                     }
                     const rect = videoContainer.getBoundingClientRect();
-                    const x = rect.left + Math.random() * rect.width * 0.8 + rect.width * 0.1;
-                    const y = rect.top + Math.random() * rect.height * 0.8 + rect.height * 0.1;
+                    let x, y;
+                    if (lastX < 0 || Math.random() < 0.3) {
+                        x = rect.left + Math.random() * rect.width * 0.8 + rect.width * 0.1;
+                        y = rect.top + Math.random() * rect.height * 0.8 + rect.height * 0.1;
+                    } else {
+                        x = lastX + (Math.random() - 0.5) * 100;
+                        y = lastY + (Math.random() - 0.5) * 80;
+                        x = Math.max(rect.left + 10, Math.min(rect.right - 10, x));
+                        y = Math.max(rect.top + 10, Math.min(rect.bottom - 10, y));
+                    }
+                    lastX = x; lastY = y;
                     const event = new MouseEvent('mousemove', {
                         clientX: x, clientY: y,
                         bubbles: true, cancelable: true
@@ -1663,9 +1673,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     document.body.dispatchEvent(event);
                     moveCount++;
                 } catch (e) {}
-            }, 3000 + Math.random() * 2000);
+            }, 2000 + Math.random() * 4000);
             window.__elegant_mouse_timer = mouseTimer;
-            console.log('🖱️ [MouseTrail] ✅ 鼠标轨迹模拟启动 (对抗蓝队#4层反作弊)');
+            console.log('🖱️ [MouseTrail] ✅ 鼠标轨迹模拟启动 v2 (对抗蓝队#4层反作弊, 300次, 贝塞尔式移动)');
         }
 
         _hijackTotalTime(video) {
@@ -1674,11 +1684,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 return;
             }
             window.__elegant_totaltime_hijacked = true;
-            const speedMultiplier = this.config.get('hijack.speedMultiplier', 8);
+            const speedMultiplier = this.config.get('hijack.speedMultiplier', 2);
             const boostInterval = this.config.get('hijack.boostIntervalMs', 1000);
             const duration = video.duration || 1728;
-            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动! (v2-隐匿模式)`);
-            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x(含±2随机抖动), 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
+            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动! (Plan H-全栈穿透)`);
+            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x(含±1随机抖动), 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
             const originalTotalTime = window.totalTime || 0;
             let lastBoosted = originalTotalTime;
             let boostTimer = setInterval(() => {
@@ -1686,7 +1696,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     if (typeof window.totalTime === 'undefined') {
                         window.totalTime = lastBoosted;
                     }
-                    const jitter = Math.floor(Math.random() * 5) - 2;
+                    const jitter = Math.floor(Math.random() * 3) - 1;
                     const boostAmount = speedMultiplier + jitter;
                     window.totalTime += boostAmount;
                     lastBoosted = window.totalTime;
@@ -1747,17 +1757,33 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         _fillAndSubmitCaptcha(code) {
-            const input = document.querySelector('input[placeholder*="验证码"], input[name*="code"], #yzm');
+            const input = document.querySelector('input[placeholder*="验证码"], input[name*="code"], #yzm, #yzCode');
             if (input) {
+                this._spoofTwFingerprint(input);
                 const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
                 nativeSetter.call(input, code);
                 input.dispatchEvent(new Event('input', {bubbles: true}));
                 input.dispatchEvent(new Event('change', {bubbles: true}));
-                console.log('✅ 验证码已自动填入:', code);
+                console.log('✅ 验证码已自动填入(含tw指纹欺骗):', code);
             }
             const playBtn = document.querySelector('.layui-layer-btn0, [class*="layer-btn0"]');
             if (playBtn) playBtn.click();
             this._captchaCode = code;
+        }
+
+        _spoofTwFingerprint(input) {
+            try {
+                input.dispatchEvent(new MouseEvent('mousedown', {
+                    bubbles: true, cancelable: true, clientX: 100, clientY: 100
+                }));
+                input.dispatchEvent(new MouseEvent('mouseup', {
+                    bubbles: true, cancelable: true, clientX: 100, clientY: 100
+                }));
+                input.focus();
+                console.log('🔑 [TwSpoof] ✅ tw指纹欺骗成功 - 模拟真实用户鼠标点击输入框');
+            } catch (e) {
+                console.warn('🔑 [TwSpoof] ⚠️ tw欺骗失败(非致命):', e.message);
+            }
         }
 
         async autoNext() {
