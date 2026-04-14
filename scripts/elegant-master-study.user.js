@@ -889,6 +889,31 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._lastDuration = null;
             this._roundCount = 0;
             this._totalTime = 0;
+            this._statsKey = 'elegant_master_stats';
+        }
+
+        _loadStats(nodeId) {
+            try {
+                const allStats = JSON.parse(localStorage.getItem(this._statsKey) || '{}');
+                const nodeStats = allStats[nodeId] || { rounds: 0, totalTime: 0 };
+                this._roundCount = nodeStats.rounds;
+                this._totalTime = nodeStats.totalTime;
+                if (this._roundCount > 0) {
+                    console.log(`📊 [持久化] 恢复节点${nodeId}统计: 第${this._roundCount}轮, 累计${this._totalTime.toFixed(0)}秒`);
+                }
+            } catch(e) {
+                console.warn('⚠️ [持久化] 读取统计失败:', e);
+            }
+        }
+
+        _saveStats(nodeId) {
+            try {
+                const allStats = JSON.parse(localStorage.getItem(this._statsKey) || '{}');
+                allStats[nodeId] = { rounds: this._roundCount, totalTime: this._totalTime };
+                localStorage.setItem(this._statsKey, JSON.stringify(allStats));
+            } catch(e) {
+                console.warn('⚠️ [持久化] 保存统计失败:', e);
+            }
         }
 
         setEngine(engine) {
@@ -1717,6 +1742,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.clickCaptchaSolver = new ClickCaptchaSolver(new NetworkClient());
             this._lastNodeId = env.nodeId;
             this._lastDuration = env.duration;
+            this.ui._loadStats(env.nodeId);
         }
 
         async start() {
@@ -1882,6 +1908,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 this.ui._roundCount++;
                 this.ui._totalTime += elapsed;
                 console.log(`📊 [统计] 第${this.ui._roundCount}轮完成, 累计运行${this.ui._totalTime.toFixed(0)}秒`);
+                this.ui._saveStats(this._lastNodeId);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
                 const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
                 if (!completedNodes.includes(this.env.nodeId)) {
