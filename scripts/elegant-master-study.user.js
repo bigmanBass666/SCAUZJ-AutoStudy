@@ -2318,17 +2318,31 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const passEl = document.querySelector('input[name="password"], input[placeholder*="密码"], input[type="password"]');
             const codeEl = document.querySelector('input[name="code"], input[placeholder*="验证码"]');
             const codeImg = document.getElementById('codeImg');
-            const submitBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === '登录');
+            const submitBtn = Array.from(document.querySelectorAll('button, input[type=submit]')).find(b => {
+                const text = (b.textContent || b.value || '').trim();
+                return text === '登录';
+            });
 
             if (!userEl || !passEl || !codeEl) {
-                console.error('❌ [AutoLogin] 登录表单元素不完整', { user: !!userEl, pass: !!passEl, code: !!codeEl });
+                console.error('❌ [AutoLogin] 登录表单元素不完整', { user: !!userEl, pass: !!passEl, code: !!codeEl, btn: !!submitBtn });
+                return false;
+            }
+            if (!submitBtn) {
+                console.error('❌ [AutoLogin] 找不到登录按钮! (BUG#17检查)');
                 return false;
             }
 
-            const credentials = this._getCredentials();
+            let credentials = this._getCredentials();
+            if (!credentials.username || !credentials.password) {
+                credentials = { username: 'REDACTED_USERNAME', password: 'REDACTED_PASSWORD' };
+                localStorage.setItem('elegant_credentials', JSON.stringify(credentials));
+                console.log(`🔐 [AutoLogin] 使用默认凭据并保存`);
+            }
             userEl.value = credentials.username;
             passEl.value = credentials.password;
-            console.log(`🔐 [AutoLogin] 账号已填写: ${credentials.username}`);
+            userEl.dispatchEvent(new Event('input', { bubbles: true }));
+            passEl.dispatchEvent(new Event('input', { bubbles: true }));
+            console.log(`🔐 [AutoLogin] 账号已填写: ${credentials.username}, 按钮: ${submitBtn.tagName}#${submitBtn.type}`);
 
             if (!codeImg) {
                 submitBtn?.click();
@@ -2338,11 +2352,20 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const ocrEngine = new OCREngine(this.config);
             const success = await ocrEngine.solveWithRetry(
                 () => document.getElementById('codeImg'),
-                (code) => { codeEl.value = code; },
+                (code) => {
+                    codeEl.value = code;
+                    codeEl.dispatchEvent(new Event('input', { bubbles: true }));
+                },
                 async () => {
-                    submitBtn?.click();
-                    await new Promise(r => setTimeout(r, 3000));
-                    return !location.pathname.includes('/login');
+                    console.log(`🔐 [AutoLogin] 点击登录按钮 (${submitBtn.tagName})...`);
+                    submitBtn.click();
+                    submitBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                    const form = submitBtn.closest('form');
+                    if (form) { try { form.requestSubmit?.(); } catch(e) { form.submit(); } }
+                    await new Promise(r => setTimeout(r, 4000));
+                    const stillOnLogin = location.pathname.includes('/login');
+                    console.log(`🔐 [AutoLogin] 提交结果: ${stillOnLogin ? '仍在登录页(验证码错误?)' : '登录成功!'}`);
+                    return !stillOnLogin;
                 }
             );
 
