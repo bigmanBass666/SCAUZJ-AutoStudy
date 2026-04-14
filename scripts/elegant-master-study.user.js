@@ -70,7 +70,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'REDACTED_OCRSPACE_KEY' },
         autoNext: { enabled: true, delay: 2000 },
         completion: { targetPercent: 0.95 },
-        antiCheat: { randomJitter: 300 }
+        antiCheat: { randomJitter: 300 },
+        ocr: {
+            baidu: { apiKey: 'REDACTED_BAIDU_APIKEY', secretKey: 'REDACTED_BAIDU_SECRETKEY' },
+            tencent: { secretId: '', secretKey: '' }
+        }
     };
 
     class ConfigManager {
@@ -558,7 +562,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             
             const tryRecognize = async (dataUrl, label) => {
                 try {
-                    const text = await puter.ai.img2txt(dataUrl);
+                    const text = await Promise.race([
+                        puter.ai.img2txt(dataUrl),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Puter OCR 超时(15s)')), 15000))
+                    ]);
                     if (!text || typeof text !== 'string') return null;
                     
                     let cleaned = text
@@ -2394,9 +2401,17 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             console.log(`🔍 [checkAutoNext] 检查节点${currentId}的下一节是否解锁...`);
             const nextId = (parseInt(currentId) + 1).toString();
             try {
-                const resp = await fetch(`/user/node?nodeId=${nextId}`, { redirect: 'manual' });
-                if (resp.type === 'opaqueredirect' || (resp.status >= 300 && resp.status < 400)) {
-                    console.warn(`⚠️ [checkAutoNext] 下一节(${nextId})仍被锁定! 清除${currentId}完成标记并重新运行`);
+                const resp = await fetch(`/user/node?nodeId=${nextId}`, {
+                    credentials: 'include',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const text = await resp.text();
+                const LOCK_KEYWORDS = ['尚未解锁', '错误提示', '当前章节'];
+                const isLocked = LOCK_KEYWORDS.some(kw => text.includes(kw)) ||
+                    (resp.status >= 300 && resp.status < 400) ||
+                    resp.type === 'opaqueredirect';
+                if (isLocked) {
+                    console.warn(`⚠️ [checkAutoNext] 下一节(${nextId})仍被锁定! 响应状态=${resp.status}, 类型=${resp.type}`);
                     const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
                     const idx = completedNodes.indexOf(currentId);
                     if (idx > -1) { completedNodes.splice(idx, 1); localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes)); }
