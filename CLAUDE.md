@@ -2,6 +2,7 @@
 
 **场景**: 全真模拟角色扮演实战（非演习）
 **项目**: 优雅大师刷课助手（Tampermonkey 脚本）
+5. `git clean -fdx screenshots/` — 清理测试产生的临时文件（如截图、测试输出）/
 **平台**: https://scauzj.leykeji.com
 **账号**: `REDACTED_USERNAME` / `REDACTED_PASSWORD`
 **测试节点**: https://scauzj.leykeji.com/user/node?nodeId=1429487
@@ -31,8 +32,7 @@
 1. `git status` — 检查所有变更
 2. `git add <具体文件>` — 只 add 本次修改的文件（不要 git add -A）
 3. `git commit -m "描述本次完成的工作"` — 必须有意义的提交信息
-4. `git push` — 推送到远程
-5. `git clean -fdx screenshots/` — 清理测试产生的临时文件（如截图、测试输出）
+4. `git clean -fdx screenshots/` — 清理测试产生的临时文件（如截图、测试输出）
 
 **为什么这是铁律？**
 - 重要教训：上次修改了 `worklog.md`、`CLAUDE.md`、`scripts/`，但忘记提交，下次会话的 AI 无法看到
@@ -59,7 +59,7 @@
 2. **真刀真枪**: 假设蓝队会采取一切反制手段，发现真实可利用漏洞
 3. **实战视角**: 站在真实用户角度评估脚本可用性（UI是否直观？是否稳定？）
 4. **热重载优先**: 发现BUG后立即热修复，验证是否生效，记录结果
-5. **自主解决问题**: 遇到困难时自己想办法（读代码、查文档、尝试不同注入方式），不要等待指示
+4. **自主解决问题**: 遇到困难时自己想办法（读代码、查文档、尝试不同注入方式），不要等待指示
 
 ---
 
@@ -266,7 +266,7 @@ TM的GM_xmlhttpRequest需要 `@connect` 声明才能访问跨域URL。
 **控制台日志链（正常情况）**:
 ```
 [DevHotReload] 🔄 正在从 http://localhost:18923/... 获取最新脚本...
-[DevHotReload] ✅ 脚本获取成功! 大小: 95.6KB
+[DevHotReload] ✅ 脚本获取成功! 大小: 94.6KB
 [DevHotReload] ✅ 脚本执行完成! 版本: unknown
 [DevHotReload] ✅ GM_xmlhttpRequest: 已桥接          ← 关键！
 [HotReload] ✅ 已是开发版本，跳过热重载检测
@@ -736,7 +736,7 @@ console.log('上报次数:', window.MasterEngine?.reportCount);
 - ✅ 避免用户去各平台的开发者中心申请 API keys
 - ⚠️ 第三方 API（百度/腾讯/OCR.space）作为降级选项，非必需
 
-### 5. 用户友好提示
+### 4. 用户友好提示
 - ✅ 所有错误有可操作的前端提示（不是只在 console）
 - ✅ API keys 缺失时明确告知"去官网申请 key 并粘贴到 config/api_key.txt"
 - ✅ 提供"一键测试"按钮验证 OCR 功能
