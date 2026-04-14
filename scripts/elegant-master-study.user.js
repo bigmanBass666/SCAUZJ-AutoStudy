@@ -839,6 +839,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             this._refreshBackends();
 
+            const allResults = [];
+
             for (const backend of this.backends) {
                 if (!backend.isEnabled()) {
                     console.log(`[OCR v3.2] ⏭️ ${backend.getName()}: 未配置，跳过`);
@@ -850,15 +852,29 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     if (text && text.length >= 3 && text.length <= 6) {
                         const cleaned = this.imagePreprocessor.cleanText(text);
                         console.log(`[OCR v3.2] ✅ [${backend.getName()}] 成功: "${cleaned}"`);
-                        return cleaned;
+                        allResults.push({ text: cleaned, source: backend.getName() });
+                    } else {
+                        console.warn(`[OCR v3.2] ⚠️ [${backend.getName()}] 结果无效: "${text}"`);
                     }
-                    console.warn(`[OCR v3.2] ⚠️ [${backend.getName()}] 结果无效: "${text}"`);
                 } catch (e) {
                     console.warn(`[OCR v3.2] ❌ [${backend.getName()}] 失败: ${e.message}`);
                 }
             }
 
-            throw new Error("[OCR v3.2] 所有六级后端均失败");
+            if (allResults.length === 0) {
+                throw new Error("[OCR v3.2] 所有六级后端均失败");
+            }
+
+            const voteMap = {};
+            allResults.forEach(r => { voteMap[r.text] = (voteMap[r.text] || 0) + 1; });
+            let bestText = allResults[0].text;
+            let maxVotes = 1;
+            for (const [text, votes] of Object.entries(voteMap)) {
+                if (votes > maxVotes) { bestText = text; maxVotes = votes; }
+            }
+
+            console.log(`[OCR v3.2] 🏆 跨后端投票: "${bestText}" (${maxVotes}/${allResults.length}票) 来源: [${allResults.map(r=>r.source+':'+r.text).join(' | ')}]`);
+            return bestText;
         }
     }
 
