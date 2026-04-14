@@ -1348,9 +1348,16 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
             if (roundsEl) roundsEl.textContent = this._roundCount;
             if (totalTimeEl) {
-                const mins = Math.floor(this._totalTime / 60);
+                const hours = Math.floor(this._totalTime / 3600);
+                const mins = Math.floor((this._totalTime % 3600) / 60);
                 const secs = Math.round(this._totalTime % 60);
-                totalTimeEl.textContent = mins > 0 ? `${mins}m${secs}s` : `${secs}s`;
+                if (hours > 0) {
+                    totalTimeEl.textContent = `${hours}h${mins}m${secs}s`;
+                } else if (mins > 0) {
+                    totalTimeEl.textContent = `${mins}m${secs}s`;
+                } else {
+                    totalTimeEl.textContent = `${secs}s`;
+                }
             }
 
             if (!this.elements.statNode && nodeEl) this.elements.statNode = nodeEl;
