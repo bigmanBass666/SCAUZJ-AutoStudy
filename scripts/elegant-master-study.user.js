@@ -2363,21 +2363,62 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     codeEl.dispatchEvent(new Event('change', { bubbles: true }));
                 },
                 async () => {
-                    await new Promise(r => setTimeout(r, 300));
-                    console.log(`🔐 [AutoLogin] 点击登录按钮 (${submitBtn.tagName} ${submitBtn.type})...`);
+                    await new Promise(r => setTimeout(r, 800));
+                    console.log(`🔐 [AutoLogin] 准备提交登录...`);
+                    console.log(`🔐 [AutoLogin] 按钮信息: tag=${submitBtn.tagName}, type=${submitBtn.type}, disabled=${submitBtn.disabled}, visible=${submitBtn.offsetParent !== null}`);
+                    const btnRect = submitBtn.getBoundingClientRect();
+                    console.log(`🔐 [AutoLogin] 按钮位置: x=${btnRect.x}, y=${btnRect.y}, w=${btnRect.width}, h=${btnRect.height}`);
+                    const codeVal = codeEl.value;
+                    console.log(`🔐 [AutoLogin] 验证码输入框值: "${codeVal}" (长度=${codeVal.length})`);
+                    if (!codeVal || codeVal.length < 3) {
+                        console.error(`🔐 [AutoLogin] ❌ 验证码输入框为空或太短! fillInput可能未生效`);
+                        return false;
+                    }
+                    submitBtn.focus();
+                    await new Promise(r => setTimeout(r, 100));
+                    const simulateFullClick = (btn) => {
+                        const rect = btn.getBoundingClientRect();
+                        const x = rect.x + rect.width / 2;
+                        const y = rect.y + rect.height / 2;
+                        btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+                        btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+                        btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+                    };
+                    console.log(`🔐 [AutoLogin] 📍 方案1: 完整鼠标事件模拟...`);
+                    simulateFullClick(submitBtn);
+                    await new Promise(r => setTimeout(r, 3000));
+                    if (!location.pathname.includes('/login')) {
+                        console.log(`🔐 [AutoLogin] ✅ 登录成功! (方案1-完整鼠标事件)`);
+                        return true;
+                    }
+                    console.log(`🔐 [AutoLogin] 方案1失败，当前URL: ${location.pathname}`);
+                    console.log(`🔐 [AutoLogin] 📍 方案2: 原生click()...`);
                     submitBtn.click();
                     await new Promise(r => setTimeout(r, 3000));
                     if (!location.pathname.includes('/login')) {
-                        console.log(`🔐 [AutoLogin] ✅ 登录成功! (native click)`);
+                        console.log(`🔐 [AutoLogin] ✅ 登录成功! (方案2-原生click)`);
                         return true;
                     }
-                    console.log(`🔐 [AutoLogin] native click未跳转，尝试form.submit()...`);
+                    console.log(`🔐 [AutoLogin] 方案2失败，尝试form提交...`);
                     const form = submitBtn.closest('form');
-                    if (form) { try { form.requestSubmit?.(); } catch(e) { try { form.submit(); } catch(e2) {} } }
-                    await new Promise(r => setTimeout(r, 4000));
+                    if (form) {
+                        console.log(`🔐 [AutoLogin] 📍 方案3: form.requestSubmit()...`);
+                        try { form.requestSubmit?.(); } catch(e) { console.warn(`🔐 [AutoLogin] requestSubmit失败: ${e.message}`); }
+                        await new Promise(r => setTimeout(r, 3000));
+                        if (!location.pathname.includes('/login')) {
+                            console.log(`🔐 [AutoLogin] ✅ 登录成功! (方案3-form.requestSubmit)`);
+                            return true;
+                        }
+                        console.log(`🔐 [AutoLogin] 方案3失败`);
+                        console.log(`🔐 [AutoLogin] 📍 方案4: form.submit()...`);
+                        try { form.submit(); } catch(e) { console.warn(`🔐 [AutoLogin] form.submit失败: ${e.message}`); }
+                        await new Promise(r => setTimeout(r, 4000));
+                    } else {
+                        console.warn(`🔐 [AutoLogin] ⚠️ 找不到form元素!`);
+                    }
                     const stillOnLogin = location.pathname.includes('/login');
                     const errEl = document.querySelector('.el-message--error, .error-msg, [class*=error], [class*=alert]');
-                    console.log(`🔐 [AutoLogin] 提交结果: ${stillOnLogin ? '仍在登录页' + (errEl ? '(' + errEl.textContent.trim() + ')' : '(验证码错误?)') : '登录成功!'}`);
+                    console.log(`🔐 [AutoLogin] 最终结果: ${stillOnLogin ? '❌ 仍在登录页' + (errEl ? '(' + errEl.textContent.trim() + ')' : '(验证码错误?)') : '✅ 登录成功!'}`);
                     return !stillOnLogin;
                 }
             );
