@@ -1599,12 +1599,43 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
 
             if (apiSuccessCount > 0 && this.config.get('autoNext.enabled', true)) {
+                await this._waitForRealPlayback();
                 await this.autoNext();
             } else if (apiSuccessCount === 0) {
                 console.error('❌ 本节点全部失败，不自动跳转下一节');
             }
 
             return apiSuccessCount > 0;
+        }
+
+        async _waitForRealPlayback() {
+            const video = document.querySelector('video');
+            if (!video) {
+                console.log('📺 [RealPlay] 未找到视频元素，跳过真实播放等待');
+                return;
+            }
+            const targetPercent = this.config.get('completion.realPlayPercent', 0.3);
+            const maxWaitSeconds = this.config.get('completion.maxRealPlayWait', 180);
+            const targetTime = video.duration * targetPercent;
+            console.log(`📺 [RealPlay] 开始等待真实播放: 目标${Math.floor(targetPercent*100)}% (${Math.floor(targetTime)}秒), 最大等待${maxWaitSeconds}秒`);
+            try {
+                if (video.paused) {
+                    await video.play();
+                    console.log('📺 [RealPlay] 视频已启动播放');
+                }
+                const startTime = Date.now();
+                while (Date.now() - startTime < maxWaitSeconds * 1000) {
+                    if (video.currentTime >= targetTime) {
+                        console.log(`✅ [RealPlay] 真实播放达到目标: ${Math.floor(video.currentTime)}/${Math.floor(targetTime)}秒 (${Math.floor(video.currentTime/video.duration*100)}%)`);
+                        return;
+                    }
+                    await this.sleep(2000);
+                    console.log(`📺 [RealPlay] 当前进度: ${Math.floor(video.currentTime)}/${Math.floor(video.duration)}秒 (${Math.floor(video.currentTime/video.duration*100)}%)`);
+                }
+                console.warn(`⚠️ [RealPlay] 等待超时(${maxWaitSeconds}s)，当前仅播放${Math.floor(video.currentTime)}秒`);
+            } catch (e) {
+                console.warn('⚠️ [RealPlay] 播放失败:', e.message);
+            }
         }
 
         async checkCaptcha(attempt = 1) {
