@@ -887,6 +887,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._engine = null;
             this._lastNodeId = null;
             this._lastDuration = null;
+            this._roundCount = 0;
+            this._totalTime = 0;
         }
 
         setEngine(engine) {
@@ -995,6 +997,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         <div id="stat-progress" style="font-weight: 600; color: #4CAF50;">0%</div></div>
                     <div><div style="font-size: 11px; color: #888; margin-bottom: 4px;">状态</div>
                         <div id="stat-status" style="font-weight: 600; color: #2196F3;">待机</div></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div><div style="font-size: 11px; color: #888; margin-bottom: 4px;">🔄 轮次</div>
+                        <div id="stat-rounds" style="font-weight: 600; color: #FF9800;">0</div></div>
+                    <div><div style="font-size: 11px; color: #888; margin-bottom: 4px;">⏱️ 累计时长</div>
+                        <div id="stat-totalTime" style="font-weight: 600; color: #9C27B0;">0s</div></div>
                 </div>
                 <div id="progress-bar-container" style="height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden;">
                     <div id="progress-bar-fill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease;"></div>
@@ -1107,6 +1115,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 statDuration: p.querySelector('#stat-duration'),
                 statProgress: p.querySelector('#stat-progress'),
                 statStatus: p.querySelector('#stat-status'),
+                statRounds: p.querySelector('#stat-rounds'),
+                statTotalTime: p.querySelector('#stat-totalTime'),
                 progressBarFill: p.querySelector('#progress-bar-fill'),
                 btnSettings: p.querySelector('#btn-settings'),
                 btnStart: p.querySelector('#btn-start'),
@@ -1294,6 +1304,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const durEl = this.elements.statDuration || document.getElementById('stat-duration');
             const progEl = this.elements.statProgress || document.getElementById('stat-progress');
             const statusEl = this.elements.statStatus || document.getElementById('stat-status');
+            const roundsEl = this.elements.statRounds || document.getElementById('stat-rounds');
+            const totalTimeEl = this.elements.statTotalTime || document.getElementById('stat-totalTime');
             const barEl = this.elements.progressBarFill || document.getElementById('progress-bar-fill');
 
             if (nodeEl && this._lastNodeId) nodeEl.textContent = this._lastNodeId;
@@ -1308,6 +1320,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 statusEl.textContent = status;
                 const colors = { '运行中': '#4CAF50', '待机': '#2196F3', '错误': '#f44336', '完成': '#FF9800', '暂停': '#FF9800' };
                 statusEl.style.color = colors[status] || '#333';
+            }
+            if (roundsEl) roundsEl.textContent = this._roundCount;
+            if (totalTimeEl) {
+                const mins = Math.floor(this._totalTime / 60);
+                const secs = Math.round(this._totalTime % 60);
+                totalTimeEl.textContent = mins > 0 ? `${mins}m${secs}s` : `${secs}s`;
             }
 
             if (!this.elements.statNode && nodeEl) this.elements.statNode = nodeEl;
@@ -1861,6 +1879,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             if (apiSuccessCount > 0) {
                 console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 成功上报${apiSuccessCount}次, 最终studyId: ${lastStudyId}, 记录: ${this.env.duration}秒`);
+                this.ui._roundCount++;
+                this.ui._totalTime += elapsed;
+                console.log(`📊 [统计] 第${this.ui._roundCount}轮完成, 累计运行${this.ui._totalTime.toFixed(0)}秒`);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
                 const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
                 if (!completedNodes.includes(this.env.nodeId)) {
