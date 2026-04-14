@@ -2338,10 +2338,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 localStorage.setItem('elegant_credentials', JSON.stringify(credentials));
                 console.log(`🔐 [AutoLogin] 使用默认凭据并保存`);
             }
-            userEl.value = credentials.username;
-            passEl.value = credentials.password;
-            userEl.dispatchEvent(new Event('input', { bubbles: true }));
-            passEl.dispatchEvent(new Event('input', { bubbles: true }));
+            const _vueCompatibleSet = (el, val) => {
+                const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                nativeSetter.call(el, val);
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+            _vueCompatibleSet(userEl, credentials.username);
+            _vueCompatibleSet(passEl, credentials.password);
             console.log(`🔐 [AutoLogin] 账号已填写: ${credentials.username}, 按钮: ${submitBtn.tagName}#${submitBtn.type}`);
 
             if (!codeImg) {
@@ -2353,18 +2357,27 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const success = await ocrEngine.solveWithRetry(
                 () => document.getElementById('codeImg'),
                 (code) => {
-                    codeEl.value = code;
+                    const _s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                    _s.call(codeEl, code);
                     codeEl.dispatchEvent(new Event('input', { bubbles: true }));
+                    codeEl.dispatchEvent(new Event('change', { bubbles: true }));
                 },
                 async () => {
-                    console.log(`🔐 [AutoLogin] 点击登录按钮 (${submitBtn.tagName})...`);
+                    await new Promise(r => setTimeout(r, 300));
+                    console.log(`🔐 [AutoLogin] 点击登录按钮 (${submitBtn.tagName} ${submitBtn.type})...`);
                     submitBtn.click();
-                    submitBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                    await new Promise(r => setTimeout(r, 3000));
+                    if (!location.pathname.includes('/login')) {
+                        console.log(`🔐 [AutoLogin] ✅ 登录成功! (native click)`);
+                        return true;
+                    }
+                    console.log(`🔐 [AutoLogin] native click未跳转，尝试form.submit()...`);
                     const form = submitBtn.closest('form');
-                    if (form) { try { form.requestSubmit?.(); } catch(e) { form.submit(); } }
+                    if (form) { try { form.requestSubmit?.(); } catch(e) { try { form.submit(); } catch(e2) {} } }
                     await new Promise(r => setTimeout(r, 4000));
                     const stillOnLogin = location.pathname.includes('/login');
-                    console.log(`🔐 [AutoLogin] 提交结果: ${stillOnLogin ? '仍在登录页(验证码错误?)' : '登录成功!'}`);
+                    const errEl = document.querySelector('.el-message--error, .error-msg, [class*=error], [class*=alert]');
+                    console.log(`🔐 [AutoLogin] 提交结果: ${stillOnLogin ? '仍在登录页' + (errEl ? '(' + errEl.textContent.trim() + ')' : '(验证码错误?)') : '登录成功!'}`);
                     return !stillOnLogin;
                 }
             );
