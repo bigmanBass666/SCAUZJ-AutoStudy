@@ -1619,9 +1619,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     await video.play();
                     console.log('📺 [RealPlay] 视频已启动播放');
                 }
+                this._simulateMouseTrail(video);
                 this._hijackTotalTime(video);
-                const targetPercent = this.config.get('completion.realPlayPercent', 0.3);
-                const maxWaitSeconds = this.config.get('completion.maxRealPlayWait', 180);
+                const targetPercent = this.config.get('completion.realPlayPercent', 0.5);
+                const maxWaitSeconds = this.config.get('completion.maxRealPlayWait', 300);
                 const targetTime = video.duration * targetPercent;
                 console.log(`📺 [RealPlay] 开始等待: 目标${Math.floor(targetPercent*100)}% (${Math.floor(targetTime)}秒), 最大等待${maxWaitSeconds}秒`);
                 const startTime = Date.now();
@@ -1638,17 +1639,46 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
         }
 
+        _simulateMouseTrail(video) {
+            if (window.__elegant_mouse_simulated) return;
+            window.__elegant_mouse_simulated = true;
+            const videoContainer = document.querySelector('#videoContent') || document.querySelector('.video-box') || document.body;
+            if (!videoContainer) return;
+            let moveCount = 0;
+            const maxMoves = 200;
+            const mouseTimer = setInterval(() => {
+                try {
+                    if (moveCount >= maxMoves) {
+                        clearInterval(mouseTimer);
+                        console.log('🖱️ [MouseTrail] 鼠标轨迹模拟完成 (200次移动)');
+                        return;
+                    }
+                    const rect = videoContainer.getBoundingClientRect();
+                    const x = rect.left + Math.random() * rect.width * 0.8 + rect.width * 0.1;
+                    const y = rect.top + Math.random() * rect.height * 0.8 + rect.height * 0.1;
+                    const event = new MouseEvent('mousemove', {
+                        clientX: x, clientY: y,
+                        bubbles: true, cancelable: true
+                    });
+                    document.body.dispatchEvent(event);
+                    moveCount++;
+                } catch (e) {}
+            }, 3000 + Math.random() * 2000);
+            window.__elegant_mouse_timer = mouseTimer;
+            console.log('🖱️ [MouseTrail] ✅ 鼠标轨迹模拟启动 (对抗蓝队#4层反作弊)');
+        }
+
         _hijackTotalTime(video) {
             if (window.__elegant_totaltime_hijacked) {
                 console.log('🔓 [Hijack] totalTime劫持已激活，跳过重复安装');
                 return;
             }
             window.__elegant_totaltime_hijacked = true;
-            const speedMultiplier = this.config.get('hijack.speedMultiplier', 15);
+            const speedMultiplier = this.config.get('hijack.speedMultiplier', 8);
             const boostInterval = this.config.get('hijack.boostIntervalMs', 1000);
             const duration = video.duration || 1728;
-            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动!`);
-            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x, 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
+            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动! (v2-隐匿模式)`);
+            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x(含±2随机抖动), 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
             const originalTotalTime = window.totalTime || 0;
             let lastBoosted = originalTotalTime;
             let boostTimer = setInterval(() => {
@@ -1656,11 +1686,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     if (typeof window.totalTime === 'undefined') {
                         window.totalTime = lastBoosted;
                     }
-                    const boostAmount = speedMultiplier;
+                    const jitter = Math.floor(Math.random() * 5) - 2;
+                    const boostAmount = speedMultiplier + jitter;
                     window.totalTime += boostAmount;
                     lastBoosted = window.totalTime;
-                    if (window.totalTime % 30 === 0 || window.totalTime >= duration) {
-                        console.log(`🔓 [Hijack] ⚡ totalTime已劫持: ${window.totalTime}s (视频${Math.floor(video.currentTime||0)}/${Math.floor(duration)}s, ${Math.floor((video.currentTime||0)/duration*100)}%)`);
+                    if (window.totalTime % 60 === 0 || window.totalTime >= duration) {
+                        console.log(`🔓 [Hijack] ⚡ totalTime已劫持: ${window.totalTime}s (视频${Math.floor(video.currentTime||0)}/${Math.floor(duration)}s, ${Math.floor((video.currentTime||0)/duration*100)}%) [+${boostAmount}]`);
                     }
                     if (window.totalTime >= duration) {
                         clearInterval(boostTimer);
