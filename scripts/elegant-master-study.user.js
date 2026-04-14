@@ -2406,12 +2406,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const text = await resp.text();
-                const LOCK_KEYWORDS = ['尚未解锁', '错误提示', '当前章节'];
+                const LOCK_KEYWORDS = ['尚未解锁', '错误提示', '当前章节', '参数错误', '无法找到'];
                 const isLocked = LOCK_KEYWORDS.some(kw => text.includes(kw)) ||
                     (resp.status >= 300 && resp.status < 400) ||
                     resp.type === 'opaqueredirect';
-                if (isLocked) {
-                    console.warn(`⚠️ [checkAutoNext] 下一节(${nextId})仍被锁定! 响应状态=${resp.status}, 类型=${resp.type}`);
+                const hasVideoContent = text.includes('video') || text.includes('duration') || text.includes('讨论区');
+                const isLockedStrict = isLocked || !hasVideoContent;
+                if (isLockedStrict) {
+                    console.warn(`⚠️ [checkAutoNext] 下一节(${nextId})仍被锁定! 响应状态=${resp.status}, 类型=${resp.type}, 有视频内容=${hasVideoContent}`);
                     const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
                     const idx = completedNodes.indexOf(currentId);
                     if (idx > -1) { completedNodes.splice(idx, 1); localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes)); }
