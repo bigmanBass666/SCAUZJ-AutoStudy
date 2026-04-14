@@ -1614,28 +1614,84 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 console.log('📺 [RealPlay] 未找到视频元素，跳过真实播放等待');
                 return;
             }
-            const targetPercent = this.config.get('completion.realPlayPercent', 0.3);
-            const maxWaitSeconds = this.config.get('completion.maxRealPlayWait', 180);
-            const targetTime = video.duration * targetPercent;
-            console.log(`📺 [RealPlay] 开始等待真实播放: 目标${Math.floor(targetPercent*100)}% (${Math.floor(targetTime)}秒), 最大等待${maxWaitSeconds}秒`);
             try {
                 if (video.paused) {
                     await video.play();
                     console.log('📺 [RealPlay] 视频已启动播放');
                 }
+                this._hijackTotalTime(video);
+                const targetPercent = this.config.get('completion.realPlayPercent', 0.3);
+                const maxWaitSeconds = this.config.get('completion.maxRealPlayWait', 180);
+                const targetTime = video.duration * targetPercent;
+                console.log(`📺 [RealPlay] 开始等待: 目标${Math.floor(targetPercent*100)}% (${Math.floor(targetTime)}秒), 最大等待${maxWaitSeconds}秒`);
                 const startTime = Date.now();
                 while (Date.now() - startTime < maxWaitSeconds * 1000) {
-                    if (video.currentTime >= targetTime) {
-                        console.log(`✅ [RealPlay] 真实播放达到目标: ${Math.floor(video.currentTime)}/${Math.floor(targetTime)}秒 (${Math.floor(video.currentTime/video.duration*100)}%)`);
+                    if (video.currentTime >= targetTime || window.totalTime >= targetTime) {
+                        console.log(`✅ [RealPlay] 达到目标: video=${Math.floor(video.currentTime)}s, totalTime=${Math.floor(window.totalTime||0)}s`);
                         return;
                     }
                     await this.sleep(2000);
-                    console.log(`📺 [RealPlay] 当前进度: ${Math.floor(video.currentTime)}/${Math.floor(video.duration)}秒 (${Math.floor(video.currentTime/video.duration*100)}%)`);
                 }
-                console.warn(`⚠️ [RealPlay] 等待超时(${maxWaitSeconds}s)，当前仅播放${Math.floor(video.currentTime)}秒`);
+                console.warn(`⚠️ [RealPlay] 等待超时(${maxWaitSeconds}s), totalTime=${window.totalTime||0}`);
             } catch (e) {
                 console.warn('⚠️ [RealPlay] 播放失败:', e.message);
             }
+        }
+
+        _hijackTotalTime(video) {
+            if (window.__elegant_totaltime_hijacked) {
+                console.log('🔓 [Hijack] totalTime劫持已激活，跳过重复安装');
+                return;
+            }
+            window.__elegant_totaltime_hijacked = true;
+            const speedMultiplier = this.config.get('hijack.speedMultiplier', 15);
+            const boostInterval = this.config.get('hijack.boostIntervalMs', 1000);
+            const duration = video.duration || 1728;
+            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动!`);
+            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x, 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
+            const originalTotalTime = window.totalTime || 0;
+            let lastBoosted = originalTotalTime;
+            let boostTimer = setInterval(() => {
+                try {
+                    if (typeof window.totalTime === 'undefined') {
+                        window.totalTime = lastBoosted;
+                    }
+                    const boostAmount = speedMultiplier;
+                    window.totalTime += boostAmount;
+                    lastBoosted = window.totalTime;
+                    if (window.totalTime % 30 === 0 || window.totalTime >= duration) {
+                        console.log(`🔓 [Hijack] ⚡ totalTime已劫持: ${window.totalTime}s (视频${Math.floor(video.currentTime||0)}/${Math.floor(duration)}s, ${Math.floor((video.currentTime||0)/duration*100)}%)`);
+                    }
+                    if (window.totalTime >= duration) {
+                        clearInterval(boostTimer);
+                        console.log(`🔓 [Hijack] ✅ totalTime已达目标(${window.totalTime}s >= ${duration}s), 劫持完成`);
+                    }
+                } catch (e) {
+                    console.warn('🔓 [Hijack] 劫持异常:', e.message);
+                }
+            }, boostInterval);
+            window.__elegant_hijack_timer = boostTimer;
+            const origSendTime = window.sendTime;
+            if (origSendTime && !window.__elegant_sendtime_hooked) {
+                window.__elegant_sendtime_hooked = true;
+                window.sendTime = function(force, code) {
+                    try {
+                        if (typeof window.totalTime !== 'undefined' && window.totalTime > 0) {
+                            const origST = window.studyTime || 0;
+                            window.studyTime = window.totalTime;
+                            console.log(`🔓 [HijackHook] sendTime拦截: studyTime ${origSt} → ${window.studyTime} (totalTime=${window.totalTime})`);
+                        }
+                    } catch (e) {}
+                    return origSendTime.apply(this, arguments);
+                };
+                console.log('🔓 [Hijack] ✅ sendTime() 已挂钩 - 上报时强制使用劫持后的totalTime');
+            }
+            window.addEventListener('beforeunload', () => {
+                if (window.__elegant_hijack_timer) {
+                    clearInterval(window.__elegant_hijack_timer);
+                }
+            });
+            console.log(`🔓 [Hijack] 🎯 劫持系统完全部署! 蓝队的totalTime现在由红队控制!`);
         }
 
         async checkCaptcha(attempt = 1) {
