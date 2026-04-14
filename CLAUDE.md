@@ -64,15 +64,36 @@
 
 ## 📖 每次对话第一步
 
-### 1. 读 worklog.md → 接续工作
-- 当前刷到哪了？做到第几轮？
-- 上次发现了什么？待办是什么？
+### 0. 🔬 健康检查（决定会话模式）
+
+> 对标 Anthropic SDK 的 `init.sh` 冒烟测试。**必须先执行，结果决定你能做什么。**
+
+```
+步骤A - 环境检查(30秒):
+├── Dev Server运行? → 浏览器访问 localhost:18923/elegant-master-study.user.js 能否打开?
+├── 浏览器已打开目标页面? → browser_snapshot 看URL和登录状态
+└── 用户已登录? → snapshot看到用户名=刘家暄?
+
+步骤B - 脚本状态检查(读控制台):
+├── [DevHotReload] ✅ GM_xmlhttpRequest: 已桥接  → ✅ 脚本正常
+├── [Init] ✅ 优雅大师就绪  → ✅ 脚本正常
+├── 有红色ERROR?  → 🔴 需要先修复
+└── UI面板显示节点/进度/状态?  → ✅ 正常
+
+步骤C - 会话类型判定:
+├── A+B全通过 → 🟢 刷课+优化模式（可继续刷课 + 做1个改进）
+├── A通过B失败 → 🔴 仅修复模式（先修bug，不做新功能）
+└── A失败 → ⛔ 环境修复（启动dev server / 重新登录）
+```
+
+### 1. 读 worklog.md + optimization_targets.json → 接续工作
+- **worklog**: 当前刷到哪了？上次做了什么？
+- **optimization_targets**: 哪些优化已验证？下一步该推哪个目标？
 - **不要从头开始！**
 
-### 2. 确认环境 + 继续刷课
-- 浏览器已打开目标页面？已登录？
-- 控制台看一眼脚本状态
-- **然后继续刷，边刷边改进**
+### 2. 继续刷课 + 改进
+- 健康检查通过后，立即继续刷课
+- 刷课过程中发现可优化点 → 立即改 → 热重载 → 更新optimization_targets.json
 
 ---
 
@@ -168,11 +189,33 @@
 ## 🛠️ 工具箱
 
 ### 文件路径
-| 文件 | 用途 |
-|------|------|
-| `scripts/elegant-master-study.user.js` | 主脚本 (改这个→刷新页面即热重载) |
-| `worklog.md` | 工作日志 (读这个→接续工作) |
-| `docs/ocr/ocrEngine.md` | OCR降级链文档 |
+| 文件 | 用途 | 何时更新 |
+|------|------|---------|
+| `scripts/elegant-master-study.user.js` | 主脚本 (改这个→刷新页面即热重载) | 改代码时 |
+| `worklog.md` | 工作日志 (读这个→接续工作) | 节点解锁/SESSION结束 |
+| `config/optimization_targets.json` | **优化目标追踪** (对标SDK feature_list) | 每次优化后必须更新 |
+| `docs/ocr/ocrEngine.md` | OCR降级链文档 | 仅参考 |
+
+### optimization_targets.json 规范（对标 Anthropic SDK feature_list）
+
+> **这是系统的"状态机"。每个优化目标有明确的生命周期。**
+
+```
+状态流转: pending → in_progress → validated → (可推进下一级)
+                          ↓
+                       failed → 回退或换方案
+                          ↓
+                      blocked → 等待依赖满足
+
+字段说明:
+- id: 唯一标识 (SPEED-4X, ROBUST-xxx, OCR-xxx)
+- category: speed / robustness / ocr / stealth / intelligence / milestone
+- priority: P0(速度) > P1(鲁棒性) > P2(隐蔽性) > P3(OCR)
+- status: pending / in_progress / validated / failed / blocked
+- depends_on: 依赖的其他target ID (如 SPEED-5X 依赖 SPEED-4X)
+- evidence: 验证证据 (节点+CAPTCHA数据 / commit hash)
+- next_step: 下一步行动指引
+```
 
 ### 调试命令（浏览器Console）
 ```javascript
@@ -193,6 +236,34 @@ window.MasterEngine?.restartBot?.();  // 强制重启
 
 ---
 
-**📍 当前进度 → 读 `worklog.md`（每次对话第一步）。本文件只写指令，不写状态。**
+## 🚨 异常恢复（对标 SDK recovery_context）
+
+> **上次会话是否异常中断？按此流程诊断。**
+
+### 自动检测清单
+- [ ] `git log --oneline -3` — 最后一次commit是什么时候？是否是正常结束的提交？
+- [ ] worklog.md 最后一条是否有完整结尾？（还是写到一半断了？）
+- [ ] optimization_targets.json 的 `last_updated` 是否过期？
+- [ ] 浏览器控制台是否有未处理的红色ERROR？
+
+### 恢复决策树
+```
+git commit信息正常 + worklog有完整结尾?
+├── ✅ 正常交接 → 跳到"每次对话第一步"健康检查
+└── ❌ 异常中断:
+    ├── 有uncommitted更改? → git diff 看改了什么 → 决定提交或回滚
+    ├── 控制台有ERROR? → 读错误信息 → 判断是否需要修复脚本
+    ├── Dev Server没跑? → 启动它: cd scripts; python -m http.server 18923
+    └── 页面不在目标URL? → 重新导航到当前节点
+```
+
+### ⚠️ 干净状态原则（对标 SDK Clean State）
+> **每个SESSION结束时，必须确保：**
+> 1. 所有代码改动已 git commit（不询问！）
+> 2. optimization_targets.json 已更新（反映最新验证状态）
+> 3. worklog.md 已追加本次 SESSION 记录
+> 4. 浏览器中脚本正常运行（不是报错状态）
+
+**📍 当前进度 → 读 `worklog.md` + `config/optimization_targets.json`（每次对话第一步）。本文件只写指令，不写状态。**
 
 **记住：快而不被抓住，才是真正的红队。永远在边界上试探。**
