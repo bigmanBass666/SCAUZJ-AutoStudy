@@ -8,7 +8,7 @@ if (window.__ELEGANT_MASTER_LOADED__ && !window.__ELEGANT_MASTER_HOTRELOAD__) {
 window.__ELEGANT_MASTER_LOADED__ = true;
 window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
-const ELEGANT_VERSION = 'v3.4-planH-v2';
+const ELEGANT_VERSION = 'v3.4-planH-v3-4x';
 
 const _HOTRELOAD_PORT = 18923;
 const _HOTRELOAD_URL = `http://localhost:${_HOTRELOAD_PORT}/elegant-master-study.user.js`;
@@ -1706,6 +1706,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.startTime = Date.now();
             console.log('🌟 优雅大师启动', this.env);
 
+            try {
             this.ui.updateStatus(this.env.nodeId, this.env.duration, 0, '运行中');
 
             let apiSuccessCount = 0;
@@ -1886,6 +1887,30 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
 
             return apiSuccessCount > 0;
+            } catch (err) {
+                console.error('🛡️ [鲁棒性] start()捕获到未处理异常:', err.message, err.stack);
+                this.running = false;
+                this.ui.updateStatus(this._lastNodeId, this._lastDuration, 0, '异常');
+
+                const errorLog = JSON.parse(localStorage.getItem('elegant_error_log') || '[]');
+                errorLog.push({
+                    time: new Date().toISOString(),
+                    nodeId: this.env.nodeId,
+                    error: err.message,
+                    stack: err.stack?.substring(0, 500)
+                });
+                if (errorLog.length > 20) errorLog.shift();
+                localStorage.setItem('elegant_error_log', JSON.stringify(errorLog));
+
+                console.log('🛡️ [鲁棒性] 5秒后自动重启当前节点...');
+                await this.sleep(5000);
+                try {
+                    return await this.start();
+                } catch (restartErr) {
+                    console.error('🛡️ [鲁棒性] 重启也失败，放弃本节点:', restartErr.message);
+                    return false;
+                }
+            }
         }
 
         async _waitForRealPlayback() {
@@ -1978,11 +2003,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 return;
             }
             window.__elegant_totaltime_hijacked = true;
-            const speedMultiplier = this.config.get('hijack.speedMultiplier', 2);
+            const speedMultiplier = this.config.get('hijack.speedMultiplier', 4);
             const boostInterval = this.config.get('hijack.boostIntervalMs', 1000);
             const duration = video.duration || this.env.duration || 1728;
-            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动! (Plan H-全栈穿透 v2)`);
-            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x(含±1随机抖动), 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
+            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动! (Plan H-全栈穿透 v3-4x加速)`);
+            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x(含±2随机抖动), 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
             const originalTotalTime = window.totalTime || 0;
             let lastBoosted = originalTotalTime;
             let stagnantCount = 0;
@@ -1993,7 +2018,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         window.totalTime = lastBoosted;
                     }
                     const prevTotalTime = window.totalTime;
-                    const jitter = Math.floor(Math.random() * 3) - 1;
+                    const jitter = Math.floor(Math.random() * 5) - 2;
                     const boostAmount = speedMultiplier + jitter;
                     window.totalTime += boostAmount;
                     if (window.totalTime <= prevTotalTime) {
@@ -2494,10 +2519,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             console.log(`🔍 [checkAutoNext] 检查节点${currentId}的下一节是否解锁...`);
             const nextId = (parseInt(currentId) + 1).toString();
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
                 const resp = await fetch(`/user/node?nodeId=${nextId}`, {
                     credentials: 'include',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
                 const text = await resp.text();
                 const LOCK_KEYWORDS = ['尚未解锁', '错误提示', '当前章节', '参数错误', '无法找到'];
                 const isLocked = LOCK_KEYWORDS.some(kw => text.includes(kw)) ||
