@@ -1932,6 +1932,74 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             localStorage.removeItem('elegant_was_running');
         }
 
+        async autoNext() {
+            const env = this.detectEnvironment();
+            if (!env) {
+                console.error('❌ [autoNext] 无法检测当前环境');
+                return;
+            }
+            
+            const delay = this.config.get('autoNext.delay', 3000);
+            console.log(`⏳ [autoNext] 等待${delay}ms后跳转下一节...`);
+            await this._sleep(delay);
+
+            const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
+            const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+
+            let nextId = (parseInt(env.nodeId) + 1).toString();
+            let attempts = 0;
+            const maxAttempts = 5;
+
+            while (attempts < maxAttempts) {
+                if (completedNodes.includes(nextId)) {
+                    console.log(`⏭️ [autoNext] 节点${nextId}已完成，跳过...`);
+                    nextId = (parseInt(nextId) + 1).toString();
+                    attempts++;
+                    continue;
+                }
+                if (failedNodes.includes(nextId)) {
+                    console.log(`⏭️ [autoNext] 节点${nextId}之前失败过，跳过...`);
+                    nextId = (parseInt(nextId) + 1).toString();
+                    attempts++;
+                    continue;
+                }
+                break;
+            }
+
+            if (attempts >= maxAttempts) {
+                console.error('❌ [autoNext] 连续跳过5个节点，停止自动跳转');
+                localStorage.removeItem('elegant_was_running');
+                alert('优雅大师: 已跳过5个节点，可能课程已完成或遇到问题');
+                return;
+            }
+
+            const targetUrl = location.pathname + '?nodeId=' + nextId;
+            console.log(`➡️  [autoNext] 目标URL: ${targetUrl}`);
+
+            sessionStorage.setItem('elegant_autostart', '1');
+            localStorage.setItem('elegant_last_attempt_node', nextId);
+
+            const links = document.querySelectorAll('a[href*="node"]');
+            let foundDomLink = false;
+            for (const link of links) {
+                if (link.href && link.href.includes(`nodeId=${nextId}`)) {
+                    console.log(`🔗 [autoNext] 找到DOM链接，点击跳转 -> ${link.href}`);
+                    link.click();
+                    foundDomLink = true;
+                    break;
+                }
+            }
+
+            if (!foundDomLink) {
+                console.log(`🔗 [autoNext] 未找到DOM链接，使用location.href跳转...`);
+                window.location.href = targetUrl;
+            }
+        }
+
+        _sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
         detectEnvironment() {
             const params = new URLSearchParams(location.search);
             const paramNodeId = params.get("nodeId");
@@ -1943,6 +2011,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const video = document.querySelector("video");
             if (video && video.readyState >= 1 && video.duration && video.duration !== Infinity) {
                 duration = Math.floor(video.duration);
+            } else if (video && video.readyState < 1) {
+                console.log('⏳ [detectEnvironment] video未准备好，等待...');
+                return null;
             } else {
                 const allTexts = Array.from(document.querySelectorAll("*")).map(el => el.textContent).join("\n");
                 const matches = allTexts.match(/\b(\d{1,2})\s*[:：]\s*(\d{2})\b/g);
@@ -2033,28 +2104,100 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
         }
 
-        const env = engine.detectEnvironment();
-        if (env) {
+        const params = new URLSearchParams(location.search);
+        const paramNodeId = params.get("nodeId");
+        const hasNodeId = paramNodeId || location.pathname.match(/\/node\/(\d+)/);
+        
+        if (!hasNodeId) {
+            console.log('⚠️  未检测到学习节点URL，请先访问课程页面');
+            return;
+        }
+
+        const tryInitWithRetry = (retryCount = 0) => {
+            const env = engine.detectEnvironment();
+            
+            if (!env && retryCount < 10) {
+                console.log(`⏳ [Init] 环境检测中... 尝试 ${retryCount + 1}/10`);
+                setTimeout(() => tryInitWithRetry(retryCount + 1), 500);
+                return;
+            }
+            
+            if (!env) {
+                console.log('⚠️  环境检测超时，但URL有nodeId，尝试从URL获取信息');
+                const nodeId = paramNodeId || location.pathname.match(/\/node\/(\d+)/)[1];
+                ui.updateStatus(nodeId, 3600, 0, '待机');
+                console.log('🌟 优雅大师已就绪，点击"🚀 启动"开始');
+                return;
+            }
+            
+            const lastAttempt = localStorage.getItem('elegant_last_attempt_node');
+            if (lastAttempt && env.nodeId !== lastAttempt) {
+                console.warn(`⚠️ [Init] 尝试跳转到${lastAttempt}但被重定向到${env.nodeId}，标记为失败`);
+                const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
+                if (!failedNodes.includes(lastAttempt)) {
+                    failedNodes.push(lastAttempt);
+                    localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
+                }
+                localStorage.removeItem('elegant_last_attempt_node');
+                
+                const autoNextEnabled = configMgr.get('autoNext.enabled');
+                if (autoNextEnabled) {
+                    console.log('🔄 [Init] 2秒后尝试下一个节点...');
+                    setTimeout(() => engine.autoNext(), 2000);
+                    return;
+                }
+            }
+            
             ui.updateStatus(env.nodeId, env.duration, 0, '待机');
             const autoNextEnabled = configMgr.get('autoNext.enabled', false);
             const autoStartFlag = sessionStorage.getItem('elegant_autostart');
             const wasRunning = localStorage.getItem('elegant_was_running');
-            if (autoNextEnabled && (autoStartFlag === '1' || wasRunning === '1')) {
+            
+            const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+            const isCompleted = completedNodes.includes(env.nodeId);
+            
+            if (isCompleted && autoNextEnabled) {
+                console.log(`⏭️ 节点${env.nodeId}已完成，自动跳转下一节...`);
+                setTimeout(() => engine.autoNext(), 1500);
+            } else if (autoNextEnabled && (autoStartFlag === '1' || wasRunning === '1')) {
                 sessionStorage.removeItem('elegant_autostart');
                 console.log('🔄 自动续刷模式，2秒后启动...');
                 setTimeout(() => engine.start(), 2000);
             } else {
                 console.log('🌟 优雅大师已就绪，点击"🚀 启动"开始');
             }
-        } else {
-            console.log('⚠️  未检测到学习节点，请先访问课程页面');
-        }
+        };
+        
+        tryInitWithRetry();
 
         let lastUrl = location.href;
         setInterval(() => {
             if (location.href !== lastUrl) {
+                const oldUrl = lastUrl;
                 lastUrl = location.href;
                 console.log('🔄 URL 变化，重新检测环境:', location.href);
+                
+                const lastAttempt = localStorage.getItem('elegant_last_attempt_node');
+                if (lastAttempt) {
+                    const currentId = new URLSearchParams(location.search).get('nodeId');
+                    if (currentId && currentId !== lastAttempt) {
+                        console.warn(`⚠️ [URL变化] 尝试跳转到${lastAttempt}但被重定向到${currentId}，标记为失败`);
+                        const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
+                        if (!failedNodes.includes(lastAttempt)) {
+                            failedNodes.push(lastAttempt);
+                            localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
+                        }
+                        localStorage.removeItem('elegant_last_attempt_node');
+                        
+                        const autoNextEnabled = configMgr.get('autoNext.enabled');
+                        if (autoNextEnabled) {
+                            console.log('🔄 [URL变化] 2秒后尝试下一个节点...');
+                            setTimeout(() => engine.autoNext(), 2000);
+                            return;
+                        }
+                    }
+                }
+                
                 let attempts = 0;
                 const maxAttempts = 30;
                 const tryDetect = () => {
