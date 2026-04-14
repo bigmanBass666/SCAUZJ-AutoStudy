@@ -12,6 +12,7 @@ const ELEGANT_VERSION = 'v3.4-planH-v2';
 
 const _HOTRELOAD_PORT = 18923;
 const _HOTRELOAD_URL = `http://localhost:${_HOTRELOAD_PORT}/elegant-master-study.user.js`;
+const _TUTORIAL_BASE_URL = 'https://scauzj.leykeji.com/tutorial';
 
 async function checkAndHotReload() {
     if (window.__ELEGANT_MASTER_HOTRELOAD__) return false;
@@ -1326,7 +1327,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
                             <span style="font-size: 10px; color: #999;">需要手机号+身份证实名</span>
-                            <a href="#" onclick="window.open('file:///'+document.location.pathname.replace(/[^/\\\\]*$/,'')+'docs/tutorial/baidu-ocr-apikey-tutorial.md','_blank');return false;" style="font-size:10px;color:#667eea;text-decoration:none;">📖 查看教程 →</a>
+                            <a href="#" onclick="window.open(_TUTORIAL_BASE_URL+'/baidu-ocr-apikey-tutorial','_blank');return false;" style="font-size:10px;color:#667eea;text-decoration:none;">📖 查看教程 →</a>
                         </div>
                     </div>
 
@@ -1344,7 +1345,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
                             <span style="font-size: 10px; color: #999;">需要手机号+身份证实名</span>
-                            <a href="#" onclick="window.open('file:///'+document.location.pathname.replace(/[^/\\\\]*$/,'')+'docs/tutorial/tencent-ocr-apikey-tutorial.md','_blank');return false;" style="font-size:10px;color:#00a4ff;text-decoration:none;">📖 查看教程 →</a>
+                            <a href="#" onclick="window.open(_TUTORIAL_BASE_URL+'/tencent-ocr-apikey-tutorial','_blank');return false;" style="font-size:10px;color:#00a4ff;text-decoration:none;">📖 查看教程 →</a>
                         </div>
                     </div>
 
@@ -1386,11 +1387,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;">
                         ${hasBaidu ? '<span style="color:#28a745;font-weight:600">✅ 百度OCR</span>' : '<span style="color:#ccc">⬜ 百度OCR</span>'}
-                        <a href="#" onclick="window.open('file:///'+document.location.pathname.replace(/[^/\\\\]*$/,'')+'docs/tutorial/baidu-ocr-apikey-tutorial.md','_blank');return false;" style="font-size:10px;color:#667eea;text-decoration:none;">📖 教程</a>
+                        <a href="#" onclick="window.open(_TUTORIAL_BASE_URL+'/baidu-ocr-apikey-tutorial','_blank');return false;" style="font-size:10px;color:#667eea;text-decoration:none;">📖 教程</a>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;">
                         ${hasTencent ? '<span style="color:#28a745;font-weight:600">✅ 腾讯云</span>' : '<span style="color:#ccc">⬜ 腾讯云</span>'}
-                        <a href="#" onclick="window.open('file:///'+document.location.pathname.replace(/[^/\\\\]*$/,'')+'docs/tutorial/tencent-ocr-apikey-tutorial.md','_blank');return false;" style="font-size:10px;color:#00a4ff;text-decoration:none;">📖 教程</a>
+                        <a href="#" onclick="window.open(_TUTORIAL_BASE_URL+'/tencent-ocr-apikey-tutorial','_blank');return false;" style="font-size:10px;color:#00a4ff;text-decoration:none;">📖 教程</a>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;">
                         ${puterOn ? '<span style="color:#28a745">✅ Puter.js</span>' : '<span style="color:#dc3545">❌ Puter.js</span>'}
@@ -2344,6 +2345,17 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 console.warn('⚠️ 已有实例运行中');
                 return false;
             }
+            const isLockPage = document.body?.textContent?.includes('当前章节尚未解锁') || document.title === '错误提示';
+            if (isLockPage) {
+                const currentId = new URLSearchParams(location.search).get('nodeId') || '';
+                const prevId = (parseInt(currentId) - 1).toString();
+                console.warn(`⚠️ [start] 检测到章节锁定页面(${currentId})，回退到${prevId}...`);
+                localStorage.removeItem('elegant_autostart');
+                localStorage.removeItem('elegant_last_attempt_node');
+                localStorage.setItem('elegant_was_running', '1');
+                location.href = `/user/node?nodeId=${prevId}`;
+                return false;
+            }
             this.running = true;
             localStorage.setItem('elegant_was_running', '1');
             try {
@@ -2373,6 +2385,33 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             if (this.bot) { this.bot.stop(); this.bot = null; }
             this.running = false;
             localStorage.removeItem('elegant_was_running');
+        }
+
+        async checkAndAutoNext() {
+            const env = this.detectEnvironment();
+            if (!env) return;
+            const currentId = env.nodeId;
+            console.log(`🔍 [checkAutoNext] 检查节点${currentId}的下一节是否解锁...`);
+            const nextId = (parseInt(currentId) + 1).toString();
+            try {
+                const resp = await fetch(`/user/node?nodeId=${nextId}`, { redirect: 'manual' });
+                if (resp.type === 'opaqueredirect' || (resp.status >= 300 && resp.status < 400)) {
+                    console.warn(`⚠️ [checkAutoNext] 下一节(${nextId})仍被锁定! 清除${currentId}完成标记并重新运行`);
+                    const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                    const idx = completedNodes.indexOf(currentId);
+                    if (idx > -1) { completedNodes.splice(idx, 1); localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes)); }
+                    localStorage.removeItem('elegant_last_attempt_node');
+                    localStorage.setItem('elegant_autostart', '1');
+                    console.log(`🔄 [checkAutoNext] 2秒后重新启动节点${currentId}...`);
+                    setTimeout(() => this.start(), 2000);
+                } else {
+                    console.log(`✅ [checkAutoNext] 下一节(${nextId})已解锁! 跳转中...`);
+                    this.autoNext();
+                }
+            } catch(e) {
+                console.log(`🔄 [checkAutoNext] 检测失败，尝试直接跳转...`);
+                this.autoNext();
+            }
         }
 
         async autoNext() {
@@ -2599,10 +2638,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             
             const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
             const isCompleted = completedNodes.includes(env.nodeId);
-            
             if (isCompleted && autoNextEnabled) {
-                console.log(`⏭️ 节点${env.nodeId}已完成，自动跳转下一节...`);
-                setTimeout(() => engine.autoNext(), 1500);
+                console.log(`⏭️ 节点${env.nodeId}已完成，检查下一节是否解锁...`);
+                engine.checkAndAutoNext();
             } else if (autoNextEnabled && (autoStartFlag === '1' || wasRunning === '1')) {
                 sessionStorage.removeItem('elegant_autostart');
                 console.log('🔄 自动续刷模式，2秒后启动...');
