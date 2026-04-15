@@ -89,7 +89,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
     'use strict';
 
     const DEFAULTS = {
-        speed: { mode: 'normal', reportInterval: 2000, jumpSize: 30 },
+        speed: { mode: 'normal', reportInterval: 1500, jumpSize: 30 },
         ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'REDACTED_OCRSPACE_KEY' },
         autoNext: { enabled: true, delay: 2000 },
         completion: { targetPercent: 0.95, realPlayPercent: 0.05, maxRealPlayWait: 120 },
