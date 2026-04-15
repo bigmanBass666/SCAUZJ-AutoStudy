@@ -1986,6 +1986,22 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             if (apiSuccessCount > 0 && this.config.get('autoNext.enabled', true)) {
                 await this._waitForRealPlayback();
+
+                const video = document.querySelector('video');
+                const videoCompleted = video && (video.currentTime >= (video.duration || this.env.duration || 179) * 0.95);
+                const roundCount = this.ui._roundCount || 0;
+                const totalTimeAccumulated = this.ui._totalTime || 0;
+                const minRoundsBeforeConsiderComplete = 5;
+                const minAccumulatedRatio = 3.0;
+                const videoDuration = this.env.duration || 179;
+
+                if (videoCompleted && roundCount >= minRoundsBeforeConsiderComplete && totalTimeAccumulated >= videoDuration * minAccumulatedRatio) {
+                    console.log(`✅ [有效性检测] 视频已播完(${Math.floor(video?.currentTime || 0)}s), 已循环${roundCount}轮, 累计${Math.floor(totalTimeAccumulated)}s >= ${Math.floor(videoDuration * minAccumulatedRatio)}s阈值, 认为节点${this.env.nodeId}已真正完成`);
+                    this.ui.updateStatus(this.env.nodeId, videoDuration, 100, '完成');
+                    console.log(`⏸️ [有效性检测] 停止循环刷题，下一节解锁前不会再自动重刷`);
+                    return true;
+                }
+
                 const nextId = this._getNextNodeIdFromSidebar();
                 const targetUrl = location.pathname + '?nodeId=' + nextId;
                 let nextNodeAccessible = false;
@@ -2005,7 +2021,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 if (nextNodeAccessible) {
                     await this.autoNext();
                 } else {
-                    console.log(`🔄 [同节点循环] 第${this.ui._roundCount + 1}轮开始 — 节点${this.env.nodeId}`);
+                    if (videoCompleted) {
+                        console.log(`🔄 [同节点循环] 第${roundCount + 1}轮开始 — 节点${this.env.nodeId} (视频已播完 ${Math.floor(video?.currentTime || 0)}s, 累计${Math.floor(totalTimeAccumulated)}s, 需达${Math.floor(videoDuration * minAccumulatedRatio)}s阈值)`);
+                    } else {
+                        console.log(`🔄 [同节点循环] 第${roundCount + 1}轮开始 — 节点${this.env.nodeId}`);
+                    }
                     const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
                     const idx = completedNodes.indexOf(this.env.nodeId);
                     if (idx !== -1) {
