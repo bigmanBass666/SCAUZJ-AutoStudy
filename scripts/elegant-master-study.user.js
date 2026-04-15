@@ -8,7 +8,7 @@ if (window.__ELEGANT_MASTER_LOADED__ && !window.__ELEGANT_MASTER_HOTRELOAD__) {
 window.__ELEGANT_MASTER_LOADED__ = true;
 window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
-const ELEGANT_VERSION = 'v3.4-planH-v3-4x';
+const ELEGANT_VERSION = 'v3.4-planH-v3-4x-fix24';
 
 const _HOTRELOAD_PORT = 18923;
 const _HOTRELOAD_URL = `http://localhost:${_HOTRELOAD_PORT}/elegant-master-study.user.js`;
@@ -896,8 +896,19 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             try {
                 const allStats = JSON.parse(localStorage.getItem(this._statsKey) || '{}');
                 const nodeStats = allStats[nodeId] || { rounds: 0, totalTime: 0 };
-                this._roundCount = nodeStats.rounds;
-                this._totalTime = nodeStats.totalTime;
+                const pendingKey = `${this._statsKey}_pending_${nodeId}`;
+                const pending = JSON.parse(localStorage.getItem(pendingKey) || 'null');
+                
+                if (pending && pending.rounds > nodeStats.rounds) {
+                    console.log(`📊 [持久化] 发现未保存的进度! 使用pending数据: 第${pending.rounds}轮`);
+                    this._roundCount = pending.rounds;
+                    this._totalTime = pending.totalTime;
+                    localStorage.removeItem(pendingKey);
+                } else {
+                    this._roundCount = nodeStats.rounds;
+                    this._totalTime = nodeStats.totalTime;
+                }
+                
                 if (this._roundCount > 0) {
                     console.log(`📊 [持久化] 恢复节点${nodeId}统计: 第${this._roundCount}轮, 累计${this._totalTime.toFixed(0)}秒`);
                 }
@@ -909,11 +920,27 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         _saveStats(nodeId) {
             try {
                 const allStats = JSON.parse(localStorage.getItem(this._statsKey) || '{}');
-                allStats[nodeId] = { rounds: this._roundCount, totalTime: this._totalTime };
-                localStorage.setItem(this._statsKey, JSON.stringify(allStats));
+                const oldRounds = allStats[nodeId]?.rounds || 0;
+                
+                if (this._roundCount >= oldRounds) {
+                    allStats[nodeId] = { rounds: this._roundCount, totalTime: this._totalTime, timestamp: Date.now() };
+                    localStorage.setItem(this._statsKey, JSON.stringify(allStats));
+                }
             } catch(e) {
                 console.warn('⚠️ [持久化] 保存统计失败:', e);
             }
+        }
+
+        _saveStatsImmediate(nodeId) {
+            const pendingKey = `${this._statsKey}_pending_${nodeId}`;
+            try {
+                localStorage.setItem(pendingKey, JSON.stringify({
+                    rounds: this._roundCount,
+                    totalTime: this._totalTime,
+                    timestamp: Date.now()
+                }));
+            } catch(e) {}
+            this._saveStats(nodeId);
         }
 
         setEngine(engine) {
@@ -1915,7 +1942,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 this.ui._roundCount++;
                 this.ui._totalTime += elapsed;
                 console.log(`📊 [统计] 第${this.ui._roundCount}轮完成, 累计运行${this.ui._totalTime.toFixed(0)}秒`);
-                this.ui._saveStats(this._lastNodeId);
+                this.ui._saveStatsImmediate(this._lastNodeId);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
                 const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
                 if (!completedNodes.includes(this.env.nodeId)) {
@@ -1936,7 +1963,36 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             if (apiSuccessCount > 0 && this.config.get('autoNext.enabled', true)) {
                 await this._waitForRealPlayback();
-                await this.autoNext();
+                const nextId = this._getNextNodeIdFromSidebar();
+                const targetUrl = location.pathname + '?nodeId=' + nextId;
+                let nextNodeAccessible = false;
+                try {
+                    console.log(`🔍 [循环检测] 探测下一节 ${nextId} 是否可访问...`);
+                    const resp = await fetch(targetUrl, { credentials: 'include' });
+                    const html = await resp.text();
+                    if (!html.includes('课程信息不存在') && !html.includes('当前章节尚未解锁') && !html.includes('暂无数据') && !html.includes('节点不存在') && !html.includes('解锁时间未到')) {
+                        nextNodeAccessible = true;
+                        console.log(`✅ [循环检测] 下一节 ${nextId} 可访问，准备跳转`);
+                    } else {
+                        console.log(`🚫 [循环检测] 下一节 ${nextId} 未解锁(响应含错误标识)，继续刷当前节点`);
+                    }
+                } catch (e) {
+                    console.warn(`⚠️ [循环检测] 探测异常(${e.message})，保守处理为不可访问`);
+                }
+                if (nextNodeAccessible) {
+                    await this.autoNext();
+                } else {
+                    console.log(`🔄 [同节点循环] 第${this.ui._roundCount + 1}轮开始 — 节点${this.env.nodeId}`);
+                    const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                    const idx = completedNodes.indexOf(this.env.nodeId);
+                    if (idx !== -1) {
+                        completedNodes.splice(idx, 1);
+                        localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes));
+                    }
+                    await this.sleep(1500);
+                    this.ui._loadStats(this.env.nodeId);
+                    return this.start();
+                }
             } else if (apiSuccessCount === 0) {
                 console.error('❌ 本节点全部失败，不自动跳转下一节');
             }
@@ -1965,6 +2021,46 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     console.error('🛡️ [鲁棒性] 重启也失败，放弃本节点:', restartErr.message);
                     return false;
                 }
+            }
+        }
+
+        _getNextNodeIdFromSidebar() {
+            try {
+                const currentPath = 'nodeId=' + this.env.nodeId;
+                const allLinks = document.querySelectorAll('.course-menu a[href*="nodeId"], .chapter-list a[href*="nodeId"], #study-menu a[href*="nodeId"], [class*="menu"] a[href*="nodeId"], [class*="catalog"] a[href*="nodeId"], [class*="directory"] a[href*="nodeId"]');
+                let foundCurrent = false;
+                for (let i = 0; i < allLinks.length; i++) {
+                    const href = allLinks[i].getAttribute('href') || '';
+                    if (href.includes(currentPath)) {
+                        foundCurrent = true;
+                        continue;
+                    }
+                    if (foundCurrent) {
+                        const match = href.match(/nodeId=(\d+)/);
+                        if (match) {
+                            console.log(`📖 [侧边栏] 当前节点=${this.env.nodeId}, 下一节=${match[1]} (从DOM读取)`);
+                            return match[1];
+                        }
+                    }
+                }
+                if (!foundCurrent) {
+                    const fallbackMatch = document.querySelector(`a[href$="${currentPath}"]`);
+                    if (fallbackMatch) {
+                        const nextSibling = fallbackMatch.closest('li, div, [class*="item"]')?.nextElementSibling?.querySelector('a[href*="nodeId"]');
+                        if (nextSibling) {
+                            const m = nextSibling.getAttribute('href')?.match(/nodeId=(\d+)/);
+                            if (m) {
+                                console.log(`📖 [侧边栏] 兜底查找成功, 下一节=${m[1]}`);
+                                return m[1];
+                            }
+                        }
+                    }
+                }
+                console.warn(`⚠️ [侧边栏] 未找到当前节点(${this.env.nodeId})之后的下一节，尝试nodeId+1兜底`);
+                return (parseInt(this.env.nodeId) + 1).toString();
+            } catch (e) {
+                console.warn(`⚠️ [侧边栏] 读取失败(${e.message})，回退到nodeId+1`);
+                return (parseInt(this.env.nodeId) + 1).toString();
             }
         }
 
