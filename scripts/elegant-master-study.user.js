@@ -13,6 +13,16 @@ const ELEGANT_VERSION = 'v3.5-audit-hardened';
 (function preventThirdPartyDialogs() {
     const REMOVE_TARGETS = 'usage-limit-dialog, [class*="puter-dialog"], [class*="Puter-dialog"], [class*="puter-modal"], [class*="Puter-modal"], [data-component="usage-limit-dialog"]';
     const KEEP_KEYWORDS = ['验证码', 'yzCode', 'codeImg', 'layui-layer', 'video-captcha', '请依次点击', '确认是您本人'];
+    const _origShowModal = HTMLDialogElement.prototype.showModal;
+    HTMLDialogElement.prototype.showModal = function() {
+        const text = (this.textContent || '') + (this.innerHTML || '');
+        if (text.includes('Puter') || text.includes('puter') || text.includes('Terms of Service') || text.includes('Privacy Policy') || text.includes('Cloud Features') || text.includes('By clicking')) {
+            console.log('🛡️ [AntiDialog] 拦截第三方showModal:', this.tagName, this.className.substring(0,30));
+            try { this.remove(); } catch(e) {}
+            return this;
+        }
+        return _origShowModal.apply(this, arguments);
+    };
     function removeThirdPartyDialogs() {
         try {
             document.querySelectorAll(REMOVE_TARGETS).forEach(el => { el.remove(); });
@@ -24,9 +34,17 @@ const ELEGANT_VERSION = 'v3.5-audit-hardened';
             document.querySelectorAll('dialog, [role="dialog"], .modal, [class*="modal"][class*="show"], [class*="popup"][class*="open"]').forEach(el => {
                 const text = el.textContent || '';
                 const isBlueTeam = KEEP_KEYWORDS.some(kw => text.includes(kw));
-                const isThirdParty = text.includes('Puter') || text.includes('puter') || text.includes('Cloud Features') || text.includes('By clicking') || text.includes('Terms of Service');
+                const isThirdParty = text.includes('Puter') || text.includes('puter') || text.includes('Cloud Features') || text.includes('By clicking') || text.includes('Terms of Service') || text.includes('Privacy Policy');
                 if (!isBlueTeam && (isThirdParty || (el.querySelector('button') && !text.includes('视频') && !text.includes('播放') && !text.includes('课程')))) {
                     console.log(`🧹 [AutoClean] 移除第三方弹窗: ${el.tagName}.${el.className.substring(0,30)}`);
+                    if (typeof el.close === 'function') try { el.close(); } catch(e) {}
+                    el.remove();
+                }
+            });
+            document.querySelectorAll('dialog[open]').forEach(el => {
+                const text = el.textContent || '';
+                if (text.includes('Puter') || text.includes('puter') || text.includes('Terms of Service')) {
+                    if (typeof el.close === 'function') try { el.close(); } catch(e) {}
                     el.remove();
                 }
             });
