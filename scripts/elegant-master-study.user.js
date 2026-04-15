@@ -8,7 +8,7 @@ if (window.__ELEGANT_MASTER_LOADED__ && !window.__ELEGANT_MASTER_HOTRELOAD__) {
 window.__ELEGANT_MASTER_LOADED__ = true;
 window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
-const ELEGANT_VERSION = 'v3.5-audit-hardened';
+const ELEGANT_VERSION = 'v3.6-blue-team-audit';
 
 (function preventThirdPartyDialogs() {
     const REMOVE_TARGETS = 'usage-limit-dialog, [class*="puter-dialog"], [class*="Puter-dialog"], [class*="puter-modal"], [class*="Puter-modal"], [data-component="usage-limit-dialog"]';
@@ -1809,7 +1809,36 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._hookYeeAlert();
             this._hookLocationRedirect();
             this._hookWindowAlert();
-            console.log('🛡️ [BlueDefense] ✅ 蓝队反制系统v2已部署 (fetch+XHR+Yee.alert+location+alert拦截)');
+            this._spoofMultiTabDetection();
+            console.log('🛡️ [BlueDefense] ✅ 蓝队反制系统v3已部署 (fetch+XHR+Yee.alert+location+alert+多标签欺骗)');
+        }
+
+        _spoofMultiTabDetection() {
+            try {
+                const self = this;
+                const updateNodePlay = () => {
+                    try {
+                        const schoolId = self._getCookie('schoolId');
+                        const userId = self._getCookie('userId') || self._getCookie('user_id');
+                        const nodeIdEl = document.querySelector('#video-nodeId');
+                        const nodeId = nodeIdEl ? nodeIdEl.value : '';
+                        if (schoolId && userId && nodeId) {
+                            const key = `node_play_${schoolId}${userId}`;
+                            localStorage.setItem(key, nodeId);
+                        }
+                    } catch(e) {}
+                };
+                updateNodePlay();
+                setInterval(updateNodePlay, 567);
+                console.log('🛡️ [BlueDefense] ✅ 多标签检测欺骗已激活 (每567ms维护localStorage node_play_*)');
+            } catch(e) {
+                console.warn('🛡️ [BlueDefense] ⚠️ 多标签检测欺骗安装失败:', e.message);
+            }
+        }
+
+        _getCookie(name) {
+            const m = document.cookie.match(new RegExp(`${name}=([^;]+)`));
+            return m ? m[1] : null;
         }
 
         _hookFetch() {
@@ -2588,37 +2617,63 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const videoContainer = document.querySelector('#videoContent') || document.querySelector('.video-box') || document.body;
             if (!videoContainer) return;
             let moveCount = 0;
-            const maxMoves = 300;
+            const maxMoves = 500;
             let lastX = -1, lastY = -1;
+            let phase = 0;
+            const generateNaturalPath = (rect) => {
+                const patterns = [
+                    () => ({ x: rect.left + Math.random() * rect.width * 0.8 + rect.width * 0.1, y: rect.top + Math.random() * rect.height * 0.8 + rect.height * 0.1 }),
+                    () => {
+                        const angle = phase * 0.5;
+                        const radiusX = rect.width * 0.3;
+                        const radiusY = rect.height * 0.3;
+                        const cx = rect.left + rect.width / 2;
+                        const cy = rect.top + rect.height / 2;
+                        return { x: cx + Math.cos(angle) * radiusX * (0.5 + Math.random() * 0.5), y: cy + Math.sin(angle) * radiusY * (0.5 + Math.random() * 0.5) };
+                    },
+                    () => {
+                        if (lastX < 0 || Math.random() < 0.2) {
+                            return { x: rect.left + Math.random() * rect.width * 0.8 + rect.width * 0.1, y: rect.top + Math.random() * rect.height * 0.8 + rect.height * 0.1 };
+                        }
+                        return { x: lastX + (Math.random() - 0.5) * 120, y: lastY + (Math.random() - 0.5) * 90 };
+                    }
+                ];
+                const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+                const pos = pattern();
+                phase += 0.3 + Math.random() * 0.7;
+                return {
+                    x: Math.max(rect.left + 5, Math.min(rect.right - 5, pos.x)),
+                    y: Math.max(rect.top + 5, Math.min(rect.bottom - 5, pos.y))
+                };
+            };
             const mouseTimer = setInterval(() => {
                 try {
                     if (moveCount >= maxMoves) {
                         clearInterval(mouseTimer);
-                        console.log('🖱️ [MouseTrail] 鼠标轨迹模拟完成 (300次移动, Plan H增强版)');
+                        console.log('🖱️ [MouseTrail] 鼠标轨迹模拟完成 (500次移动, v3自然化增强版)');
                         return;
                     }
                     const rect = videoContainer.getBoundingClientRect();
-                    let x, y;
-                    if (lastX < 0 || Math.random() < 0.3) {
-                        x = rect.left + Math.random() * rect.width * 0.8 + rect.width * 0.1;
-                        y = rect.top + Math.random() * rect.height * 0.8 + rect.height * 0.1;
-                    } else {
-                        x = lastX + (Math.random() - 0.5) * 100;
-                        y = lastY + (Math.random() - 0.5) * 80;
-                        x = Math.max(rect.left + 10, Math.min(rect.right - 10, x));
-                        y = Math.max(rect.top + 10, Math.min(rect.bottom - 10, y));
+                    const newPos = generateNaturalPath(rect);
+                    const steps = 2 + Math.floor(Math.random() * 3);
+                    for (let i = 0; i < steps; i++) {
+                        const progress = (i + 1) / steps;
+                        const x = lastX + (newPos.x - lastX) * progress + (Math.random() - 0.5) * 3;
+                        const y = lastY + (newPos.y - lastY) * progress + (Math.random() - 0.5) * 3;
+                        const clampedX = Math.max(rect.left + 5, Math.min(rect.right - 5, x));
+                        const clampedY = Math.max(rect.top + 5, Math.min(rect.bottom - 5, y));
+                        const event = new MouseEvent('mousemove', {
+                            clientX: clampedX, clientY: clampedY,
+                            bubbles: true, cancelable: true
+                        });
+                        document.body.dispatchEvent(event);
                     }
-                    lastX = x; lastY = y;
-                    const event = new MouseEvent('mousemove', {
-                        clientX: x, clientY: y,
-                        bubbles: true, cancelable: true
-                    });
-                    document.body.dispatchEvent(event);
+                    lastX = newPos.x; lastY = newPos.y;
                     moveCount++;
                 } catch (e) {}
-            }, 2000 + Math.random() * 4000);
+            }, 400 + Math.random() * 600);
             window.__elegant_mouse_timer = mouseTimer;
-            console.log('🖱️ [MouseTrail] ✅ 鼠标轨迹模拟启动 v2 (对抗蓝队#4层反作弊, 300次, 贝塞尔式移动)');
+            console.log('🖱️ [MouseTrail] ✅ 鼠标轨迹模拟启动 v3 (对抗蓝队L3鼠标追踪, 500次, 400-1000ms间隔, 多模式自然移动)');
         }
 
         _hijackTotalTime(video) {
