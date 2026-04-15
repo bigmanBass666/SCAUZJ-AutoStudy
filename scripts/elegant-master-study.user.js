@@ -10,6 +10,29 @@ window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
 const ELEGANT_VERSION = 'v3.4-planH-v3-4x-fix24';
 
+(function preventPuterDialogs() {
+    const REMOVE_TARGETS = 'usage-limit-dialog, [class*="puter-dialog"], [class*="Puter-dialog"], [class*="puter-modal"], [class*="Puter-modal"], [data-component="usage-limit-dialog"]';
+    function removePuterDialogs() {
+        try {
+            document.querySelectorAll(REMOVE_TARGETS).forEach(el => {
+                el.remove();
+            });
+            document.querySelectorAll('[style*="z-index: 2147483647"], [style*="z-index:999999"]').forEach(el => {
+                if (el.textContent.includes('Puter') || el.textContent.includes('Balance') || el.textContent.includes('Low')) {
+                    el.remove();
+                }
+            });
+            const backdrop = document.querySelector('.modal-backdrop, [class*="backdrop"], [class*="overlay"]');
+            if (backdrop && backdrop.style.zIndex > 1000) backdrop.remove();
+        } catch(e) {}
+    }
+    removePuterDialogs();
+    setInterval(removePuterDialogs, 2000);
+    const observer = new MutationObserver(() => { removePuterDialogs(); });
+    observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+    window.addEventListener('load', () => { setTimeout(removePuterDialogs, 500); });
+})();
+
 const _HOTRELOAD_PORT = 18923;
 const _HOTRELOAD_URL = `http://localhost:${_HOTRELOAD_PORT}/elegant-master-study.user.js`;
 const _TUTORIAL_BASE_URL = 'https://scauzj.leykeji.com/tutorial';
