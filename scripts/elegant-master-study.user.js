@@ -92,7 +92,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         speed: { mode: 'normal', reportInterval: 2000, jumpSize: 30 },
         ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'REDACTED_OCRSPACE_KEY' },
         autoNext: { enabled: true, delay: 2000 },
-        completion: { targetPercent: 0.95, realPlayPercent: 0.3, maxRealPlayWait: 180 },
+        completion: { targetPercent: 0.95, realPlayPercent: 0.05, maxRealPlayWait: 120 },
         antiCheat: { randomJitter: 300 },
         ocr: {
             baidu: { apiKey: 'REDACTED_BAIDU_APIKEY', secretKey: 'REDACTED_BAIDU_SECRETKEY' },
