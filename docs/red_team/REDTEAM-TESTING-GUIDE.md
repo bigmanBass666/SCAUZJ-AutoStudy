@@ -2,20 +2,20 @@
 
 > **机密等级**: Red Team Eyes Only
 > **目标系统**: scauzj.leykeji.com
-> **更新时间**: 2026-04-15 (v3.1, 基于video_v2.js完整逆向 + Course#2验证完成)
+> **更新时间**: 2026-04-15 (v3.6, 基于蓝队7个JS文件深度逆向)
 > **核心目标**: 最大化测试成功率，最小化被蓝队检测风险
 
 ---
 
-## 核心发现：蓝队真实能力评估
+## 核心发现：蓝队真实能力评估（v3.6更新）
 
 ### ⚠️ 重要更正：/service/sign端点有效！
 
-#### 旧版错误认知
+#### 旧版错误认知 vs 源码证实现实
 
-> ❌ "/service/sign端点返回500, 完全无效" → **这是错误的！**
-> ❌ "蓝队只有安全剧场" → 误判
-> ❌ "4x加速是安全的" → 部分正确，秘密在比率而非绝对值
+> ❌ ~~"/service/sign端点返回500, 完全无效"~~ → **这是错误的！**
+> ❌ ~~"蓝队只有安全剧场"~~ → 误判
+> ❌ ~~"4x加速是安全的"~~ → 部分正确，秘密在比率而非绝对值
 
 #### 源码证实现实
 
@@ -38,45 +38,107 @@
 
 ---
 
-## 蓝队7层防御体系 (video_v2.js源码证实)
+## 蓝队7层防御体系 (video_v2.js源码完整证实)
 
-| # | 防御层 | 源码依据 | 红队绕过状态 |
-|---|--------|---------|-------------|
-| L1 | **/service/sign签名** | video_v2.js L15-37 | ✅ **fix27有效** (端点不是500!) |
-| L2 | totalTime计数器 | video_v2.js L91-108 | ✅ **Plan H 4x劫持** |
-| L3 | 多窗口检测 | video_v2.js L85-87 | ✅ 单窗口安全 |
-| L4 | 鼠标轨迹 | video_v2.js L110-136 | ✅ **数据未上传** |
-| **L5** | **tw鼠标指纹** | video_v2.js L180-182 | ✅ **_spoofTwFingerprint()]** |
-| L6 | 文字验证码 | video_v2.js L255-269 | ✅ 百度OCR |
-| **L7** | **点选验证码** | video_v2.js L240-251 | 🔴 **待开发** |
-| L8 | online.js强制下线 | online.js L55-69 | ⚠️ 会触发但未掉线 |
+> **来源**: `docs/blue_team_source/video_v2.js` 完整逆向分析 (SESSION-014)
+> **更新**: v3.6新增L2多标签欺骗机制和L3鼠标轨迹增强
+
+| # | 防御层 | 源码依据 | 红队绕过状态 | 备注 |
+|---|--------|---------|-------------|------|
+| **L1** | **/service/sign签名** | video_v2.js L15-37 | ✅ **fix27有效** (端点不是500!) | 服务端时间差校验 |
+| **L2** | **多标签检测** (localStorage) | video_v2.js L85-108 | ✅ **已修复** (v3.6新增欺骗机制) | 567ms写入+1s检查 |
+| **L3** | **鼠标轨迹追踪** (xlogs) | video_v2.js L111-136 | ✅ **已增强v3** (频率提升5倍) | 数据收集但未上传 |
+| **L4** | 文字验证码 (need_code=1) | video_v2.js L138-174 | ✅ 百度OCR | 双图固定4位 |
+| **L5** | tw鼠标指纹 | video_v2.js L180-182 | ✅ `_spoofTwFingerprint()` | mousedown→tw='_' |
+| **L6** | 点选验证码 (need_code=2) | video_v2.js L233-252 | ✅ **ClickCaptchaSolver** | ak已确认可用 |
+| **L7** | totalTime计数器 | video_v2.js L91-108 | ✅ **Plan H 4x劫持** | playing时递增 |
+| L8 | Console警告 | video_v2.js L88-89 | 🔵 无影响 | 仅警告信息 |
+
+### v3.6 新增防御层详情
+
+#### L2 多标签检测欺骗机制（新增）
+
+**源码依据**: video_v2.js L85-108
+
+```javascript
+// 蓝队检测逻辑
+window.setInterval(function () {
+    storage.set('node_play_' + schoolId + userId, nodeId);  // 每567ms写入
+}, 567);
+
+window.setInterval(function () {
+    var bNodeId = storage.get('node_play_' + schoolId + userId);
+    if (bNodeId != nodeId && layId == 0) {
+        layId = Yee.alert('检测到有其他视频页面同时打开...');
+        playState = 'pause';
+        player.videoPause();
+    }
+}, 1000);  // 每1秒检查
+```
+
+**红队修复** (v3.6):
+```javascript
+// BlueTeamDefense._spoofMultiTabDetection() 已实现
+const updateNodePlay = () => {
+    const key = `node_play_${schoolId}${userId}`;
+    localStorage.setItem(key, nodeId);  // 主动维护!
+};
+setInterval(updateNodePlay, 567);  // 与蓝队写入频率完全一致
+```
+
+#### L3 鼠标轨迹追踪增强（v3增强）
+
+**源码依据**: video_v2.js L111-136
+
+```javascript
+// 蓝队收集逻辑
+var xlogs = [];
+document.body.addEventListener('mousemove', function (e) {
+    var ofs = $('#videoContent').offset();
+    var x = Math.round(e.clientX - ofs.left);
+    var y = Math.round(e.clientY - ofs.top);
+    var t = new Date().getTime() % 20000;  // 时间戳模20000
+    xlogs.push(x, y, t);  // 每次推送3个值
+    if (xlogs.length > 1500) { xlogs.shift(); ... }
+});
+// sentLog(): $.post('/service/mouse_log', ...) 被注释！
+```
+
+**红队增强** (v3.6):
+| 维度 | 旧版(v2) | 新版(v3) | 提升 |
+|------|----------|----------|------|
+| **间隔** | 2000-6000ms | **400-1000ms** | **5倍** |
+| **总次数** | 300 | **500** | +67% |
+| **模式** | 1种随机 | **3种** (随机+螺旋+惯性) | 3x自然 |
+| **平滑度** | 单步跳跃 | **2-4步插值** | 更真实 |
 
 ---
 
-## 攻击检测盲区矩阵 (修正版)
+## 攻击检测盲区矩阵 (v3.6修正版)
 
 ### 有效攻击向量
 
 | ID | 攻击行为 | 源码依据 | 利用难度 | 红队状态 |
 |----|----------|---------|---------|----------|
 | **B-01** | /service/sign签名调用 | L1 ajax success | 低 | ✅ **fix27-sign-api** |
-| **B-02** | totalTime劫持4x加速 | L2 setInterval | 低 | ✅ **Plan H核心** |
+| **B-02** | totalTime劫持4x加速 | L7 setInterval | 低 | ✅ **Plan H核心** |
 | B-03 | tw指纹欺骗 | L5 mousedown | 低 | ✅ _spoofTwFingerprint() |
-| B-04 | 文字验证码OCR | L6 /service/code | 低 | ✅ 百度API |
-| B-05 | 单窗口运行 | L3 localStorage | 无 | ✅ 默认配置 |
-| B-06 | 鼠标轨迹模拟 | L4 (已注释上传) | 无 | ✅ 可选 |
-| B-07 | 点选验证码ak提取 | L7 dunclick | 中 | 🔴 **待开发** |
-| B-08 | 多账号同IP | 无IP关联 | 无 | ✅ 无限制 |
-| B-09 | 会话长时间复用 | 无过期检测 | 无 | ✅ 无需刷新 |
-| B-10 | 异常上报频率模式 | 时间差校验 | 低 | ✅ 比率<1.1即可 |
-| B-11 | 后台标签页 | 无visibility检测 | 无 | ✅ visibilityState |
-| B-12 | 章节锁定重试 | autoNext | 低 | ✅ BUG#12已处理 |
-| **B-13** | **第三方弹窗拦截** | **Puter SDK** | **中** | ✅ **showModal劫持** |
-| **B-14** | **nodeId非连续处理** | **侧边栏DOM** | **中** | ✅ **_getNextNodeIdFromSidebar()** |
+| B-04 | 文字验证码OCR | L4 /service/code | 低 | ✅ 百度API |
+| **B-05** | **多标签欺骗** | **L2 localStorage** | **低** | ✅ **_spoofMultiTabDetection()** |
+| **B-06** | **鼠标轨迹模拟v3** | **L3 xlogs** | **低** | ✅ **_simulateMouseTrail() v3** |
+| **B-07** | **点选验证码L7** | **L6 captcha** | **中** | ✅ **ClickCaptchaSolver** |
+| B-08 | 单窗口运行 | L2 localStorage | 无 | ✅ 默认配置 |
+| B-09 | 多账号同IP | 无IP关联 | 无 | ✅ 无限制 |
+| B-10 | 会话长时间复用 | 无过期检测 | 无 | ✅ 无需刷新 |
+| B-11 | 异常上报频率模式 | 时间差校验 | 低 | ✅ 比率<1.1即可 |
+| B-12 | 后台标签页 | 无visibility检测 | 无 | ✅ visibilityState |
+| B-13 | 章节锁定重试 | autoNext | 低 | ✅ BUG#12已处理 |
+| **B-14** | **第三方弹窗拦截** | **Puter SDK** | **中** | ✅ **showModal劫持** |
+| **B-15** | **nodeId非连续处理** | **侧边栏DOM** | **中** | ✅ **_getNextNodeIdFromSidebar()** |
 
 ---
 
-## 红队战术手册
+## 红队战术手册 (v3.6完整版)
 
 ### 原则1：签名调用是必须的
 
@@ -90,20 +152,32 @@
 - ✅ 新策略: 30秒间隔上报30秒增量 = 1.0比率 → 无惩罚
 - 公式: `claimed_increment / actual_interval < 1.1`
 
-### 原则3：验证码必须解决
+### 原则3：多标签检测必须欺骗
 
-- L6文字验证码: 百度OCR可解
-- L7点选验证码: **硬编码ak可用，需开发**
+- ❌ 旧策略: 不维护localStorage，依赖单窗口
+- ✅ 新策略: `_spoofMultiTabDetection()` 每567ms主动维护
+- 原因: 防止用户意外打开第二标签页触发警告，或未来蓝队增强检测
+
+### 原则4：鼠标轨迹必须足够真实
+
+- ❌ 旧策略: 2-6秒模拟一次mousemove（太慢太规律）
+- ✅ 新策略: `_simulateMouseTrail()` v3，每400-1000ms模拟，多模式+插值
+- 原因: 人类鼠标移动频率远高于2秒一次，蓝队虽未启用上传但行为模式可能分析
+
+### 原则5：验证码必须解决
+
+- L4/L6文字验证码: 百度OCR可解
+- L7点选验证码: **ClickCaptchaSolver已完整实现**
 - **Puter OCR注意**: Puter SDK的showModal()会创建弹窗阻塞其自身初始化 → showModal劫持必须!
 
-### 原则4：第三方弹窗必须拦截
+### 原则6：第三方弹窗必须拦截
 
 - Puter SDK用`dialog.showModal()`创建splash screen
 - 该弹窗阻塞Puter.js运行时初始化 → 所有Puter OCR超时(15s×8=120s/次)
 - **唯一可靠方案**: `HTMLDialogElement.prototype.showModal`原型劫持
 - **无效方案**: 事后`el.remove()` → SDK用setInterval重建速度更快
 
-### 原则5：下一节ID必须从DOM读取
+### 原则7：下一节ID必须从DOM读取
 
 - **绝对禁止**: `parseInt(nodeId) + 1` 推断
 - **必须**: `_getNextNodeIdFromSidebar()` 从侧边栏DOM解析真实链接
@@ -118,11 +192,12 @@
 | 浏览器头/版本 | 无指纹分析 | 🟢 低 |
 | 播放器记录(totalTime) | **真实检测，只在播放时递增** | 🟠 **中** |
 | 登录时长/cookie/referer | 无异常检测 | 🟢 低 |
-| **鼠标mousedown指纹** | **L5 tw检测真实存在** | 🔴 **高** |
-| **点选验证码** | **L7 dunclick第三方校验** | 🔴 **高** |
+| **鼠标mousedown指纹** | **L5 tw检测真实存在** | 🔴 **高(但可绕过)** |
+| **点选验证码** | **L6 dunclick第三方校验** | 🔴 **高(但有ak)** |
 | **强制下线** | **online.js真实存在** | 🟠 **中** |
 | **/service/sign签名** | **服务端时间差校验有效!** | 🟠 **高(但可绕过)** |
-| 鼠标轨迹 | **收集但未上传** | 🟢 **无风险** |
+| **鼠标轨迹xlogs** | **L3收集但被注释上传** | 🟢 **无实际风险(但v3已增强)** |
+| **多标签检测** | **L2真实检测(567ms间隔)** | 🟠 **中(但欺骗机制已部署)** |
 
 ---
 
@@ -135,6 +210,7 @@
 服务端: progress=1.00, state=已学, 观看时长=42m1s
 总CAPTCHA触发: 极低
 总运行时长: ~2小时(含调试和修复时间)
+脚本版本: v3.6-blue-team-audit
 ```
 
 ---
@@ -145,8 +221,8 @@
 
 | CAPTCHA类型 | 处理方法 | 源码依据 |
 |------------|---------|---------|
-| need_code=1 文字 | 百度OCR自动识别 | L6 |
-| need_code=2 点选 | **开发中** (ak可用) | L7 |
+| need_code=1 文字 | 百度OCR自动识别 | L4 |
+| need_code=2 点选 | ClickCaptchaSolver (ak已确认) | L6 |
 | 强制下线alert | 等待autoNext重试 | online.js |
 
 ### 章节锁定时的正确处理
@@ -165,4 +241,5 @@
 | v1.0 | 2026-04-12 | 初始版本(过于乐观) |
 | v2.0 | 2026-04-14 | 基于源码重构，纠正误判 |
 | v3.0 | 2026-04-15 | /service/sign端点有效, HAR分析, Course#2完成 |
-| v3.1 | **2026-04-15** | **showModal劫持, nodeId连续性修复, 新增B-13/B-14** |
+| v3.1 | 2026-04-15 | showModal劫持, nodeId连续性修复, 新增B-13/B-14 |
+| **v3.6** | **2026-04-15** | **蓝队7个JS文件完整逆向, L2多标签欺骗+L3鼠标v3增强+ClickCaptchaSolver确认, 新增B-05/B-06/B-07/B-15** |
