@@ -10,15 +10,23 @@ window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
 const ELEGANT_VERSION = 'v3.5-audit-hardened';
 
-(function preventPuterDialogs() {
+(function preventThirdPartyDialogs() {
     const REMOVE_TARGETS = 'usage-limit-dialog, [class*="puter-dialog"], [class*="Puter-dialog"], [class*="puter-modal"], [class*="Puter-modal"], [data-component="usage-limit-dialog"]';
-    function removePuterDialogs() {
+    const KEEP_KEYWORDS = ['验证码', 'yzCode', 'codeImg', 'layui-layer', 'video-captcha', '请依次点击', '确认是您本人'];
+    function removeThirdPartyDialogs() {
         try {
-            document.querySelectorAll(REMOVE_TARGETS).forEach(el => {
-                el.remove();
-            });
+            document.querySelectorAll(REMOVE_TARGETS).forEach(el => { el.remove(); });
             document.querySelectorAll('[style*="z-index: 2147483647"], [style*="z-index:999999"]').forEach(el => {
-                if (el.textContent.includes('Puter') || el.textContent.includes('Balance') || el.textContent.includes('Low')) {
+                if (el.textContent.includes('Puter') || el.textContent.includes('Balance') || el.textContent.includes('Low') || el.textContent.includes('Cloud Features')) {
+                    el.remove();
+                }
+            });
+            document.querySelectorAll('dialog, [role="dialog"], .modal, [class*="modal"][class*="show"], [class*="popup"][class*="open"]').forEach(el => {
+                const text = el.textContent || '';
+                const isBlueTeam = KEEP_KEYWORDS.some(kw => text.includes(kw));
+                const isThirdParty = text.includes('Puter') || text.includes('puter') || text.includes('Cloud Features') || text.includes('By clicking') || text.includes('Terms of Service');
+                if (!isBlueTeam && (isThirdParty || (el.querySelector('button') && !text.includes('视频') && !text.includes('播放') && !text.includes('课程')))) {
+                    console.log(`🧹 [AutoClean] 移除第三方弹窗: ${el.tagName}.${el.className.substring(0,30)}`);
                     el.remove();
                 }
             });
@@ -26,11 +34,12 @@ const ELEGANT_VERSION = 'v3.5-audit-hardened';
             if (backdrop && backdrop.style.zIndex > 1000) backdrop.remove();
         } catch(e) {}
     }
-    removePuterDialogs();
-    setInterval(removePuterDialogs, 2000);
-    const observer = new MutationObserver(() => { removePuterDialogs(); });
+    removeThirdPartyDialogs();
+    setInterval(removeThirdPartyDialogs, 3000);
+    const observer = new MutationObserver(() => { removeThirdPartyDialogs(); });
     observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
-    window.addEventListener('load', () => { setTimeout(removePuterDialogs, 500); });
+    window.addEventListener('load', () => { setTimeout(removeThirdPartyDialogs, 500); setTimeout(removeThirdPartyDialogs, 2000); });
+    document.addEventListener('click', () => { setTimeout(removeThirdPartyDialogs, 500); }, true);
 })();
 
 const _HOTRELOAD_PORT = 18923;
@@ -2352,12 +2361,28 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             } else {
                 console.error(`❌ 失败！所有${loops+1}次API调用均未成功, 耗时: ${elapsed.toFixed(1)}秒`);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 0, '失败');
-                const failedNodes = JSON.parse(localStorage.getItem('_sys_fn') || '[]');
-                if (!failedNodes.includes(this.env.nodeId)) {
-                    failedNodes.push(this.env.nodeId);
-                    localStorage.setItem('_sys_fn', JSON.stringify(failedNodes));
-                    console.log(`📝 [失败记录] 节点${this.env.nodeId}已标记为失败`);
+                const failKey = '_sys_fc_' + this.env.nodeId;
+                const failCount = parseInt(localStorage.getItem(failKey) || '0') + 1;
+                localStorage.setItem(failKey, failCount.toString());
+                console.warn(`🔄 [自主恢复] 节点${this.env.nodeId}第${failCount}次失败, ${(failCount < 3 ? '5秒后自动重启' : failCount < 6 ? '15秒后自动刷新重试' : '跳过该节点')}`);
+                if (failCount >= 6) {
+                    const skipped = JSON.parse(localStorage.getItem('_sys_skipped') || '[]');
+                    if (!skipped.includes(this.env.nodeId)) { skipped.push(this.env.nodeId); localStorage.setItem('_sys_skipped', JSON.stringify(skipped)); }
+                    localStorage.removeItem(failKey);
+                    console.log(`⏭️ [自主恢复] 节点${this.env.nodeId}连续失败${failCount}次，跳过`);
+                    return false;
                 }
+                const delay = failCount < 3 ? 5000 : 15000;
+                setTimeout(() => {
+                    if (failCount >= 3 && window.location) {
+                        console.log(`🔄 [自主恢复] 刷新页面重试节点${this.env.nodeId}...`);
+                        window.location.reload();
+                    } else {
+                        console.log(`🔄 [自主恢复] 自动重启节点${this.env.nodeId}...`);
+                        if (window.MasterEngine) window.MasterEngine.restartBot?.();
+                    }
+                }, delay);
+                return false;
             }
 
             if (apiSuccessCount > 0 && this.config.get('autoNext.enabled', true)) {
@@ -3115,6 +3140,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 location.href = `/user/node?nodeId=${prevId}`;
                 return false;
             }
+            this._installStuckDetector();
             this.running = true;
             localStorage.setItem('_sys_wr', '1');
             try {
@@ -3297,6 +3323,53 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             } catch (e) {
                 return { nextId: (parseInt(nodeId) + 1).toString(), fromSidebar: false };
             }
+        }
+
+        _installStuckDetector() {
+            if (this._stuckWatcher) clearInterval(this._stuckWatcher);
+            let lastProgress = -1;
+            let stuckStartTime = null;
+            const STUCK_THRESHOLD_MS = 300000;
+            const CHECK_INTERVAL = 30000;
+            this._stuckWatcher = setInterval(() => {
+                if (!this.running || !this.bot) { lastProgress = -1; stuckStartTime = null; return; }
+                try {
+                    const pctEl = document.querySelector('[class*="progress-value"], [class*="pct"]');
+                    const currentProgress = pctEl ? parseInt(pctEl.textContent) || 0 : -1;
+                    if (currentProgress === lastProgress && currentProgress >= 0 && currentProgress < 100) {
+                        if (!stuckStartTime) stuckStartTime = Date.now();
+                        const stuckMs = Date.now() - stuckStartTime;
+                        if (stuckMs > STUCK_THRESHOLD_MS) {
+                            console.warn(`🚨 [StuckDetector] 节点${this.env?.nodeId}卡住! 进度${currentProgress}%已${Math.floor(stuckMs/1000)}秒无变化, 自动重启...`);
+                            stuckStartTime = null;
+                            lastProgress = -1;
+                            const stuckKey = '_sys_stuck_' + (this.env?.nodeId || 'unknown');
+                            const stuckCount = parseInt(localStorage.getItem(stuckKey) || '0') + 1;
+                            localStorage.setItem(stuckKey, stuckCount.toString());
+                            if (stuckCount >= 3) {
+                                console.log(`⏭️ [StuckDetector] 节点${this.env?.nodeId}连续卡住${stuckCount}次，跳过`);
+                                localStorage.removeItem(stuckKey);
+                                this.stop();
+                                setTimeout(() => this.autoNext(), 2000);
+                                return;
+                            }
+                            this.bot.stop();
+                            this.bot = null;
+                            this.running = false;
+                            setTimeout(() => {
+                                console.log(`🔄 [StuckDetector] 重启节点${this.env?.nodeId} (第${stuckCount}次)...`);
+                                this.start();
+                            }, 3000);
+                        } else {
+                            console.log(`⏳ [StuckDetector] 进度停滞${currentProgress}% (${Math.floor(stuckMs/1000)}s/${Math.floor(STUCK_THRESHOLD_MS/1000)}s)`);
+                        }
+                    } else {
+                        lastProgress = currentProgress;
+                        stuckStartTime = null;
+                    }
+                } catch(e) {}
+            }, CHECK_INTERVAL);
+            console.log(`🐕 [StuckDetector] 看门狗已安装 (阈值:${STUCK_THRESHOLD_MS/1000}s, 检查间隔:${CHECK_INTERVAL/1000}s)`);
         }
 
         _handleCourseComplete() {
