@@ -1174,7 +1174,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             footer.style.cssText = 'background: #f8f9fa; padding: 16px 20px; border-top: 1px solid #eee; display: flex; gap: 10px;';
             footer.innerHTML = `
                 <button id="btn-settings" style="flex: 1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">⚙️ AI配置</button>
-                <button id="btn-start" style="flex: 2; padding: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">🚀 启动</button>
+                <button id="btn-start" style="flex: 1.5; padding: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">🚀 启动</button>
+                <button id="btn-pause" style="flex: 1.5; padding: 10px; background: #FF9800; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; display: none;">⏸️ 暂停</button>
                 <button id="btn-reset" style="flex: 1; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">重置</button>
             `;
             return footer;
@@ -1195,6 +1196,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 progressBarFill: p.querySelector('#progress-bar-fill'),
                 btnSettings: p.querySelector('#btn-settings'),
                 btnStart: p.querySelector('#btn-start'),
+                btnPause: p.querySelector('#btn-pause'),
                 btnReset: p.querySelector('#btn-reset'),
                 toggleBtn: p.querySelector('#elegant-toggle'),
                 ctrlAutoNext: p.querySelector('#ctrl-auto-next'),
@@ -1230,15 +1232,43 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._collapseBtn.style.cssText = `
                 position: fixed; top: 20px; left: 20px; width: 50px; height: 50px;
                 background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%;
-                color: white; font-size: 24px; display: none; cursor: pointer;
-                z-index: 2147483647; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                color: white; font-size: 24px; cursor: grab; text-align: center;
+                line-height: 50px; z-index: 2147483647;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
                 display: flex; align-items: center; justify-content: center;
             `;
             this._collapseBtn.textContent = '🌟';
             this._collapseBtn.title = '展开优雅大师';
-            this._collapseBtn.onclick = () => {
-                if (toggleBtn) toggleBtn.click();
-            };
+            
+            let btnDragging = false, btnStartX, btnStartY, btnStartLeft, btnStartTop;
+            this._collapseBtn.addEventListener('mousedown', (e) => {
+                btnDragging = true;
+                btnStartX = e.clientX;
+                btnStartY = e.clientY;
+                btnStartLeft = parseInt(this._collapseBtn.style.left) || 20;
+                btnStartTop = parseInt(this._collapseBtn.style.top) || 20;
+                this._collapseBtn.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!btnDragging) return;
+                const dx = e.clientX - btnStartX;
+                const dy = e.clientY - btnStartY;
+                this._collapseBtn.style.left = (btnStartLeft + dx) + 'px';
+                this._collapseBtn.style.top = (btnStartTop + dy) + 'px';
+                this._collapseBtn.style.right = 'auto';
+            });
+            document.addEventListener('mouseup', () => {
+                if (btnDragging) {
+                    btnDragging = false;
+                    this._collapseBtn.style.cursor = 'grab';
+                }
+            });
+            this._collapseBtn.addEventListener('click', (e) => {
+                if (!btnDragging) {
+                    if (toggleBtn) toggleBtn.click();
+                }
+            });
             document.body.appendChild(this._collapseBtn);
 
             if (this.elements.btnSettings) {
@@ -1252,6 +1282,15 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         window.MasterEngine.start();
                     } else {
                         alert('引擎未就绪，请刷新页面');
+                    }
+                };
+            }
+            if (this.elements.btnPause) {
+                this.elements.btnPause.onclick = () => {
+                    if (this._engine) {
+                        this._engine.togglePause();
+                    } else if (window.MasterEngine && window.MasterEngine.togglePause) {
+                        window.MasterEngine.togglePause();
                     }
                 };
             }
@@ -1438,6 +1477,23 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             if (!this.elements.statNode && nodeEl) this.elements.statNode = nodeEl;
             if (!this.elements.statDuration && durEl) this.elements.statDuration = durEl;
+
+            if (this.elements.btnStart && this.elements.btnPause) {
+                if (status === '运行中') {
+                    this.elements.btnStart.style.display = 'none';
+                    this.elements.btnPause.style.display = 'block';
+                    this.elements.btnPause.textContent = '⏸️ 暂停';
+                    this.elements.btnPause.style.background = '#FF9800';
+                } else if (status === '暂停') {
+                    this.elements.btnStart.style.display = 'none';
+                    this.elements.btnPause.style.display = 'block';
+                    this.elements.btnPause.textContent = '▶️ 继续';
+                    this.elements.btnPause.style.background = '#4CAF50';
+                } else {
+                    this.elements.btnStart.style.display = 'block';
+                    this.elements.btnPause.style.display = 'none';
+                }
+            }
         }
 
         showSettingsModal() {
@@ -2497,8 +2553,31 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
         stop() {
             this.running = false;
+            this.paused = false;
             if (this._timer) clearTimeout(this._timer);
             console.log('⏹️  已停止');
+        }
+
+        togglePause() {
+            if (this.paused) {
+                this.paused = false;
+                this.running = true;
+                console.log('▶️  已恢复');
+                this.ui.updateStatus(this.env.nodeId, this.env.duration, 0, '运行中');
+                if (this.ui.elements.btnPause) {
+                    this.ui.elements.btnPause.textContent = '⏸️ 暂停';
+                    this.ui.elements.btnPause.style.background = '#FF9800';
+                }
+            } else {
+                this.paused = true;
+                this.running = false;
+                console.log('⏸️  已暂停');
+                this.ui.updateStatus(this.env.nodeId, this.env.duration, 0, '暂停');
+                if (this.ui.elements.btnPause) {
+                    this.ui.elements.btnPause.textContent = '▶️ 继续';
+                    this.ui.elements.btnPause.style.background = '#4CAF50';
+                }
+            }
         }
 
         sleep(ms) {
