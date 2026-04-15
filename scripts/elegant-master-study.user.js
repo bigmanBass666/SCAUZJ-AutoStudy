@@ -1209,11 +1209,37 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 let expanded = true;
                 toggleBtn.onclick = () => {
                     expanded = !expanded;
-                    if (this.elements.contentWrapper) this.elements.contentWrapper.display = expanded ? 'block' : 'none';
-                    if (this.elements.footer) this.elements.footer.style.display = expanded ? 'flex' : 'none';
-                    toggleBtn.textContent = expanded ? '收起' : '展开';
+                    if (expanded) {
+                        this.panel.style.display = 'flex';
+                        if (this.elements.contentWrapper) this.elements.contentWrapper.style.display = 'block';
+                        if (this.elements.footer) this.elements.footer.style.display = 'flex';
+                        toggleBtn.textContent = '收起';
+                        if (this._collapseBtn) this._collapseBtn.style.display = 'none';
+                    } else {
+                        this.panel.style.display = 'none';
+                        toggleBtn.textContent = '展开';
+                        if (this._collapseBtn) this._collapseBtn.style.display = 'block';
+                    }
                 };
             }
+            
+            const existingCollapseBtn = document.getElementById('elegant-collapse-btn');
+            if (existingCollapseBtn) existingCollapseBtn.remove();
+            this._collapseBtn = document.createElement('div');
+            this._collapseBtn.id = 'elegant-collapse-btn';
+            this._collapseBtn.style.cssText = `
+                position: fixed; top: 20px; left: 20px; width: 50px; height: 50px;
+                background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%;
+                color: white; font-size: 24px; display: none; cursor: pointer;
+                z-index: 2147483647; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                display: flex; align-items: center; justify-content: center;
+            `;
+            this._collapseBtn.textContent = '🌟';
+            this._collapseBtn.title = '展开优雅大师';
+            this._collapseBtn.onclick = () => {
+                if (toggleBtn) toggleBtn.click();
+            };
+            document.body.appendChild(this._collapseBtn);
 
             if (this.elements.btnSettings) {
                 this.elements.btnSettings.onclick = () => this.showSettingsModal();
