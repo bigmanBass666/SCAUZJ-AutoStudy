@@ -1,6 +1,0 @@
-- generic [ref=e2]:
-  - link [ref=e6] [cursor=pointer]:
-    - /url: /index
-  - generic [ref=e10]:
-    - generic [ref=e11]: 学生登录
-    - generic [ref=e13]

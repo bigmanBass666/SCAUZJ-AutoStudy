@@ -1986,25 +1986,31 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             if (apiSuccessCount > 0 && this.config.get('autoNext.enabled', true)) {
                 await this._waitForRealPlayback();
-
-                const video = document.querySelector('video');
-                const videoCompleted = video && (video.currentTime >= (video.duration || this.env.duration || 179) * 0.95);
-                const roundCount = this.ui._roundCount || 0;
-                const totalTimeAccumulated = this.ui._totalTime || 0;
-                const minRoundsBeforeConsiderComplete = 5;
-                const minAccumulatedRatio = 3.0;
-                const videoDuration = this.env.duration || 179;
-
-                if (videoCompleted && roundCount >= minRoundsBeforeConsiderComplete && totalTimeAccumulated >= videoDuration * minAccumulatedRatio) {
-                    console.log(`✅ [有效性检测] 视频已播完(${Math.floor(video?.currentTime || 0)}s), 已循环${roundCount}轮, 累计${Math.floor(totalTimeAccumulated)}s >= ${Math.floor(videoDuration * minAccumulatedRatio)}s阈值, 认为节点${this.env.nodeId}已真正完成`);
-                    this.ui.updateStatus(this.env.nodeId, videoDuration, 100, '完成');
-                    console.log(`⏸️ [有效性检测] 停止循环刷题，下一节解锁前不会再自动重刷`);
-                    return true;
-                }
-
-                const nextId = this._getNextNodeIdFromSidebar();
+                const nextInfo = this._getNextNodeIdFromSidebar();
+                const nextId = nextInfo.nextId;
+                const sidebarExhausted = !nextInfo.fromSidebar;
                 const targetUrl = location.pathname + '?nodeId=' + nextId;
                 let nextNodeAccessible = false;
+                
+                if (sidebarExhausted) {
+                    const noNextKey = 'elegant_no_next_count';
+                    const noNextCount = parseInt(localStorage.getItem(noNextKey) || '0') + 1;
+                    localStorage.setItem(noNextKey, noNextCount.toString());
+                    console.log(`⚠️ [循环检测] 侧边栏已到末尾(第${noNextCount}次检测)`);
+                    
+                    if (noNextCount >= 5) {
+                        console.log('🎉 [课程完成] 检测到课程所有视频节点已刷完！');
+                        localStorage.removeItem('elegant_was_running');
+                        localStorage.removeItem(noNextKey);
+                        this.stop();
+                        const courseName = document.querySelector('h1, h2, .course-title, [class*="title"]')?.textContent?.trim() || '本课程';
+                        alert(`🎉 恭喜！\n\n${courseName}\n\n所有视频课时已刷完！\n\n请到"学习成绩"页面确认完成进度。\n\n如需参加期末考试，请在考试开放后回来。`);
+                        return true;
+                    }
+                } else {
+                    localStorage.removeItem('elegant_no_next_count');
+                }
+                
                 try {
                     console.log(`🔍 [循环检测] 探测下一节 ${nextId} 是否可访问...`);
                     const resp = await fetch(targetUrl, { credentials: 'include' });
@@ -2021,11 +2027,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 if (nextNodeAccessible) {
                     await this.autoNext();
                 } else {
-                    if (videoCompleted) {
-                        console.log(`🔄 [同节点循环] 第${roundCount + 1}轮开始 — 节点${this.env.nodeId} (视频已播完 ${Math.floor(video?.currentTime || 0)}s, 累计${Math.floor(totalTimeAccumulated)}s, 需达${Math.floor(videoDuration * minAccumulatedRatio)}s阈值)`);
-                    } else {
-                        console.log(`🔄 [同节点循环] 第${roundCount + 1}轮开始 — 节点${this.env.nodeId}`);
-                    }
+                    console.log(`🔄 [同节点循环] 第${this.ui._roundCount + 1}轮开始 — 节点${this.env.nodeId}`);
                     const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
                     const idx = completedNodes.indexOf(this.env.nodeId);
                     if (idx !== -1) {
@@ -2082,7 +2084,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         const match = href.match(/nodeId=(\d+)/);
                         if (match) {
                             console.log(`📖 [侧边栏] 当前节点=${this.env.nodeId}, 下一节=${match[1]} (从DOM读取)`);
-                            return match[1];
+                            return { nextId: match[1], fromSidebar: true };
                         }
                     }
                 }
@@ -2094,16 +2096,16 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                             const m = nextSibling.getAttribute('href')?.match(/nodeId=(\d+)/);
                             if (m) {
                                 console.log(`📖 [侧边栏] 兜底查找成功, 下一节=${m[1]}`);
-                                return m[1];
+                                return { nextId: m[1], fromSidebar: true };
                             }
                         }
                     }
                 }
-                console.warn(`⚠️ [侧边栏] 未找到当前节点(${this.env.nodeId})之后的下一节，尝试nodeId+1兜底`);
-                return (parseInt(this.env.nodeId) + 1).toString();
+                console.warn(`⚠️ [侧边栏] 未找到当前节点(${this.env.nodeId})之后的下一节，侧边栏已到末尾`);
+                return { nextId: (parseInt(this.env.nodeId) + 1).toString(), fromSidebar: false };
             } catch (e) {
                 console.warn(`⚠️ [侧边栏] 读取失败(${e.message})，回退到nodeId+1`);
-                return (parseInt(this.env.nodeId) + 1).toString();
+                return { nextId: (parseInt(this.env.nodeId) + 1).toString(), fromSidebar: false };
             }
         }
 
