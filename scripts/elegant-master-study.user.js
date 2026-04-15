@@ -8,7 +8,7 @@ if (window.__ELEGANT_MASTER_LOADED__ && !window.__ELEGANT_MASTER_HOTRELOAD__) {
 window.__ELEGANT_MASTER_LOADED__ = true;
 window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
-const ELEGANT_VERSION = 'v3.4-planH-v3-4x-fix27-sign-api';
+const ELEGANT_VERSION = 'v3.5-audit-hardened';
 
 (function preventPuterDialogs() {
     const REMOVE_TARGETS = 'usage-limit-dialog, [class*="puter-dialog"], [class*="Puter-dialog"], [class*="puter-modal"], [class*="Puter-modal"], [data-component="usage-limit-dialog"]';
@@ -89,7 +89,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
     'use strict';
 
     const DEFAULTS = {
-        speed: { mode: 'normal', reportInterval: 1500, jumpSize: 30 },
+        speed: { mode: 'normal', reportInterval: 1500, jumpSize: 30, mute: true },
         ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'REDACTED_OCRSPACE_KEY' },
         autoNext: { enabled: true, delay: 2000 },
         completion: { targetPercent: 0.95, realPlayPercent: 0.05, maxRealPlayWait: 120 },
@@ -102,13 +102,27 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
     class ConfigManager {
         constructor() {
-            this.storageKey = 'elegant_master_config_v4';
+            this.storageKey = '_sys_study_cfg_v4';
             this.config = this.load();
+        }
+        _deepMerge(defaults, saved) {
+            const result = JSON.parse(JSON.stringify(defaults));
+            for (const key in saved) {
+                if (result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) {
+                    result[key] = { ...result[key], ...saved[key] };
+                } else {
+                    result[key] = saved[key];
+                }
+            }
+            return result;
         }
         load() {
             try {
                 const saved = localStorage.getItem(this.storageKey);
-                if (saved) return JSON.parse(saved);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    return this._deepMerge(DEFAULTS, parsed);
+                }
             } catch (e) {}
             return JSON.parse(JSON.stringify(DEFAULTS));
         }
@@ -912,7 +926,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._lastDuration = null;
             this._roundCount = 0;
             this._totalTime = 0;
-            this._statsKey = 'elegant_master_stats';
+            this._statsKey = '_sys_study_stats';
             this._serverProgressData = null;
         }
 
@@ -1172,6 +1186,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         <button class="target-btn" data-target="1" style="padding: 6px 12px; background: ${target===1?'#667eea':'#e0e0e0'}; color: ${target===1?'white':'#333'}; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">100%</button>
                     </div>
                 </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="mute-checkbox" ${this.config.get('speed.mute', true) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 12px; color: #666;">🔇 默认静音播放</span>
+                    </label>
+                </div>
                 <div style="padding: 12px; background: #f8f9fa; border-radius: 8px; font-size: 12px; color: #666;">
                     💡 高级设置按需调整，默认已优化。
                 </div>
@@ -1324,6 +1344,15 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 ctrlAutoNext.checked = this.config.get('autoNext.enabled', true);
                 ctrlAutoNext.onchange = (e) => {
                     this.config.set('autoNext.enabled', e.target.checked);
+                };
+            }
+
+            const muteCheckbox = this.panel.querySelector('#mute-checkbox');
+            if (muteCheckbox) {
+                muteCheckbox.checked = this.config.get('speed.mute', true);
+                muteCheckbox.onchange = (e) => {
+                    this.config.set('speed.mute', e.target.checked);
+                    this._applyMuteSetting(e.target.checked);
                 };
             }
 
@@ -1554,6 +1583,46 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
         }
 
+        _muteObserver = null;
+
+        _applyMuteSetting(muted) {
+            const applyToVideos = () => {
+                document.querySelectorAll('video').forEach(v => {
+                    v.muted = muted;
+                });
+                const ckplayerFrame = document.querySelector('iframe');
+                if (ckplayerFrame && ckplayerFrame.contentWindow) {
+                    try {
+                        const ckVideo = ckplayerFrame.contentWindow.document.querySelector('video');
+                        if (ckVideo) ckVideo.muted = muted;
+                    } catch (e) {}
+                }
+            };
+            
+            applyToVideos();
+            
+            if (this._muteObserver) {
+                this._muteObserver.disconnect();
+            }
+            
+            this._muteObserver = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    if (m.type === 'attributes' && m.attributeName === 'muted') {
+                        const video = m.target;
+                        if (video.muted !== muted) {
+                            video.muted = muted;
+                        }
+                    }
+                }
+            });
+            
+            document.querySelectorAll('video').forEach(v => {
+                this._muteObserver.observe(v, { attributes: true, attributeFilter: ['muted'] });
+            });
+            
+            console.log(`[UI] 🔇 静音设置: ${muted ? '开启' : '关闭'} (持续监控)`);
+        }
+
         showSettingsModal() {
             const modal = document.createElement('div');
             modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center;';
@@ -1710,7 +1779,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._hooksInstalled = true;
             this._hookFetch();
             this._hookXHR();
-            console.log('🛡️ [BlueDefense] ✅ 蓝队反制系统已部署 (online.js防护 + 上报增强)');
+            this._hookYeeAlert();
+            this._hookLocationRedirect();
+            this._hookWindowAlert();
+            console.log('🛡️ [BlueDefense] ✅ 蓝队反制系统v2已部署 (fetch+XHR+Yee.alert+location+alert拦截)');
         }
 
         _hookFetch() {
@@ -1773,7 +1845,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._offlineCount++;
             console.warn(`🛡️ [BlueDefense] 🔴 检测到蓝队强制下线信号! (来源: ${source}, 第${this._offlineCount}次)`);
             console.warn(`🛡️ [BlueDefense] 原始响应:`, JSON.stringify(data).substring(0, 200));
-            const throttleKey = 'elegant_online_time';
+            const throttleKey = '_sys_ot';
             const lastOnline = parseInt(localStorage.getItem(throttleKey) || '0');
             localStorage.setItem(throttleKey, String(Math.floor(now / 1000)));
             if (origResponse) {
@@ -1805,6 +1877,77 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             } catch(e) {}
             return origResponse;
         }
+
+        _hookYeeAlert() {
+            const self = this;
+            const checkAndHook = () => {
+                try {
+                    if (typeof window.Yee !== 'undefined' && window.Yee.alert && !window.Yee.__elegant_hooked) {
+                        const origYeeAlert = window.Yee.alert;
+                        window.Yee.alert = function(msg, callback) {
+                            if (typeof msg === 'string' && (msg.includes('强制下线') || msg.includes('重新登录') || msg.includes('其他视频页面同时打开'))) {
+                                console.warn(`🛡️ [BlueDefense] 🔴 拦截Yee.alert强制下线弹窗: "${msg.substring(0, 50)}"`);
+                                self._offlineCount++;
+                                if (typeof callback === 'function') {
+                                    console.log('🛡️ [BlueDefense] 吞掉下线回调, 不执行跳转');
+                                }
+                                return null;
+                            }
+                            return origYeeAlert.apply(this, arguments);
+                        };
+                        window.Yee.__elegant_hooked = true;
+                        console.log('🛡️ [BlueDefense] ✅ Yee.alert已挂钩 - 拦截强制下线弹窗');
+                    }
+                } catch(e) {}
+            };
+            checkAndHook();
+            setTimeout(checkAndHook, 2000);
+            setTimeout(checkAndHook, 5000);
+        }
+
+        _hookLocationRedirect() {
+            const self = this;
+            try {
+                const origAssign = window.location.assign.bind(window.location);
+                window.location.assign = function(url) {
+                    if (typeof url === 'string' && url.includes('/user/login')) {
+                        console.warn(`🛡️ [BlueDefense] 🔴 拦截location.assign强制跳转登录页: ${url}`);
+                        self._offlineCount++;
+                        return;
+                    }
+                    return origAssign(url);
+                };
+
+                const origReplace = window.location.replace?.bind(window.location);
+                if (origReplace) {
+                    window.location.replace = function(url) {
+                        if (typeof url === 'string' && url.includes('/user/login')) {
+                            console.warn(`🛡️ [BlueDefense] 🔴 拦截location.replace强制跳转登录页: ${url}`);
+                            self._offlineCount++;
+                            return;
+                        }
+                        return origReplace(url);
+                    };
+                }
+                console.log('🛡️ [BlueDefense] ✅ location.assign/replace已挂钩 - 拦截强制跳转登录页');
+            } catch(e) {
+                console.warn('🛡️ [BlueDefense] ⚠️ location hook失败:', e.message);
+            }
+        }
+
+        _hookWindowAlert() {
+            const origAlert = window.alert;
+            const self = this;
+            window.alert = function(msg) {
+                if (typeof msg === 'string' && (msg.includes('强制下线') || msg.includes('重新登录') || msg.includes('其他视频页面'))) {
+                    console.warn(`🛡️ [BlueDefense] 🔴 拦截alert强制下线弹窗: "${msg.substring(0, 50)}"`);
+                    self._offlineCount++;
+                    return;
+                }
+                return origAlert.apply(this, arguments);
+            };
+            console.log('🛡️ [BlueDefense] ✅ window.alert已挂钩 - 拦截强制下线alert');
+        }
     }
 
     // ==================== L7 点选验证码解决器 ====================
@@ -1812,7 +1955,13 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         constructor(networkClient) {
             this.networkClient = networkClient;
             this.ak = '38570387e765646dff8372d4ec9e3c38';
+            this.apiUrl = 'https://shixun.kaikangxinxi.com/api/dunclick.json';
             this.enabled = true;
+            this._verifyToken = null;
+        }
+
+        setVerifyToken(token) {
+            this._verifyToken = token;
         }
 
         async solve(captchaContainer) {
@@ -1859,15 +2008,17 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         async _callDunclickApi(base64Img, width, height) {
-            const url = 'https://www.dunclick.com/api/captcha';
+            const url = this.apiUrl;
             const body = JSON.stringify({
                 ak: this.ak,
                 image: base64Img,
                 width: width,
                 height: height,
-                type: 'click'
+                type: 'click',
+                verify: this._verifyToken || '',
+                clicks: 3
             });
-            console.log(`🎯 [L7-ClickCaptcha] 调用dunclick API (ak=${this.ak.substring(0,8)}..., 尺寸:${width}x${height})`);
+            console.log(`🎯 [L7-ClickCaptcha] 调用dunclick API (ak=${this.ak.substring(0,8)}..., 尺寸:${width}x${height}, verifyToken=${this._verifyToken ? '有' : '无'})`);
             try {
                 const res = await this.networkClient.gmFetch(url, {
                     method: 'POST',
@@ -1947,6 +2098,35 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         _extractCourseId() {
             const params = new URLSearchParams(window.location.search);
             return params.get('courseId') || '1011603';
+        }
+
+        _findNextCourse() {
+            try {
+                const currentCourseId = this._courseId;
+                const courseLinks = document.querySelectorAll('a[href*="courseId"]');
+                for (const link of courseLinks) {
+                    const href = link.getAttribute('href') || '';
+                    const match = href.match(/courseId=(\d+)/);
+                    if (match && match[1] !== currentCourseId) {
+                        const firstNodeMatch = href.match(/nodeId=(\d+)/);
+                        if (firstNodeMatch) {
+                            return `/user/node?nodeId=${firstNodeMatch[1]}&courseId=${match[1]}`;
+                        }
+                        return `/user/course?courseId=${match[1]}`;
+                    }
+                }
+                const allCourseLinks = document.querySelectorAll('.course-list a, .my-course a, [class*="course-item"] a');
+                for (const link of allCourseLinks) {
+                    const href = link.getAttribute('href') || '';
+                    if (href.includes('course') && !href.includes(currentCourseId)) {
+                        return href.startsWith('/') ? href : '/' + href;
+                    }
+                }
+                return null;
+            } catch(e) {
+                console.warn('⚠️ [findNextCourse] 查找下一门课程失败:', e.message);
+                return null;
+            }
         }
 
         async _fetchRealProgress() {
@@ -2057,6 +2237,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         const l7Container = this.clickCaptchaSolver.detectNeedCode2();
                         if (l7Container) {
                             console.warn(`⚠️ 检测到L7点选验证码(need_code=2)，启动ClickCaptchaSolver...`);
+                            if (res.data && res.data.verifyToken) {
+                                this.clickCaptchaSolver.setVerifyToken(res.data.verifyToken);
+                                console.log(`🎯 [L7] 设置verifyToken: ${res.data.verifyToken.substring(0, 10)}...`);
+                            }
                             const l7Solved = await this.clickCaptchaSolver.solve(l7Container);
                             if (l7Solved) {
                                 await this.sleep(2000);
@@ -2159,19 +2343,19 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 this.ui._saveStatsImmediate(this._lastNodeId);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
                 await this._fetchRealProgress();
-                const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
                 if (!completedNodes.includes(this.env.nodeId)) {
                     completedNodes.push(this.env.nodeId);
-                    localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes));
+                    localStorage.setItem('_sys_cn', JSON.stringify(completedNodes));
                     console.log(`📝 [完成记录] 节点${this.env.nodeId}已标记为完成`);
                 }
             } else {
                 console.error(`❌ 失败！所有${loops+1}次API调用均未成功, 耗时: ${elapsed.toFixed(1)}秒`);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 0, '失败');
-                const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
+                const failedNodes = JSON.parse(localStorage.getItem('_sys_fn') || '[]');
                 if (!failedNodes.includes(this.env.nodeId)) {
                     failedNodes.push(this.env.nodeId);
-                    localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
+                    localStorage.setItem('_sys_fn', JSON.stringify(failedNodes));
                     console.log(`📝 [失败记录] 节点${this.env.nodeId}已标记为失败`);
                 }
             }
@@ -2185,22 +2369,31 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 let nextNodeAccessible = false;
                 
                 if (sidebarExhausted) {
-                    const noNextKey = 'elegant_no_next_count';
+                    const noNextKey = '_sys_nnc';
                     const noNextCount = parseInt(localStorage.getItem(noNextKey) || '0') + 1;
                     localStorage.setItem(noNextKey, noNextCount.toString());
                     console.log(`⚠️ [循环检测] 侧边栏已到末尾(第${noNextCount}次检测)`);
                     
-                    if (noNextCount >= 5) {
+                    if (noNextCount >= 3) {
                         console.log('🎉 [课程完成] 检测到课程所有视频节点已刷完！');
-                        localStorage.removeItem('elegant_was_running');
+                        localStorage.removeItem('_sys_wr');
                         localStorage.removeItem(noNextKey);
                         this.stop();
                         const courseName = document.querySelector('h1, h2, .course-title, [class*="title"]')?.textContent?.trim() || '本课程';
-                        alert(`🎉 恭喜！\n\n${courseName}\n\n所有视频课时已刷完！\n\n请到"学习成绩"页面确认完成进度。\n\n如需参加期末考试，请在考试开放后回来。`);
+                        console.log(`🎉 [课程完成] ${courseName} 所有视频课时已刷完!`);
+                        const nextCourseUrl = this._findNextCourse();
+                        if (nextCourseUrl) {
+                            console.log(`📚 [课程完成] 发现下一门课程: ${nextCourseUrl}, 5秒后自动跳转...`);
+                            localStorage.setItem('_sys_wr', '1');
+                            sessionStorage.setItem('_sys_as', '1');
+                            setTimeout(() => { window.location.href = nextCourseUrl; }, 5000);
+                        } else {
+                            console.log('📚 [课程完成] 未发现其他课程, 等待用户操作');
+                        }
                         return true;
                     }
                 } else {
-                    localStorage.removeItem('elegant_no_next_count');
+                    localStorage.removeItem('_sys_nnc');
                 }
                 
                 try {
@@ -2220,11 +2413,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     await this.autoNext();
                 } else {
                     console.log(`🔄 [同节点循环] 第${this.ui._roundCount + 1}轮开始 — 节点${this.env.nodeId}`);
-                    const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                    const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
                     const idx = completedNodes.indexOf(this.env.nodeId);
                     if (idx !== -1) {
                         completedNodes.splice(idx, 1);
-                        localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes));
+                        localStorage.setItem('_sys_cn', JSON.stringify(completedNodes));
                     }
                     await this.sleep(1500);
                     this.ui._loadStats(this.env.nodeId);
@@ -2240,7 +2433,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 this.running = false;
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 0, '异常');
 
-                const errorLog = JSON.parse(localStorage.getItem('elegant_error_log') || '[]');
+                const errorLog = JSON.parse(localStorage.getItem('_sys_el') || '[]');
                 errorLog.push({
                     time: new Date().toISOString(),
                     nodeId: this.env.nodeId,
@@ -2248,7 +2441,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     stack: err.stack?.substring(0, 500)
                 });
                 if (errorLog.length > 20) errorLog.shift();
-                localStorage.setItem('elegant_error_log', JSON.stringify(errorLog));
+                localStorage.setItem('_sys_el', JSON.stringify(errorLog));
 
                 console.log('🛡️ [鲁棒性] 5秒后自动重启当前节点...');
                 await this.sleep(5000);
@@ -2527,8 +2720,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             console.log(`⏳ [autoNext] 等待${delay}ms后跳转下一节...`);
             await this.sleep(delay);
 
-            const failedNodes = JSON.parse(localStorage.getItem('elegant_failed_nodes') || '[]');
-            const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+            const failedNodes = JSON.parse(localStorage.getItem('_sys_fn') || '[]');
+            const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
 
             try {
                 let nextId = (parseInt(this.env.nodeId) + 1).toString();
@@ -2553,7 +2746,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
                 if (attempts >= maxAttempts) {
                     console.error('❌ [autoNext] 连续跳过5个节点，停止自动跳转');
-                    localStorage.removeItem('elegant_was_running');
+                    localStorage.removeItem('_sys_wr');
                     alert('优雅大师: 已跳过5个节点，可能课程已完成或遇到问题');
                     return;
                 }
@@ -2561,8 +2754,8 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 const targetUrl = location.pathname + '?nodeId=' + nextId;
                 console.log(`➡️  [autoNext] 目标URL: ${targetUrl}, 当前URL: ${location.href}`);
 
-                sessionStorage.setItem('elegant_autostart', '1');
-                localStorage.setItem('elegant_last_attempt_node', nextId);
+                sessionStorage.setItem('_sys_as', '1');
+                localStorage.setItem('_sys_lan', nextId);
                 console.log(`✅ [autoNext] 已设置自动启动标记`);
 
                 const links = document.querySelectorAll('a[href*="node"]');
@@ -2596,7 +2789,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     if (errorEl && errorEl.textContent.includes('当前章节尚未解锁')) {
                         console.warn(`⚠️ [autoNext] 目标节点${nextId}未解锁，标记为失败并跳过...`);
                         failedNodes.push(nextId);
-                        localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
+                        localStorage.setItem('_sys_fn', JSON.stringify(failedNodes));
                         await this.sleep(2000);
                         console.log(`🔄 [autoNext] 2秒后重新尝试下一个节点...`);
                         return this.autoNext();
@@ -2620,7 +2813,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         console.error(`❌ [autoNext] 所有跳转方式均失败`);
                         console.error(`❌ [autoNext] 期望包含: ${nextId}, 实际: ${location.href}`);
                         failedNodes.push(nextId);
-                        localStorage.setItem('elegant_failed_nodes', JSON.stringify(failedNodes));
+                        localStorage.setItem('_sys_fn', JSON.stringify(failedNodes));
                         alert(`优雅大师: 自动跳转下一节失败(${nextId})，请手动点击课程目录中的下一节`);
                     }
                 }
@@ -2801,7 +2994,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             let credentials = this._getCredentials();
             if (!credentials.username || !credentials.password) {
                 credentials = { username: 'REDACTED_USERNAME', password: 'REDACTED_PASSWORD' };
-                localStorage.setItem('elegant_credentials', JSON.stringify(credentials));
+                localStorage.setItem('_sys_cred', JSON.stringify(credentials));
                 console.log(`🔐 [AutoLogin] 使用默认凭据并保存`);
             }
             const _vueCompatibleSet = (el, val) => {
@@ -2901,7 +3094,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         _getCredentials() {
-            const saved = JSON.parse(localStorage.getItem('elegant_credentials') || '{}');
+            const saved = JSON.parse(localStorage.getItem('_sys_cred') || '{}');
             if (saved.username && saved.password) return saved;
             return { username: '', password: '' };
         }
@@ -2916,14 +3109,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 const currentId = new URLSearchParams(location.search).get('nodeId') || '';
                 const prevId = (parseInt(currentId) - 1).toString();
                 console.warn(`⚠️ [start] 检测到章节锁定页面(${currentId})，回退到${prevId}...`);
-                localStorage.removeItem('elegant_autostart');
-                localStorage.removeItem('elegant_last_attempt_node');
-                localStorage.setItem('elegant_was_running', '1');
+                localStorage.removeItem('_sys_as');
+                localStorage.removeItem('_sys_lan');
+                localStorage.setItem('_sys_wr', '1');
                 location.href = `/user/node?nodeId=${prevId}`;
                 return false;
             }
             this.running = true;
-            localStorage.setItem('elegant_was_running', '1');
+            localStorage.setItem('_sys_wr', '1');
             try {
                 this.env = this.detectEnvironment();
                 if (!this.env) {
@@ -2950,7 +3143,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         stop() {
             if (this.bot) { this.bot.stop(); this.bot = null; }
             this.running = false;
-            localStorage.removeItem('elegant_was_running');
+            localStorage.removeItem('_sys_wr');
         }
 
         async checkAndAutoNext() {
@@ -2958,7 +3151,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             if (!env) return;
             const currentId = env.nodeId;
             console.log(`🔍 [checkAutoNext] 检查节点${currentId}的下一节是否解锁...`);
-            const nextId = (parseInt(currentId) + 1).toString();
+            const nextInfo = this._getNextNodeIdFromSidebar();
+            const nextId = nextInfo.nextId;
+            if (!nextInfo.fromSidebar) {
+                console.warn(`⚠️ [checkAutoNext] 侧边栏未找到下一节, 使用推断ID=${nextId} (可能不准确)`);
+            }
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -2969,19 +3166,22 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 });
                 clearTimeout(timeoutId);
                 const text = await resp.text();
-                const LOCK_KEYWORDS = ['尚未解锁', '错误提示', '当前章节', '参数错误', '无法找到'];
+                const LOCK_KEYWORDS = ['尚未解锁', '错误提示', '当前章节', '参数错误', '无法找到', '解锁时间未到'];
                 const isLocked = LOCK_KEYWORDS.some(kw => text.includes(kw)) ||
                     (resp.status >= 300 && resp.status < 400) ||
                     resp.type === 'opaqueredirect';
                 const hasVideoContent = text.includes('video') || text.includes('duration') || text.includes('讨论区');
                 const isLockedStrict = isLocked || !hasVideoContent;
                 if (isLockedStrict) {
-                    console.warn(`⚠️ [checkAutoNext] 下一节(${nextId})仍被锁定! 响应状态=${resp.status}, 类型=${resp.type}, 有视频内容=${hasVideoContent}`);
-                    const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
-                    const idx = completedNodes.indexOf(currentId);
-                    if (idx > -1) { completedNodes.splice(idx, 1); localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes)); }
-                    localStorage.removeItem('elegant_last_attempt_node');
-                    localStorage.setItem('elegant_autostart', '1');
+                    console.warn(`⚠️ [checkAutoNext] 下一节(${nextId})仍被锁定! 有视频内容=${hasVideoContent}`);
+                    const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
+                    if (!completedNodes.includes(currentId)) {
+                        completedNodes.push(currentId);
+                        localStorage.setItem('_sys_cn', JSON.stringify(completedNodes));
+                        console.log(`✅ [checkAutoNext] 节点${currentId}保留完成标记(不删除)`);
+                    }
+                    localStorage.removeItem('_sys_lan');
+                    localStorage.setItem('_sys_as', '1');
                     console.log(`🔄 [checkAutoNext] 2秒后重新启动节点${currentId}...`);
                     setTimeout(() => this.start(), 2000);
                 } else {
@@ -3005,34 +3205,31 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             console.log(`⏳ [autoNext] 等待${delay}ms后跳转下一节...`);
             await this._sleep(delay);
 
-            const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+            const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
 
-            let nextId = (parseInt(env.nodeId) + 1).toString();
+            let nextInfo = this._getNextNodeIdFromSidebar();
+            let nextId = nextInfo.nextId;
             let skipCount = 0;
             const maxSkip = 10;
 
-            while (skipCount < maxSkip) {
-                if (completedNodes.includes(nextId)) {
-                    console.log(`⏭️ [autoNext] 节点${nextId}已完成，跳过...`);
-                    nextId = (parseInt(nextId) + 1).toString();
-                    skipCount++;
-                    continue;
-                }
-                break;
+            while (skipCount < maxSkip && completedNodes.includes(nextId)) {
+                console.log(`⏭️ [autoNext] 节点${nextId}已完成，跳过...`);
+                nextInfo = this._findNextAfter(nextId);
+                nextId = nextInfo.nextId;
+                skipCount++;
             }
 
             if (skipCount >= maxSkip) {
                 console.log('🎉 [autoNext] 连续跳过10个已完成节点，可能课程已完成');
-                localStorage.removeItem('elegant_was_running');
-                alert('优雅大师: 课程可能已完成！');
+                this._handleCourseComplete();
                 return;
             }
 
             const targetUrl = location.pathname + '?nodeId=' + nextId;
-            console.log(`➡️  [autoNext] 目标URL: ${targetUrl}`);
+            console.log(`➡️  [autoNext] 目标URL: ${targetUrl} (来源: ${nextInfo.fromSidebar ? '侧边栏' : '推断'})`);
 
-            sessionStorage.setItem('elegant_autostart', '1');
-            localStorage.setItem('elegant_last_attempt_node', nextId);
+            sessionStorage.setItem('_sys_as', '1');
+            localStorage.setItem('_sys_lan', nextId);
 
             const links = document.querySelectorAll('a[href*="node"]');
             let foundDomLink = false;
@@ -3051,6 +3248,66 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
         }
 
+        _getNextNodeIdFromSidebar() {
+            try {
+                const currentPath = 'nodeId=' + (this.env?.nodeId || new URLSearchParams(location.search).get('nodeId') || '');
+                const selectors = '.course-menu a[href*="nodeId"], .chapter-list a[href*="nodeId"], #study-menu a[href*="nodeId"], [class*="menu"] a[href*="nodeId"], [class*="catalog"] a[href*="nodeId"], [class*="directory"] a[href*="nodeId"]';
+                const allLinks = document.querySelectorAll(selectors);
+                let foundCurrent = false;
+                for (let i = 0; i < allLinks.length; i++) {
+                    const href = allLinks[i].getAttribute('href') || '';
+                    if (href.includes(currentPath)) {
+                        foundCurrent = true;
+                        continue;
+                    }
+                    if (foundCurrent) {
+                        const match = href.match(/nodeId=(\d+)/);
+                        if (match) {
+                            console.log(`📖 [侧边栏] 当前=${currentPath}, 下一节=${match[1]}`);
+                            return { nextId: match[1], fromSidebar: true };
+                        }
+                    }
+                }
+                const currentId = this.env?.nodeId || new URLSearchParams(location.search).get('nodeId') || '0';
+                console.warn(`⚠️ [侧边栏] 未找到下一节, 回退到nodeId+1`);
+                return { nextId: (parseInt(currentId) + 1).toString(), fromSidebar: false };
+            } catch (e) {
+                const currentId = this.env?.nodeId || '0';
+                return { nextId: (parseInt(currentId) + 1).toString(), fromSidebar: false };
+            }
+        }
+
+        _findNextAfter(nodeId) {
+            try {
+                const selectors = '.course-menu a[href*="nodeId"], .chapter-list a[href*="nodeId"], #study-menu a[href*="nodeId"], [class*="menu"] a[href*="nodeId"], [class*="catalog"] a[href*="nodeId"], [class*="directory"] a[href*="nodeId"]';
+                const allLinks = document.querySelectorAll(selectors);
+                let found = false;
+                for (let i = 0; i < allLinks.length; i++) {
+                    const href = allLinks[i].getAttribute('href') || '';
+                    if (href.includes('nodeId=' + nodeId)) {
+                        found = true;
+                        continue;
+                    }
+                    if (found) {
+                        const match = href.match(/nodeId=(\d+)/);
+                        if (match) return { nextId: match[1], fromSidebar: true };
+                    }
+                }
+                return { nextId: (parseInt(nodeId) + 1).toString(), fromSidebar: false };
+            } catch (e) {
+                return { nextId: (parseInt(nodeId) + 1).toString(), fromSidebar: false };
+            }
+        }
+
+        _handleCourseComplete() {
+            console.log('🎉 [CourseComplete] 课程可能已完成!');
+            localStorage.removeItem('_sys_wr');
+            const nextCourseLink = document.querySelector('a[href*="courseId"]:not([href*="' + (this.env?.nodeId || '') + '"])');
+            if (nextCourseLink) {
+                console.log(`📚 [CourseComplete] 发现其他课程链接: ${nextCourseLink.href}`);
+            }
+        }
+
         _sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
@@ -3066,6 +3323,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const video = document.querySelector("video");
             if (video && video.readyState >= 1 && video.duration && video.duration !== Infinity) {
                 duration = Math.floor(video.duration);
+                const muteEnabled = this.config ? this.config.get('speed.mute', true) : true;
+                if (this.ui && typeof this.ui._applyMuteSetting === 'function') {
+                    this.ui._applyMuteSetting(muteEnabled);
+                }
+                console.log(`[detectEnvironment] 🔇 静音设置: ${muteEnabled ? '开启' : '关闭'}`);
             } else if (video && video.readyState < 1) {
                 console.log('⏳ [detectEnvironment] video未准备好，等待...');
                 return null;
@@ -3145,7 +3407,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             const userEl = document.querySelector('input[placeholder*="学号"], input[placeholder*="用户名"]');
             const passEl = document.querySelector('input[placeholder*="密码"], input[type="password"]');
             if (userEl && passEl && userEl.value && passEl.value) {
-                localStorage.setItem('elegant_credentials', JSON.stringify({ username: userEl.value, password: passEl.value }));
+                localStorage.setItem('_sys_cred', JSON.stringify({ username: userEl.value, password: passEl.value }));
             }
             const loggedIn = await engine.autoLogin();
             if (loggedIn) {
@@ -3187,22 +3449,22 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 return;
             }
             
-            const lastAttempt = localStorage.getItem('elegant_last_attempt_node');
+            const lastAttempt = localStorage.getItem('_sys_lan');
             if (lastAttempt && env.nodeId !== lastAttempt) {
                 console.warn(`⚠️ [Init] 尝试跳转到${lastAttempt}但被重定向到${env.nodeId}`);
                 console.log('📌 [Init] 这是章节锁定机制，下一节尚未解锁');
-                localStorage.removeItem('elegant_last_attempt_node');
-                const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                localStorage.removeItem('_sys_lan');
+                const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
                 if (!completedNodes.includes(env.nodeId)) {
                     completedNodes.push(env.nodeId);
-                    localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes));
+                    localStorage.setItem('_sys_cn', JSON.stringify(completedNodes));
                     console.log(`✅ [Init] 节点${env.nodeId}已完成，保留完成标记`);
                 }
-                const lockCount = parseInt(localStorage.getItem('elegant_chapter_lock_count') || '0') + 1;
-                localStorage.setItem('elegant_chapter_lock_count', lockCount.toString());
+                const lockCount = parseInt(localStorage.getItem('_sys_clc') || '0') + 1;
+                localStorage.setItem('_sys_clc', lockCount.toString());
                 if (lockCount >= 3) {
                     console.log(`⏸️ [Init] 章节锁定${lockCount}次，等待30秒后重试...`);
-                    localStorage.setItem('elegant_chapter_lock_count', '0');
+                    localStorage.setItem('_sys_clc', '0');
                     setTimeout(() => engine.autoNext(), 30000);
                 } else {
                     console.log(`⏸️ [Init] 章节锁定${lockCount}次，等待10秒后重试...`);
@@ -3213,16 +3475,16 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             
             ui.updateStatus(env.nodeId, env.duration, 0, '待机');
             const autoNextEnabled = configMgr.get('autoNext.enabled', false);
-            const autoStartFlag = sessionStorage.getItem('elegant_autostart');
-            const wasRunning = localStorage.getItem('elegant_was_running');
+            const autoStartFlag = sessionStorage.getItem('_sys_as');
+            const wasRunning = localStorage.getItem('_sys_wr');
             
-            const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+            const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
             const isCompleted = completedNodes.includes(env.nodeId);
             if (isCompleted && autoNextEnabled) {
                 console.log(`⏭️ 节点${env.nodeId}已完成，检查下一节是否解锁...`);
                 engine.checkAndAutoNext();
             } else if (autoNextEnabled && (autoStartFlag === '1' || wasRunning === '1')) {
-                sessionStorage.removeItem('elegant_autostart');
+                sessionStorage.removeItem('_sys_as');
                 console.log('🔄 自动续刷模式，2秒后启动...');
                 setTimeout(() => engine.start(), 2000);
             } else {
@@ -3239,24 +3501,24 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 lastUrl = location.href;
                 console.log('🔄 URL 变化，重新检测环境:', location.href);
                 
-                const lastAttempt = localStorage.getItem('elegant_last_attempt_node');
+                const lastAttempt = localStorage.getItem('_sys_lan');
                 if (lastAttempt) {
                     const currentId = new URLSearchParams(location.search).get('nodeId');
                     if (currentId && currentId !== lastAttempt) {
                         console.warn(`⚠️ [URL变化] 尝试跳转到${lastAttempt}但被重定向到${currentId}`);
                         console.log('📌 [URL变化] 这是章节锁定机制，下一节尚未解锁');
-                        localStorage.removeItem('elegant_last_attempt_node');
-                        const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
+                        localStorage.removeItem('_sys_lan');
+                        const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
                         if (!completedNodes.includes(currentId)) {
                             completedNodes.push(currentId);
-                            localStorage.setItem('elegant_completed_nodes', JSON.stringify(completedNodes));
+                            localStorage.setItem('_sys_cn', JSON.stringify(completedNodes));
                             console.log(`✅ [URL变化] 节点${currentId}已完成，保留完成标记`);
                         }
-                        const lockCount = parseInt(localStorage.getItem('elegant_chapter_lock_count') || '0') + 1;
-                        localStorage.setItem('elegant_chapter_lock_count', lockCount.toString());
+                        const lockCount = parseInt(localStorage.getItem('_sys_clc') || '0') + 1;
+                        localStorage.setItem('_sys_clc', lockCount.toString());
                         if (lockCount >= 3) {
                             console.log(`⏸️ [URL变化] 章节锁定${lockCount}次，等待30秒后重试...`);
-                            localStorage.setItem('elegant_chapter_lock_count', '0');
+                            localStorage.setItem('_sys_clc', '0');
                             setTimeout(() => engine.autoNext(), 30000);
                         } else {
                             console.log(`⏸️ [URL变化] 章节锁定${lockCount}次，等待10秒后重试...`);
