@@ -8,7 +8,7 @@ if (window.__ELEGANT_MASTER_LOADED__ && !window.__ELEGANT_MASTER_HOTRELOAD__) {
 window.__ELEGANT_MASTER_LOADED__ = true;
 window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
-const ELEGANT_VERSION = 'v3.4-planH-v3-4x-fix24';
+const ELEGANT_VERSION = 'v3.4-planH-v3-4x-fix27-sign-api';
 
 (function preventPuterDialogs() {
     const REMOVE_TARGETS = 'usage-limit-dialog, [class*="puter-dialog"], [class*="Puter-dialog"], [class*="puter-modal"], [class*="Puter-modal"], [data-component="usage-limit-dialog"]';
@@ -913,6 +913,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._roundCount = 0;
             this._totalTime = 0;
             this._statsKey = 'elegant_master_stats';
+            this._serverProgressData = null;
         }
 
         _loadStats(nodeId) {
@@ -1082,6 +1083,15 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 <div id="progress-bar-container" style="height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden;">
                     <div id="progress-bar-fill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s ease;"></div>
                 </div>
+                <div id="server-progress-card" style="margin-top: 12px; padding: 10px; background: linear-gradient(135deg, #e3f2fd, #f3e5f5); border-radius: 8px; border-left: 4px solid #2196F3;">
+                    <div style="font-size: 11px; font-weight: 600; color: #1565C0; margin-bottom: 6px;">📊 服务端真实进度 (study_record)</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 11px;">
+                        <div><span style="color: #666;">观看时长:</span><br><b id="server-duration" style="color: #333;">--</b></div>
+                        <div><span style="color: #666;">进度:</span><br><b id="server-progress" style="color: #4CAF50;">--</b></div>
+                        <div><span style="color: #666;">状态:</span><br><b id="server-state" style="color: #FF9800;">--</b></div>
+                    </div>
+                    <div id="server-diff" style="margin-top: 6px; font-size: 10px; color: #666; display: none;"></div>
+                </div>
             `;
             return card;
         }
@@ -1201,7 +1211,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 toggleBtn: p.querySelector('#elegant-toggle'),
                 ctrlAutoNext: p.querySelector('#ctrl-auto-next'),
                 sliders: p.querySelectorAll('.adv-slider'),
-                targetBtns: p.querySelectorAll('.target-btn')
+                targetBtns: p.querySelectorAll('.target-btn'),
+                serverDuration: p.querySelector('#server-duration'),
+                serverProgress: p.querySelector('#server-progress'),
+                serverState: p.querySelector('#server-state'),
+                serverDiff: p.querySelector('#server-diff')
             };
         }
 
@@ -1287,10 +1301,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             }
             if (this.elements.btnPause) {
                 this.elements.btnPause.onclick = () => {
-                    if (this._engine) {
-                        this._engine.togglePause();
-                    } else if (window.MasterEngine && window.MasterEngine.togglePause) {
-                        window.MasterEngine.togglePause();
+                    const engine = this._engine || window.MasterEngine;
+                    if (engine && typeof engine.togglePause === 'function') {
+                        engine.togglePause();
+                    } else {
+                        console.error('[UI] togglePause not available');
                     }
                 };
             }
@@ -1492,6 +1507,49 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 } else {
                     this.elements.btnStart.style.display = 'block';
                     this.elements.btnPause.style.display = 'none';
+                }
+            }
+
+            if (this._serverProgressData) {
+                this._updateServerProgressUI();
+            }
+        }
+
+        _updateServerProgressUI() {
+            const data = this._serverProgressData;
+            if (!data || !this.elements.serverDuration) return;
+
+            const durEl = this.elements.serverDuration;
+            const progEl = this.elements.serverProgress;
+            const stateEl = this.elements.serverState;
+            const diffEl = this.elements.serverDiff;
+
+            if (durEl) {
+                const d = parseInt(data.duration) || 0;
+                const mins = Math.floor(d / 60);
+                const secs = d % 60;
+                durEl.textContent = mins > 0 ? `${mins}m${secs}s` : `${secs}s`;
+            }
+            if (progEl) {
+                const p = parseFloat(data.progress) || 0;
+                progEl.textContent = `${Math.round(p * 100)}%`;
+                progEl.style.color = p >= 1.0 ? '#4CAF50' : (p >= 0.5 ? '#FF9800' : '#f44336');
+            }
+            if (stateEl) {
+                const state = (data.state || '').replace(/<[^>]+>/g, '');
+                stateEl.textContent = state || '--';
+                stateEl.style.color = state.includes('已学') ? '#4CAF50' : (state.includes('未学完') ? '#FF9800' : '#2196F3');
+            }
+            if (diffEl && this._lastDuration) {
+                const serverP = parseFloat(data.progress) || 0;
+                const clientP = (this._totalTime / this._lastDuration) || 0;
+                const diff = Math.abs(serverP - clientP);
+                if (diff > 0.1) {
+                    diffEl.style.display = 'block';
+                    diffEl.innerHTML = `⚠️ 差距: 脚本${Math.round(clientP*100)}% vs 服务端${Math.round(serverP*100)}% (${diff > 0.3 ? '🔴大' : '🟡中'})`;
+                    diffEl.style.color = diff > 0.3 ? '#f44336' : '#FF9800';
+                } else {
+                    diffEl.style.display = 'none';
                 }
             }
         }
@@ -1882,6 +1940,53 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this._lastNodeId = env.nodeId;
             this._lastDuration = env.duration;
             this.ui._loadStats(env.nodeId);
+            this._courseId = this._extractCourseId();
+            this._lastServerProgressFetch = 0;
+        }
+
+        _extractCourseId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('courseId') || '1011603';
+        }
+
+        async _fetchRealProgress() {
+            if (!this._courseId || !this._lastNodeId) return null;
+            const now = Date.now();
+            if (now - this._lastServerProgressFetch < 30000) {
+                return this.ui._serverProgressData;
+            }
+            this._lastServerProgressFetch = now;
+            try {
+                let nodeData = null;
+                let page = 1;
+                while (!nodeData && page <= 5) {
+                    const resp = await fetch(`/user/study_record.json?courseId=${this._courseId}&page=${page}&_=${now}`, {
+                        headers: {'X-Requested-With': 'XMLHttpRequest'}
+                    });
+                    if (!resp.ok) break;
+                    const json = await resp.json();
+                    const list = json.list || [];
+                    nodeData = list.find(item => item.id === this._lastNodeId);
+                    if (list.length < 20) break;
+                    page++;
+                }
+                if (nodeData) {
+                    console.log(`📊 [ServerProgress] 节点${this._lastNodeId}服务端数据:`, {
+                        duration: nodeData.duration + 's',
+                        progress: nodeData.progress,
+                        state: (nodeData.state || '').replace(/<[^>]+>/g, ''),
+                        viewCount: nodeData.viewCount
+                    });
+                    this.ui._serverProgressData = nodeData;
+                    return nodeData;
+                } else {
+                    console.log(`📊 [ServerProgress] 节点${this._lastNodeId}暂无服务端记录(可能尚未开始上报)`);
+                    return null;
+                }
+            } catch(e) {
+                console.error('❌ [ServerProgress] 获取失败:', e);
+                return null;
+            }
         }
 
         async start() {
@@ -2023,6 +2128,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 const pct = Math.min(Math.floor(time / this.env.duration * 100), 100);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, pct, '运行中');
 
+                if (i % 5 === 0) {
+                    await this._fetchRealProgress();
+                }
+
                 if (i < loops - 1 && this.running) {
                     const jitter = (Math.random() - 0.5) * 2 * randomJitter;
                     await this.sleep(Math.max(interval + jitter, 500));
@@ -2049,6 +2158,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 console.log(`📊 [统计] 第${this.ui._roundCount}轮完成, 累计运行${this.ui._totalTime.toFixed(0)}秒`);
                 this.ui._saveStatsImmediate(this._lastNodeId);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
+                await this._fetchRealProgress();
                 const completedNodes = JSON.parse(localStorage.getItem('elegant_completed_nodes') || '[]');
                 if (!completedNodes.includes(this.env.nodeId)) {
                     completedNodes.push(this.env.nodeId);
@@ -2591,6 +2701,35 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 this._api = {
                     nodeId: this.env.nodeId,
                     _captchaCode: null,
+                    _getSignParams() {
+                        const appId = (document.querySelector('#appId') || {}).value || '';
+                        const nonce = (document.querySelector('#nonce') || {}).value || '';
+                        const timestamp = (document.querySelector('#timestamp') || {}).value || '';
+                        const sign = (document.querySelector('#sign') || {}).value || '';
+                        const userId = (document.querySelector('#user-id') || {}).value || '0';
+                        return { appId, nonce, timestamp, sign, userId };
+                    },
+                    async _callSignApi(studyTime, studyId) {
+                        const sp = this._getSignParams();
+                        if (!sp.appId || !sp.sign) return null;
+                        try {
+                            const params = new URLSearchParams();
+                            params.append('appId', sp.appId);
+                            params.append('nonce', sp.nonce);
+                            params.append('timestamp', sp.timestamp);
+                            params.append('nodeId', this.nodeId);
+                            params.append('userId', sp.userId);
+                            params.append('studyId', String(studyId || 0));
+                            params.append('studyTime', String(studyTime));
+                            const res = await fetch(`${location.origin}/service/sign`, {
+                                method: 'POST',
+                                headers: { 'Authorization': sp.sign, 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                                body: params.toString(),
+                                credentials: 'include'
+                            });
+                            return await res.json().catch(() => null);
+                        } catch (e) { return null; }
+                    },
                     async study(time, studyId = null, code = null) {
                         const params = new URLSearchParams();
                         params.append('nodeId', this.nodeId);
@@ -2602,6 +2741,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                             this._captchaCode = null;
                         }
                         try {
+                            await this._callSignApi(time, studyId);
                             const res = await fetch(`${location.origin}/user/node/study`, {
                                 method: 'POST',
                                 headers: {
