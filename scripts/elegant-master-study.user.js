@@ -2770,9 +2770,22 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 }
 
                 if (attempts >= maxAttempts) {
-                    console.error('❌ [autoNext] 连续跳过5个节点，停止自动跳转');
+                    console.error('❌ [autoNext] 连续跳过5个节点，尝试寻找未完成节点...');
                     localStorage.removeItem('_sys_wr');
-                    alert('优雅大师: 已跳过5个节点，可能课程已完成或遇到问题');
+                    const allLinks = document.querySelectorAll('a[href*="nodeId"]');
+                    const cn = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
+                    for (const link of allLinks) {
+                        const href = link.getAttribute('href') || '';
+                        const match = href.match(/nodeId=(\d+)/);
+                        if (match && !cn.includes(match[1])) {
+                            console.log(`🔍 [autoNext] 发现未完成节点: ${match[1]}, 跳转中...`);
+                            localStorage.setItem('_sys_wr', '1');
+                            sessionStorage.setItem('_sys_as', '1');
+                            setTimeout(() => { window.location.href = `/user/node?nodeId=${match[1]}&courseId=1011603`; }, 2000);
+                            return;
+                        }
+                    }
+                    console.log('⚠️ [autoNext] 未找到未完成节点，可能课程已全部完成');
                     return;
                 }
 
@@ -2839,7 +2852,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         console.error(`❌ [autoNext] 期望包含: ${nextId}, 实际: ${location.href}`);
                         failedNodes.push(nextId);
                         localStorage.setItem('_sys_fn', JSON.stringify(failedNodes));
-                        alert(`优雅大师: 自动跳转下一节失败(${nextId})，请手动点击课程目录中的下一节`);
+                        console.warn(`⚠️ [autoNext] 自动跳转下一节失败(${nextId})，10秒后重试...`);
+                        localStorage.setItem('_sys_wr', '1');
+                        setTimeout(() => this.autoNext(), 10000);
                     }
                 }
             } catch (e) {
