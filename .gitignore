@@ -35,6 +35,15 @@ CLAUDE.md
 config/api_key.txt
 config/secrets.json
 config/.inject-escaped.json
+**/api_key.txt
+**/*secret*
+**/*credential*
+**/*.har
+**/*.env
+
+# Secret cleanup tools (never commit)
+replacements.txt
+cleanup-secrets.sh
 
 # Development artifacts
 archive/
