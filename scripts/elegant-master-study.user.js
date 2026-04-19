@@ -8,7 +8,7 @@ if (window.__ELEGANT_MASTER_LOADED__ && !window.__ELEGANT_MASTER_HOTRELOAD__) {
 window.__ELEGANT_MASTER_LOADED__ = true;
 window.__ELEGANT_MASTER_HOTRELOAD__ = false;
 
-const ELEGANT_VERSION = 'v3.6-blue-team-audit';
+const ELEGANT_VERSION = 'v4.0-server-sync';
 
 (function preventThirdPartyDialogs() {
     const REMOVE_TARGETS = 'usage-limit-dialog, [class*="puter-dialog"], [class*="Puter-dialog"], [class*="puter-modal"], [class*="Puter-modal"], [data-component="usage-limit-dialog"]';
@@ -116,11 +116,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
     'use strict';
 
     const DEFAULTS = {
-        speed: { mode: 'normal', reportInterval: 1500, jumpSize: 30, mute: true },
+        speed: { mode: 'serverSync', reportInterval: 30000, jumpSize: 28, mute: true, playbackRate: 1.0 },
         ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'REDACTED_OCRSPACE_KEY' },
         autoNext: { enabled: true, delay: 2000 },
-        completion: { targetPercent: 0.95, realPlayPercent: 0.05, maxRealPlayWait: 120 },
-        antiCheat: { randomJitter: 300 },
+        completion: { targetPercent: 1.0, realPlayPercent: 0.05, maxRealPlayWait: 120 },
+        antiCheat: { randomJitter: 3000, safeRatio: 0.93 },
+        serverSync: { enabled: true, checkInterval: 30000, maxStagnation: 3 },
         ocr: {
             baidu: { apiKey: 'REDACTED_BAIDU_APIKEY', secretKey: 'REDACTED_BAIDU_SECRETKEY' },
             tencent: { secretId: '', secretKey: '' }
@@ -797,9 +798,40 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
     }
 
-    // ==================== OCR 六级全自动降级引擎 v3.2 (重构版) ====================
-    // 红队原则: 全流程自主，无需人工干预
-    // 降级链: OCR.space → 百度OCR → 腾讯云OCR → Puter.js(无Key云) → Tesseract.js(本地) → GLM-4V-Flash(视觉模型)
+    class DdddocrBackend extends OCREngineBackend {
+        constructor(config, networkClient) {
+            super();
+            this.config = config;
+            this.networkClient = networkClient;
+        }
+
+        getName() { return 'ddddocr'; }
+
+        isEnabled() { return !!this.config.ddddocr?.endpoint; }
+
+        async recognize(context) {
+            const serverUrl = this.config.ddddocr?.endpoint || 'http://localhost:18924/solve';
+            console.log('[ddddocr] 调用本地OCR服务器: ' + serverUrl);
+            
+            const body = JSON.stringify({ image: context.base64Raw });
+            const result = await this.networkClient.gmFetch(serverUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: body,
+                timeout: 10000
+            });
+            
+            const data = JSON.parse(result);
+            if (!data.result || data.result.length < 3) {
+                throw new Error('ddddocr返回无效结果: ' + JSON.stringify(data));
+            }
+            console.log(`[ddddocr] 识别结果: "${data.result}" (${data.elapsed}s)`);
+            return data.result.replace(/[^a-zA-Z0-9]/g, '');
+        }
+    }
+
+    // ==================== OCR 七级全自动降级引擎 v5.1 ====================
+    // 降级链: ddddocr(可选本地) → 百度OCR → 腾讯云OCR → Puter.js(免费云AI) → OCR.space → Tesseract.js(本地) → GLM-4V-Flash
     // 架构改进: 策略模式 + 单一职责原则
     class OCREngine {
         constructor(configMgr) {
@@ -810,12 +842,13 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
             this.networkClient = new NetworkClient();
             this.scriptLoader = new ScriptLoader();
 
-            const _emptyCfg = { ocrspace:{apiKey:'',endpoint:''}, baidu:{apiKey:'',secretKey:'',endpoint:''}, tencent:{secretId:'',secretKey:'',endpoint:'',region:''}, puter:{enabled:true}, glm4v:{apiKey:'',endpoint:''} };
+            const _emptyCfg = { ddddocr:{endpoint:''}, ocrspace:{apiKey:'',endpoint:''}, baidu:{apiKey:'',secretKey:'',endpoint:''}, tencent:{secretId:'',secretKey:'',endpoint:'',region:''}, puter:{enabled:true}, glm4v:{apiKey:'',endpoint:''} };
             this.backends = [
-                new OcrSpaceBackend(_emptyCfg, this.networkClient),
+                new DdddocrBackend(_emptyCfg, this.networkClient),
                 new BaiduOcrBackend(_emptyCfg, this.networkClient),
                 new TencentOcrBackend(_emptyCfg, this.networkClient),
                 new PuterBackend(_emptyCfg, this.scriptLoader),
+                new OcrSpaceBackend(_emptyCfg, this.networkClient),
                 new TesseractBackend(_emptyCfg, this.scriptLoader),
                 new Glm4VBackend(_emptyCfg, this.networkClient)
             ];
@@ -1151,9 +1184,9 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 <div>
                     <label style="display: block; font-size: 12px; color: #666; margin-bottom: 6px;">加速模式</label>
                     <div style="display: flex; gap: 8px;">
-                        <button class="speed-btn" data-mode="slow" style="flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🐢 稳健</button>
-                        <button class="speed-btn" data-mode="normal" style="flex: 1; padding: 8px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">⚡ Plan H</button>
-                        <button class="speed-btn" data-mode="fast" style="flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🚀 激进</button>
+                        <button class="speed-btn" data-mode="slow" style="flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🐢 1.0x</button>
+                        <button class="speed-btn" data-mode="normal" style="flex: 1; padding: 8px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">⚡ 1.25x</button>
+                        <button class="speed-btn" data-mode="fast" style="flex: 1; padding: 8px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🚀 1.5x</button>
                     </div>
                 </div>
             `;
@@ -1394,14 +1427,18 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     btn.style.color = '#fff';
 
                     const mode = btn.dataset.mode;
-                    let interval = 2000, jump = 30;
+                    let interval = 2000, jump = 30, rate = 1.0;
                     switch (mode) {
-                        case 'slow': interval = 30000; break;
-                        case 'fast': interval = 1500; break;
+                        case 'slow': interval = 30000; rate = 1.0; break;
+                        case 'normal': rate = 1.25; break;
+                        case 'fast': interval = 1500; rate = 1.5; break;
                     }
                     this.config.set('speed.reportInterval', interval);
                     this.config.set('speed.jumpSize', jump);
                     this.config.set('speed.mode', mode);
+                    this.config.set('speed.playbackRate', rate);
+                    const video = document.querySelector('video');
+                    if (video) { video.playbackRate = rate; console.log(`⚡ [Speed] 倍速设置为: ${rate}x`); }
                 };
             });
 
@@ -2188,14 +2225,14 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         async _fetchRealProgress() {
             if (!this._courseId || !this._lastNodeId) return null;
             const now = Date.now();
-            if (now - this._lastServerProgressFetch < 30000) {
+            if (now - this._lastServerProgressFetch < 5000) {
                 return this.ui._serverProgressData;
             }
             this._lastServerProgressFetch = now;
             try {
                 let nodeData = null;
                 let page = 1;
-                while (!nodeData && page <= 5) {
+                while (!nodeData && page <= 10) {
                     const resp = await fetch(`/user/study_record.json?courseId=${this._courseId}&page=${page}&_=${now}`, {
                         headers: {'X-Requested-With': 'XMLHttpRequest'}
                     });
@@ -2207,16 +2244,15 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     page++;
                 }
                 if (nodeData) {
-                    console.log(`📊 [ServerProgress] 节点${this._lastNodeId}服务端数据:`, {
-                        duration: nodeData.duration + 's',
-                        progress: nodeData.progress,
-                        state: (nodeData.state || '').replace(/<[^>]+>/g, ''),
-                        viewCount: nodeData.viewCount
-                    });
+                    const viewCount = nodeData.viewCount || 0;
+                    const duration = nodeData.duration || 0;
+                    const progress = nodeData.progress || 0;
+                    const state = (nodeData.state || '').replace(/<[^>]+>/g, '');
+                    console.log(`📊 [ServerProgress] 节点${this._lastNodeId}: viewCount=${viewCount}s/${duration}s, progress=${(progress*100).toFixed(1)}%, state=${state}`);
                     this.ui._serverProgressData = nodeData;
                     return nodeData;
                 } else {
-                    console.log(`📊 [ServerProgress] 节点${this._lastNodeId}暂无服务端记录(可能尚未开始上报)`);
+                    console.log(`📊 [ServerProgress] 节点${this._lastNodeId}暂无服务端记录`);
                     return null;
                 }
             } catch(e) {
@@ -2228,10 +2264,10 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         async start() {
             this.running = true;
             this.startTime = Date.now();
-            console.log('🌟 优雅大师启动', this.env);
+            console.log('🌟 优雅大师v4.0启动 (服务端时间同步引擎)', this.env);
 
             try {
-            this.ui.updateStatus(this.env.nodeId, this.env.duration, 0, '运行中');
+            this.ui.updateStatus(this.env.nodeId, this.env.duration, 0, '初始化');
 
             let apiSuccessCount = 0;
             let lastStudyId = null;
@@ -2267,23 +2303,69 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 console.log('✅ 会话:', this.studyId, '| 原始响应:', JSON.stringify(init.data).substring(0, 300));
             }
 
-            const jumpSize = this.config.get('speed.jumpSize', 30);
-            let interval = this.config.get('speed.reportInterval', 2000);
-            const targetPercent = this.config.get('completion.targetPercent', 0.95);
-            const target = Math.floor(this.env.duration * targetPercent);
-            const loops = Math.ceil(target / jumpSize);
+            const safeRatio = this.config.get('antiCheat.safeRatio', 0.93);
+            const reportInterval = this.config.get('speed.reportInterval', 30000);
+            const randomJitter = this.config.get('antiCheat.randomJitter', 3000);
+            const targetPercent = this.config.get('completion.targetPercent', 1.0);
+            const targetTime = Math.floor(this.env.duration * targetPercent);
+            const maxStagnation = this.config.get('serverSync.maxStagnation', 3);
 
-            const randomJitter = this.config.get('antiCheat.randomJitter', 300);
+            console.log(`⚡ [ServerSync] 服务端时间同步引擎启动!`);
+            console.log(`⚡ [ServerSync] 上报间隔: ${reportInterval}ms, 安全系数: ${safeRatio}, 目标: ${Math.floor(targetPercent*100)}%`);
+            console.log(`⚡ [ServerSync] 视频总长: ${this.env.duration}s, 目标时长: ${targetTime}s`);
 
-            console.log(`⚡ 上报: ${loops}次, 基础间隔${interval}ms, 跳跃${jumpSize}s, 目标${Math.floor(targetPercent*100)}%, 抖动±${randomJitter}ms`);
+            const playbackRate = this.config.get('speed.playbackRate', 1.0);
+            if (playbackRate !== 1.0) {
+                const video = document.querySelector('video');
+                if (video) { video.playbackRate = playbackRate; console.log(`⚡ [Speed] 引擎启动时设置倍速: ${playbackRate}x`); }
+            }
 
+            let lastReportTime = Date.now();
+            let lastServerViewCount = 0;
+            let stagnationCount = 0;
             let captchaFailCount = 0;
             const maxCaptchaFails = 5;
+            let reportRound = 0;
 
-            for (let i = 0; i < loops && this.running; i++) {
-                const time = (i + 1) * jumpSize;
+            while (this.running) {
+                reportRound++;
+                const serverProgress = await this._fetchRealProgress();
 
-                const res = await this.api.study(time, this.studyId);
+                if (serverProgress) {
+                    const serverViewCount = serverProgress.viewCount || 0;
+                    const serverProgressPct = serverProgress.progress || 0;
+
+                    console.log(`📊 [ServerSync] Round#${reportRound} 服务端: viewCount=${serverViewCount}s, progress=${(serverProgressPct*100).toFixed(1)}%, state=${(serverProgress.state||'').replace(/<[^>]+>/g, '')}`);
+
+                    if (serverProgressPct >= targetPercent) {
+                        console.log(`✅ [ServerSync] 服务端进度已达${(serverProgressPct*100).toFixed(0)}%! 节点完成!`);
+                        break;
+                    }
+
+                    if (serverViewCount === lastServerViewCount && reportRound > 1) {
+                        stagnationCount++;
+                        console.warn(`⚠️ [ServerSync] 服务端进度停滞! viewCount未增长(${serverViewCount}s), 停滞次数:${stagnationCount}/${maxStagnation}`);
+                        if (stagnationCount >= maxStagnation) {
+                            console.warn(`🔴 [ServerSync] 连续${maxStagnation}次停滞, 暂停60秒后重试...`);
+                            await this.sleep(60000);
+                            stagnationCount = 0;
+                            continue;
+                        }
+                    } else {
+                        stagnationCount = 0;
+                    }
+                    lastServerViewCount = serverViewCount;
+                }
+
+                const now = Date.now();
+                const elapsed = (now - lastReportTime) / 1000;
+                const safeIncrement = Math.max(Math.floor(elapsed * safeRatio), 1);
+                const currentStudyTime = lastServerViewCount + safeIncrement;
+                const clampedStudyTime = Math.min(currentStudyTime, this.env.duration);
+
+                console.log(`📤 [ServerSync] Round#${reportRound} 上报: viewCount=${lastServerViewCount}s + increment=${safeIncrement}s = ${clampedStudyTime}s (elapsed=${elapsed.toFixed(0)}s, ratio=${safeRatio})`);
+
+                const res = await this.api.study(clampedStudyTime, this.studyId);
                 if (!res.ok) {
                     if (res.needCode) {
                         if (captchaFailCount >= maxCaptchaFails) {
@@ -2295,67 +2377,54 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                             console.warn(`⚠️ 检测到L7点选验证码(need_code=2)，启动ClickCaptchaSolver...`);
                             if (res.data && res.data.verifyToken) {
                                 this.clickCaptchaSolver.setVerifyToken(res.data.verifyToken);
-                                console.log(`🎯 [L7] 设置verifyToken: ${res.data.verifyToken.substring(0, 10)}...`);
                             }
                             const l7Solved = await this.clickCaptchaSolver.solve(l7Container);
                             if (l7Solved) {
                                 await this.sleep(2000);
-                                const retryRes = await this.api.study(time, this.studyId);
+                                const retryRes = await this.api.study(clampedStudyTime, this.studyId);
                                 if (retryRes.ok) {
                                     this.studyId = this._extractStudyId(retryRes.data) || this.studyId;
                                     if (this.studyId) lastStudyId = this.studyId;
                                     apiSuccessCount++;
-                                    console.log('✅ L7点选验证码通过! (累计成功:', apiSuccessCount, ')');
                                     captchaFailCount = 0;
                                 } else {
-                                    console.warn('⚠️ L7点选后重试失败:', retryRes.error);
                                     captchaFailCount++;
-                                    i--;
                                     await this.sleep(3000);
                                 }
                             } else {
-                                console.warn('⚠️ L7点选解决失败，降级为文本验证码处理');
                                 captchaFailCount++;
-                                i--;
                                 await this.sleep(3000);
                             }
-                            continue;
-                        }
-                        console.warn(`⚠️ 上报需要验证码 (${captchaFailCount + 1}/${maxCaptchaFails})，尝试自动识别...`);
-                        const captchaImg = document.querySelector('#codeImg, img[src*="/service/code"]');
-                        if (captchaImg) captchaImg.click();
-                        await this.sleep(1500);
-                        const code = await this.checkCaptcha();
-                        if (code) {
-                            this.api._captchaCode = code;
-                            const retryRes = await this.api.study(time, this.studyId, code);
-                            console.log(`[API] 验证码重试(time=${time}):`, JSON.stringify(retryRes));
-                            if (retryRes.ok) {
-                                this.studyId = this._extractStudyId(retryRes.data) || this.studyId;
-                                if (this.studyId) lastStudyId = this.studyId;
-                                apiSuccessCount++;
-                                console.log('✅ 验证码通过，继续上报 (累计成功:', apiSuccessCount, ')');
-                                captchaFailCount = 0;
-                            } else {
-                                console.warn('⚠️ 验证码验证失败:', retryRes.error);
-                                captchaFailCount++;
-                                i--;
-                                await this.sleep(2000);
-                            }
                         } else {
-                            captchaFailCount++;
-                            i--;
-                            await this.sleep(3000);
+                            console.warn(`⚠️ 上报需要验证码 (${captchaFailCount + 1}/${maxCaptchaFails})，尝试自动识别...`);
+                            const captchaImg = document.querySelector('#codeImg, img[src*="/service/code"]');
+                            if (captchaImg) captchaImg.click();
+                            await this.sleep(1500);
+                            const code = await this.checkCaptcha();
+                            if (code) {
+                                this.api._captchaCode = code;
+                                const retryRes = await this.api.study(clampedStudyTime, this.studyId, code);
+                                if (retryRes.ok) {
+                                    this.studyId = this._extractStudyId(retryRes.data) || this.studyId;
+                                    if (this.studyId) lastStudyId = this.studyId;
+                                    apiSuccessCount++;
+                                    captchaFailCount = 0;
+                                } else {
+                                    captchaFailCount++;
+                                    await this.sleep(2000);
+                                }
+                            } else {
+                                captchaFailCount++;
+                                await this.sleep(3000);
+                            }
                         }
+                    } else if (res.error && res.error.includes('学时')) {
+                        console.warn('⚠️ 上报失败(学时错误)，等待后重试');
+                        await this.sleep(10000);
                         continue;
+                    } else {
+                        console.warn(`⚠️ 上报异常(${clampedStudyTime}s):`, res.error);
                     }
-                    if (res.error && res.error.includes('学时')) {
-                        console.warn('⚠️ 上报失败，回退重试');
-                        i--;
-                        await this.sleep(3000);
-                        continue;
-                    }
-                    console.warn(`⚠️ 上报异常(${time}s):`, res.error);
                 } else {
                     captchaFailCount = 0;
                     apiSuccessCount++;
@@ -2363,42 +2432,45 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         this.studyId = this._extractStudyId(res.data) || this.studyId;
                         if (this.studyId) lastStudyId = this.studyId;
                     }
+                    lastReportTime = now;
                 }
 
-                const pct = Math.min(Math.floor(time / this.env.duration * 100), 100);
-                this.ui.updateStatus(this._lastNodeId, this._lastDuration, pct, '运行中');
+                const pct = Math.min(Math.floor(clampedStudyTime / this.env.duration * 100), 100);
+                this.ui.updateStatus(this._lastNodeId, this._lastDuration, pct, '同步中');
 
-                if (i % 5 === 0) {
-                    await this._fetchRealProgress();
+                if (clampedStudyTime >= this.env.duration) {
+                    console.log(`📤 [ServerSync] 已上报到视频总时长(${clampedStudyTime}s), 等待服务端确认...`);
+                    await this.sleep(reportInterval);
+                    const finalProgress = await this._fetchRealProgress();
+                    if (finalProgress && finalProgress.progress >= targetPercent) {
+                        console.log(`✅ [ServerSync] 服务端确认完成! progress=${(finalProgress.progress*100).toFixed(0)}%`);
+                        break;
+                    } else {
+                        console.warn(`⚠️ [ServerSync] 服务端尚未确认完成, 继续上报...`);
+                    }
                 }
 
-                if (i < loops - 1 && this.running) {
+                if (this.running) {
                     const jitter = (Math.random() - 0.5) * 2 * randomJitter;
-                    await this.sleep(Math.max(interval + jitter, 500));
+                    const waitTime = Math.max(reportInterval + jitter, 10000);
+                    console.log(`⏳ [ServerSync] 等待${(waitTime/1000).toFixed(0)}秒后下一轮上报...`);
+                    await this.sleep(waitTime);
                 }
             }
 
-            const finalTime = this.env.duration;
-            const finalRes = await this.api.study(finalTime, this.studyId);
-            console.log(`[API] 最终调用(${finalTime}s):`, JSON.stringify(finalRes));
-            if (finalRes.ok) {
-                apiSuccessCount++;
-                if (!this.studyId && finalRes.data) {
-                    this.studyId = this._extractStudyId(finalRes.data) || this.studyId;
-                    if (this.studyId) lastStudyId = this.studyId;
-                }
-            }
-
+            const finalServerProgress = await this._fetchRealProgress();
             const elapsed = (Date.now() - this.startTime) / 1000;
 
             if (apiSuccessCount > 0) {
-                console.log(`✅ 完成！耗时: ${elapsed.toFixed(1)}秒, 成功上报${apiSuccessCount}次, 最终studyId: ${lastStudyId}, 记录: ${this.env.duration}秒`);
+                const serverViewCount = finalServerProgress?.viewCount || 0;
+                const serverProgressPct = finalServerProgress?.progress || 0;
+                console.log(`✅ [ServerSync] 完成! 耗时: ${elapsed.toFixed(1)}秒, 成功上报${apiSuccessCount}次, 轮次:${reportRound}`);
+                console.log(`✅ [ServerSync] 服务端最终: viewCount=${serverViewCount}s, progress=${(serverProgressPct*100).toFixed(1)}%`);
                 this.ui._roundCount++;
                 this.ui._totalTime += elapsed;
                 console.log(`📊 [统计] 第${this.ui._roundCount}轮完成, 累计运行${this.ui._totalTime.toFixed(0)}秒`);
                 this.ui._saveStatsImmediate(this._lastNodeId);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 100, '完成');
-                await this._fetchRealProgress();
                 const completedNodes = JSON.parse(localStorage.getItem('_sys_cn') || '[]');
                 if (!completedNodes.includes(this.env.nodeId)) {
                     completedNodes.push(this.env.nodeId);
@@ -2406,7 +2478,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     console.log(`📝 [完成记录] 节点${this.env.nodeId}已标记为完成`);
                 }
             } else {
-                console.error(`❌ 失败！所有${loops+1}次API调用均未成功, 耗时: ${elapsed.toFixed(1)}秒`);
+                console.error(`❌ 失败！所有API调用均未成功, 耗时: ${elapsed.toFixed(1)}秒`);
                 this.ui.updateStatus(this._lastNodeId, this._lastDuration, 0, '失败');
                 const failKey = '_sys_fc_' + this.env.nodeId;
                 const failCount = parseInt(localStorage.getItem(failKey) || '0') + 1;
@@ -2682,11 +2754,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 return;
             }
             window.__elegant_totaltime_hijacked = true;
-            const speedMultiplier = this.config.get('hijack.speedMultiplier', 4);
+            const speedMultiplier = this.config.get('hijack.speedMultiplier', 1);
             const boostInterval = this.config.get('hijack.boostIntervalMs', 1000);
             const duration = video.duration || this.env.duration || 1728;
-            console.log(`🔓 [Hijack] ⚡ totalTime劫持攻击启动! (Plan H-全栈穿透 v3-4x加速)`);
-            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x(含±2随机抖动), 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
+            console.log(`🔓 [Hijack] ⚡ totalTime劫持v4.0启动! (服务端同步模式-1x安全速度)`);
+            console.log(`🔓 [Hijack] 加速倍率: ${speedMultiplier}x(与蓝队原生一致), 增强间隔: ${boostInterval}ms, 视频时长: ${Math.floor(duration)}秒`);
             const originalTotalTime = window.totalTime || 0;
             let lastBoosted = originalTotalTime;
             let stagnantCount = 0;
@@ -2697,15 +2769,15 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         window.totalTime = lastBoosted;
                     }
                     const prevTotalTime = window.totalTime;
-                    const jitter = Math.floor(Math.random() * 5) - 2;
+                    const jitter = Math.floor(Math.random() * 3) - 1;
                     const boostAmount = speedMultiplier + jitter;
-                    window.totalTime += boostAmount;
+                    if (boostAmount > 0) {
+                        window.totalTime += boostAmount;
+                    }
                     if (window.totalTime <= prevTotalTime) {
                         stagnantCount++;
-                        console.warn(`🔓 [Hijack] ⚠️ totalTime未增长(${prevTotalTime}→${window.totalTime}), 可能被蓝队重置! 次数:${stagnantCount}/${STAGNANT_THRESHOLD}`);
                         if (stagnantCount >= STAGNANT_THRESHOLD) {
-                            console.warn(`🔓 [Hijack] 🔴 连续${STAGNANT_THRESHOLD}次停滞，强制重设totalTime!`);
-                            window.totalTime = lastBoosted + boostAmount * (stagnantCount + 1);
+                            window.totalTime = lastBoosted + 1;
                             stagnantCount = 0;
                         }
                     } else {
@@ -2713,11 +2785,11 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                     }
                     lastBoosted = window.totalTime;
                     if (window.totalTime % 60 === 0 || window.totalTime >= duration) {
-                        console.log(`🔓 [Hijack] ⚡ totalTime已劫持: ${window.totalTime}s (视频${Math.floor(video.currentTime||0)}/${Math.floor(duration)}s, ${Math.floor((video.currentTime||0)/duration*100)}%) [+${boostAmount}]`);
+                        console.log(`🔓 [Hijack] totalTime: ${window.totalTime}s (视频${Math.floor(video.currentTime||0)}/${Math.floor(duration)}s, ${Math.floor((video.currentTime||0)/duration*100)}%) [+${boostAmount}]`);
                     }
                     if (window.totalTime >= duration) {
                         clearInterval(boostTimer);
-                        console.log(`🔓 [Hijack] ✅ totalTime已达目标(${window.totalTime}s >= ${duration}s), 基础劫持完成，转入维持模式`);
+                        console.log(`🔓 [Hijack] ✅ totalTime已达目标(${window.totalTime}s >= ${duration}s), 转入维持模式`);
                         window.__elegant_hijack_maintenance = setInterval(() => {
                             try { if (typeof window.totalTime !== 'undefined') window.totalTime += 1; } catch(e) {}
                         }, 5000);
@@ -2733,14 +2805,12 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 window.sendTime = function(force, code) {
                     try {
                         if (typeof window.totalTime !== 'undefined' && window.totalTime > 0) {
-                            const origST = window.studyTime || 0;
                             window.studyTime = window.totalTime;
-                            console.log(`🔓 [HijackHook] sendTime拦截: studyTime ${origSt} → ${window.studyTime} (totalTime=${window.totalTime})`);
                         }
                     } catch (e) {}
                     return origSendTime.apply(this, arguments);
                 };
-                console.log('🔓 [Hijack] ✅ sendTime() 已挂钩 - 上报时强制使用劫持后的totalTime');
+                console.log('🔓 [Hijack] ✅ sendTime() 已挂钩 - 上报时使用totalTime');
             }
             const self = this;
             window.__elegant_hijack_watchdog = setInterval(() => {
@@ -2750,7 +2820,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                         self._hijackTotalTime(video);
                     }
                     if (window.__elegant_hijack_timer && window.totalTime < lastBoosted - 10) {
-                        console.warn(`🔓 [WatchDog] ⚠️ totalTime异常回退(${lastBoosted}→${window.totalTime}), 蓝队可能重置了计数器`);
+                        console.warn(`🔓 [WatchDog] ⚠️ totalTime异常回退(${lastBoosted}→${window.totalTime})`);
                     }
                 } catch(e) {}
             }, 10000);
@@ -2759,7 +2829,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
                 if (window.__elegant_hijack_maintenance) clearInterval(window.__elegant_hijack_maintenance);
                 if (window.__elegant_hijack_watchdog) clearInterval(window.__elegant_hijack_watchdog);
             });
-            console.log(`🔓 [Hijack] 🎯 劫持系统v2完全部署! 含: 加速引擎+sendTime挂钩+看门狗+停滞检测+维持模式`);
+            console.log(`🔓 [Hijack] 🎯 劫持系统v4部署! 含: 1x安全速度+sendTime挂钩+看门狗+停滞检测+维持模式`);
         }
 
         async checkCaptcha(attempt = 1) {
@@ -2784,7 +2854,20 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
         }
 
         _fillAndSubmitCaptcha(code) {
-            const input = document.querySelector('input[placeholder*="验证码"], input[name*="code"], #yzm, #yzCode');
+            const layer = document.querySelector('.layui-layer');
+            let input = null;
+            if (layer) {
+                const allInputs = layer.querySelectorAll('input[type="text"]');
+                for (const inp of allInputs) {
+                    if (inp.id !== 'yzCode' && inp.style.display !== 'none' && inp.offsetParent !== null) {
+                        input = inp;
+                        break;
+                    }
+                }
+            }
+            if (!input) {
+                input = document.querySelector('input[placeholder*="验证码"]:not(#yzCode)');
+            }
             if (input) {
                 this._spoofTwFingerprint(input);
                 const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;

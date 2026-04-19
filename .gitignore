@@ -1,5 +1,7 @@
 # Node
 node_modules/
+package.json
+package-lock.json
 
 # Temporary files
 *.tmp
@@ -24,9 +26,24 @@ Thumbs.db
 *.swp
 *.swo
 
-# Config with secrets (create example version)
+# AI workspace config (development only)
+.trae/
+.claude/
+CLAUDE.md
+
+# Config with secrets
 config/api_key.txt
 config/secrets.json
+config/.inject-escaped.json
+
+# Development artifacts
+archive/
+data/
+worklog.md
+prompts/
+
+# VitePress build cache
+docs/.vitepress/
 
 # Build outputs
 dist/
