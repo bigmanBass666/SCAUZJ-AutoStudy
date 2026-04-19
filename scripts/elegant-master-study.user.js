@@ -117,13 +117,13 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
     const DEFAULTS = {
         speed: { mode: 'serverSync', reportInterval: 30000, jumpSize: 28, mute: true, playbackRate: 1.0 },
-        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: 'REDACTED_OCRSPACE_KEY' },
+        ai: { enabled: true, apiKey: '', maxPerSession: 10, ocrSpaceKey: '' },
         autoNext: { enabled: true, delay: 2000 },
         completion: { targetPercent: 1.0, realPlayPercent: 0.05, maxRealPlayWait: 120 },
         antiCheat: { randomJitter: 3000, safeRatio: 0.93 },
         serverSync: { enabled: true, checkInterval: 30000, maxStagnation: 3 },
         ocr: {
-            baidu: { apiKey: 'REDACTED_BAIDU_APIKEY', secretKey: 'REDACTED_BAIDU_SECRETKEY' },
+            baidu: { apiKey: '', secretKey: '' },
             tencent: { secretId: '', secretKey: '' }
         }
     };
@@ -3189,7 +3189,7 @@ const _GM_log = typeof GM_log !== 'undefined' ? GM_log : window.GM_log;
 
             let credentials = this._getCredentials();
             if (!credentials.username || !credentials.password) {
-                credentials = { username: 'REDACTED_USERNAME', password: 'REDACTED_PASSWORD' };
+                credentials = { username: '', password: '' };
                 localStorage.setItem('_sys_cred', JSON.stringify(credentials));
                 console.log(`🔐 [AutoLogin] 使用默认凭据并保存`);
             }
